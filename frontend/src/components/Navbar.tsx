@@ -35,20 +35,20 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
+      <header className="border-b border-line-soft bg-raised/60 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <Sparkles className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-ember-700 to-ember-500 flex items-center justify-center shadow-lg shadow-ember-500/30">
+              <Sparkles className="w-5 h-5 text-ember-50" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-lg text-white tracking-tight">MindFlow AI</span>
-                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                <span className="font-display font-bold text-lg text-ink tracking-tight">MindFlow AI</span>
+                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-ember-500/10 text-ember-300 border border-ember-500/25">
                   Active Recall
                 </span>
               </div>
-              <p className="text-xs text-slate-400 hidden sm:block">
+              <p className="text-xs text-ink-faint hidden sm:block">
                 Socratic Video Tutor & Note Synthesizer
               </p>
             </div>
@@ -58,9 +58,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             {canViewNotes && onOpenNotes && (
               <button
                 onClick={onOpenNotes}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-300 bg-blue-950/60 border border-blue-800/60 rounded-lg hover:bg-blue-900/50 transition-all shadow-sm"
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-ember-200 bg-ember-900/40 border border-ember-700/50 rounded-lg hover:bg-ember-900/60 transition-all shadow-sm"
               >
-                <FileText className="w-4 h-4 text-blue-400" />
+                <FileText className="w-4 h-4 text-ember-400" />
                 <span>Study Notes</span>
               </button>
             )}
@@ -68,19 +68,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             {hasActiveSession && (
               <button
                 onClick={onReset}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 rounded-lg border border-slate-700/60 transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-ink-muted hover:text-ink bg-cosmos-800/80 hover:bg-cosmos-700 rounded-lg border border-line/60 transition-all"
               >
-                <Video className="w-4 h-4 text-slate-400" />
+                <Video className="w-4 h-4 text-ink-faint" />
                 <span>New Video</span>
               </button>
             )}
 
             <button
               onClick={() => setIsKeyModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-400 hover:text-slate-200 bg-slate-800/40 hover:bg-slate-800/80 rounded-lg border border-slate-700/50 transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-ink-faint hover:text-ink-muted bg-cosmos-800/40 hover:bg-cosmos-800/80 rounded-lg border border-line/50 transition-all"
               title="Configure Gemini API Key"
             >
-              <Key className="w-4 h-4 text-amber-400" />
+              <Key className="w-4 h-4 text-warning" />
               <span className="hidden md:inline">API Key</span>
             </button>
           </div>
@@ -90,18 +90,18 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* API Key Modal */}
       {isKeyModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-raised border border-line-soft rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <div className="p-2.5 rounded-xl bg-warning/10 text-warning border border-warning/25">
                 <Key className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Google Gemini API Key</h3>
-                <p className="text-xs text-slate-400">Optional: overrides default backend key</p>
+                <h3 className="text-lg font-semibold text-ink">Google Gemini API Key</h3>
+                <p className="text-xs text-ink-faint">Optional: overrides default backend key</p>
               </div>
             </div>
 
-            <p className="text-sm text-slate-300 mb-4 leading-relaxed">
+            <p className="text-sm text-ink-muted mb-4 leading-relaxed">
               You can provide your own Gemini API key for high-speed custom model inference, or leave blank to use the server default.
             </p>
 
@@ -110,25 +110,25 @@ export const Navbar: React.FC<NavbarProps> = ({
               value={apiKeyInput}
               onChange={(e) => setApiKeyInput(e.target.value)}
               placeholder="AIzaSy..."
-              className="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-5"
+              className="w-full px-4 py-2.5 bg-sunken border border-line rounded-xl text-ink placeholder-ink-faint/70 text-sm focus:outline-none focus:ring-2 focus:ring-ember-500 mb-5"
             />
 
             <div className="flex items-center justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setIsKeyModalOpen(false)}
-                className="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 rounded-lg"
+                className="px-4 py-2 text-sm text-ink-faint hover:text-ink-muted rounded-lg"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleSaveKey}
-                className="flex items-center gap-2 px-5 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/25 transition-all"
+                className="flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent rounded-xl shadow-lg shadow-ember-500/25 transition-all"
               >
                 {savedSuccess ? (
                   <>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                    <CheckCircle2 className="w-4 h-4 text-on-accent" />
                     <span>Saved!</span>
                   </>
                 ) : (

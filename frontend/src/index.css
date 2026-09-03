@@ -1,13 +1,82 @@
 @import "tailwindcss";
 
+@theme {
+  /* Typography roles */
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Primitive ramp: cosmos — warm neutrals derived from Chocolate Cosmos #4F000B */
+  --color-cosmos-50: #faf3f0;
+  --color-cosmos-100: #f1e3de;
+  --color-cosmos-200: #dfc4bd;
+  --color-cosmos-300: #c39c94;
+  --color-cosmos-400: #a2685f;
+  --color-cosmos-500: #7c3a32;
+  --color-cosmos-600: #57201b;
+  --color-cosmos-700: #3d1513;
+  --color-cosmos-800: #2b0d0c;
+  --color-cosmos-900: #1e0808;
+  --color-cosmos-950: #150404;
+
+  /* Primitive ramp: ember — brand palette (Rufous → Sinopia → Aerospace Orange) */
+  --color-ember-50: #fff2ea;
+  --color-ember-100: #ffdfcc;
+  --color-ember-200: #ffc09e;
+  --color-ember-300: #ff9e6b;
+  --color-ember-400: #ff7a38;
+  --color-ember-500: #ff5100;
+  --color-ember-600: #d33d03;
+  --color-ember-700: #a72906;
+  --color-ember-800: #7b1509;
+  --color-ember-900: #4f000b;
+  --color-ember-950: #2b0007;
+
+  /* Semantic tokens */
+  --color-surface: var(--color-cosmos-950);
+  --color-raised: var(--color-cosmos-900);
+  --color-sunken: #100202;
+  --color-line: var(--color-cosmos-700);
+  --color-line-soft: var(--color-cosmos-800);
+  --color-ink: #f6ece8;
+  --color-ink-muted: var(--color-cosmos-300);
+  --color-ink-faint: var(--color-cosmos-400);
+  --color-accent: var(--color-ember-500);
+  --color-accent-hover: var(--color-ember-400);
+  --color-accent-deep: var(--color-ember-600);
+  --color-on-accent: #1a0503;
+  --color-success: #86b96e;
+  --color-on-success: #10240c;
+  --color-warning: #ffb454;
+  --color-danger: #ff6b5e;
+}
+
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-blue-500/30 selection:text-blue-200;
+    @apply bg-surface text-ink min-h-screen antialiased selection:bg-ember-500/30 selection:text-ember-100;
+    font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Visible keyboard focus on every interactive element */
+  :focus-visible {
+    outline: 2px solid var(--color-ember-400);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-/* Custom scrollbars */
+/* Ember-tinted scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -18,10 +87,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.2);
+  background: color-mix(in srgb, var(--color-ember-500) 25%, transparent);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.4);
+  background: color-mix(in srgb, var(--color-ember-500) 45%, transparent);
 }

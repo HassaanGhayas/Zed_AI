@@ -47,3 +47,7 @@ Thumbs.db
 
 # Agent artifacts
 .agent/
+.qoder/
+
+# Browser/QA screenshot artifacts (root-level test captures)
+/*.png

@@ -168,35 +168,35 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   );
 
   return (
-    <div className="flex flex-col bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+    <div className="flex flex-col bg-raised border border-line-soft rounded-2xl overflow-hidden shadow-2xl">
       {/* Video Viewport */}
       <div className="relative aspect-video w-full bg-black">
         <div ref={containerRef} className="w-full h-full" />
 
         {/* Boundary Pause Overlay */}
         {isPausedForQuiz && (
-          <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20 animate-in fade-in duration-200">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mb-3 shadow-lg shadow-amber-500/10">
+          <div className="absolute inset-0 bg-surface/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-20 animate-in fade-in duration-200">
+            <div className="w-14 h-14 rounded-2xl bg-ember-500/10 border border-ember-500/30 text-ember-400 flex items-center justify-center mb-3 shadow-lg shadow-ember-500/20">
               <Pause className="w-7 h-7" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-1">
+            <h3 className="font-display text-xl font-bold text-ink mb-1">
               Segment Concluded: Active Recall Check
             </h3>
-            <p className="text-sm text-slate-300 max-w-md mb-4 leading-relaxed">
+            <p className="text-sm text-ink-muted max-w-md mb-4 leading-relaxed">
               The video is paused so you can reflect and test your understanding of{' '}
-              <span className="text-amber-300 font-medium">"{activeSegment.title}"</span>.
+              <span className="text-ember-300 font-medium">"{activeSegment.title}"</span>.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
               <button
                 onClick={handleReplaySegment}
-                className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/25 transition-all cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl bg-accent hover:bg-accent-hover text-on-accent shadow-lg shadow-ember-600/25 transition-all cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Re-watch This Segment</span>
               </button>
               <button
                 onClick={handleResumePlayback}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-semibold rounded-xl bg-cosmos-800 hover:bg-cosmos-700 text-ink-muted border border-line transition-all cursor-pointer"
               >
                 <span>Dismiss Overlay</span>
               </button>
@@ -206,22 +206,22 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       </div>
 
       {/* Segment Status & Scrubber Bar */}
-      <div className="p-4 border-t border-slate-800 bg-slate-900/90">
-        <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
+      <div className="p-4 border-t border-line-soft bg-raised/90">
+        <div className="flex items-center justify-between text-xs text-ink-faint mb-2">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-white truncate max-w-xs sm:max-w-md">
+            <span className="font-semibold text-ink truncate max-w-xs sm:max-w-md">
               {activeSegment.title}
             </span>
-            <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[11px]">
+            <span className="px-2 py-0.5 rounded bg-cosmos-800 text-ink-muted font-mono text-[11px]">
               {formatSeconds(activeSegment.start_time)} - {formatSeconds(activeSegment.end_time)}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span>{formatSeconds(currentTime)}</span>
+            <span className="font-mono">{formatSeconds(currentTime)}</span>
             <button
               onClick={handleReplaySegment}
               title="Rewind to start of segment"
-              className="p-1 hover:text-white rounded hover:bg-slate-800 transition-colors"
+              className="p-1 hover:text-ink rounded hover:bg-cosmos-800 transition-colors"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -229,10 +229,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
 
         {/* Progress Bar for Segment */}
-        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-cosmos-800 rounded-full overflow-hidden">
           <div
             className={`h-full transition-all duration-200 ${
-              isPausedForQuiz ? 'bg-amber-500' : 'bg-blue-500'
+              isPausedForQuiz
+                ? 'bg-warning'
+                : 'bg-gradient-to-r from-ember-600 to-ember-500 shadow-[0_0_10px_rgba(255,81,0,0.45)]'
             }`}
             style={{ width: `${progressPercent}%` }}
           />

@@ -128,7 +128,7 @@ export const App: React.FC = () => {
     : true;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-blue-500/30 selection:text-blue-200">
+    <div className="min-h-screen bg-surface text-ink flex flex-col selection:bg-ember-500/30 selection:text-ember-100">
       <Navbar
         hasActiveSession={!!session}
         onReset={handleReset}
@@ -146,26 +146,26 @@ export const App: React.FC = () => {
         ) : (
           <div className="flex-1 flex flex-col gap-6">
             {/* Top Video Information Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-800/80">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-line-soft">
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                <h2 className="font-display text-xl sm:text-2xl font-bold text-ink tracking-tight">
                   {session.title}
                 </h2>
                 {session.author && (
-                  <p className="text-xs text-slate-400">By {session.author}</p>
+                  <p className="text-xs text-ink-faint">By {session.author}</p>
                 )}
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsPausedForQuiz(true)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/20 hover:bg-amber-500/20 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-warning/10 text-warning border border-warning/25 hover:bg-warning/20 transition-all cursor-pointer"
                 >
                   Trigger Quiz Check Now
                 </button>
                 <button
                   onClick={() => setIsNotesModalOpen(true)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20 hover:bg-purple-500/20 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-ember-500/10 text-ember-300 border border-ember-500/25 hover:bg-ember-500/20 transition-all cursor-pointer"
                 >
                   Notes Preview ({qaHistory.length})
                 </button>
