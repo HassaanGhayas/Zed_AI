@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Brain,
   CheckCircle2,
@@ -8,10 +8,16 @@ import {
   Loader2,
   Sparkles,
   FileCheck,
-  Lightbulb
+  Lightbulb,
+  Mic,
+  Volume2,
+  VolumeX,
+  AudioLines
 } from 'lucide-react';
 import type { Segment, Question, AnswerEvaluation } from '../types';
-import { evaluateAnswer } from '../lib/api';
+import { evaluateAnswer, transcribeAudio } from '../lib/api';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
 
 interface SocraticQuizProps {
   videoId: string;
@@ -46,6 +52,37 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
   const [showHint, setShowHint] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Voice: narrate the question aloud (TTS) + dictate the answer (STT)
+  const tts = useSpeechSynthesis();
+  const appendTranscript = useCallback((text: string) => {
+    setUserAnswer((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+  }, []);
+  const transcribeClip = useCallback((blob: Blob) => transcribeAudio(blob), []);
+  const stt = useSpeechRecognition(appendTranscript, transcribeClip);
+
+  const [autoRead, setAutoRead] = useState(() => {
+    try {
+      return localStorage.getItem('mindflow-auto-read') !== '0';
+    } catch {
+      return true;
+    }
+  });
+  const toggleAutoRead = () => {
+    const next = !autoRead;
+    setAutoRead(next);
+    if (!next) tts.cancel();
+    try {
+      localStorage.setItem('mindflow-auto-read', next ? '1' : '0');
+    } catch {
+      /* storage unavailable */
+    }
+  };
+  // Silence narration while the mic is live so the TTS audio isn't transcribed
+  const handleMicToggle = () => {
+    if (!stt.isListening) tts.cancel();
+    stt.toggle();
+  };
+
   // Reset state when question changes
   React.useEffect(() => {
     setUserAnswer('');
@@ -53,7 +90,16 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
     setAttemptCount(1);
     setShowHint(false);
     setErrorMessage('');
+    stt.stop();
   }, [activeSegment.segment_id, activeQuestionIndex]);
+
+  // Auto-narrate each new question when enabled
+  React.useEffect(() => {
+    if (!autoRead || !currentQuestion) return;
+    tts.speak(currentQuestion.prompt);
+    return () => tts.cancel();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSegment.segment_id, activeQuestionIndex, autoRead]);
 
   if (!currentQuestion) {
     return (
@@ -65,6 +111,8 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    stt.stop();
+    tts.cancel();
     if (!userAnswer.trim()) {
       setErrorMessage('Please type your explanation before submitting.');
       return;
@@ -136,9 +184,43 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
 
       {/* Question Prompt Card */}
       <div className="p-4 rounded-xl bg-sunken/70 border border-line-soft/90 mb-4">
-        <p className="text-xs font-semibold uppercase tracking-wider text-ember-400 mb-1">
-          Conceptual Question
-        </p>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-ember-400">
+            Conceptual Question
+          </p>
+          {tts.supported && (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={toggleAutoRead}
+                title={autoRead ? 'Auto-read questions: on' : 'Auto-read questions: off'}
+                className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                  autoRead
+                    ? 'bg-ember-500/10 border-ember-500/25 text-ember-400'
+                    : 'bg-transparent border-line-soft text-ink-faint hover:text-ink-muted'
+                }`}
+              >
+                <AudioLines className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => tts.toggle(currentQuestion.prompt)}
+                title={tts.isSpeaking ? 'Stop reading aloud' : 'Read question aloud'}
+                className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                  tts.isSpeaking
+                    ? 'bg-ember-500/10 border-ember-500/25 text-ember-400 animate-pulse'
+                    : 'bg-transparent border-line-soft text-ink-faint hover:text-ink-muted'
+                }`}
+              >
+                {tts.isSpeaking ? (
+                  <VolumeX className="w-3.5 h-3.5" />
+                ) : (
+                  <Volume2 className="w-3.5 h-3.5" />
+                )}
+              </button>
+            </div>
+          )}
+        </div>
         <p className="text-base text-ink font-medium leading-relaxed">
           {currentQuestion.prompt}
         </p>
@@ -208,17 +290,59 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
       {!evaluationResult?.is_correct ? (
         <form onSubmit={handleSubmit} className="flex flex-col flex-1">
           <div className="flex-1 mb-3">
-            <label className="block text-xs font-semibold text-ink-faint mb-2">
-              Explain in your own words:
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-semibold text-ink-faint">
+                Explain in your own words:
+              </label>
+              {stt.supported && (
+                <button
+                  type="button"
+                  onClick={handleMicToggle}
+                  disabled={isEvaluating || stt.isTranscribing}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                    stt.isListening
+                      ? 'bg-danger/10 border-danger/30 text-danger animate-pulse'
+                      : 'bg-sunken border-line-soft text-ink-faint hover:text-ink-muted'
+                  }`}
+                >
+                  <Mic className="w-3.5 h-3.5" />
+                  <span>
+                    {stt.isTranscribing
+                      ? 'Transcribing…'
+                      : stt.isListening
+                        ? stt.mode === 'record'
+                          ? 'Recording… tap to stop'
+                          : 'Listening… tap to stop'
+                        : 'Answer by voice'}
+                  </span>
+                </button>
+              )}
+            </div>
             <textarea
               rows={4}
               value={userAnswer}
               onChange={(e) => setUserAnswer(e.target.value)}
               disabled={isEvaluating}
-              placeholder="Type your explanation here. Focus on the core mechanism or cause..."
+              placeholder="Type your explanation here — or tap the mic and say it. Focus on the core mechanism or cause..."
               className="w-full p-3.5 bg-sunken border border-line/80 rounded-xl text-ink text-sm placeholder-ink-faint/70 focus:outline-none focus:ring-2 focus:ring-ember-500 focus:border-transparent transition-all resize-none disabled:opacity-50"
             />
+            {(stt.isListening || stt.isTranscribing) && (
+              <p className="mt-1.5 text-[11px] italic text-ink-faint flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse flex-shrink-0" />
+                {stt.isTranscribing
+                  ? 'Transcribing your answer…'
+                  : stt.mode === 'record'
+                    ? 'Recording — tap stop when you’re done speaking.'
+                    : stt.interimText
+                      ? `Hearing: “${stt.interimText}”`
+                      : 'Listening — speak your explanation…'}
+              </p>
+            )}
+            {stt.error && (
+              <p className="mt-1.5 text-xs text-danger flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" /> {stt.error}
+              </p>
+            )}
           </div>
 
           {errorMessage && (

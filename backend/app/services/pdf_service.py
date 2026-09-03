@@ -1,155 +1,249 @@
 import io
 import re
+from datetime import date
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, HRFlowable, KeepTogether
+    SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle, PageBreak
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
+
+# ── Light-theme palette (mirrors frontend [data-theme="light"]) ──
+SURFACE = colors.HexColor("#faf3f0")   # page background
+RAISED = colors.HexColor("#ffffff")    # cards
+SUNKEN = colors.HexColor("#f1e3de")    # question band / soft blobs
+LINE = colors.HexColor("#dfc4bd")      # borders
+INK = colors.HexColor("#1e0808")       # headings
+INK_MUTED = colors.HexColor("#57201b") # body
+INK_FAINT = colors.HexColor("#7c3a32") # meta / footer
+EMBER = colors.HexColor("#ff5100")     # brand pop
+EMBER_MID = colors.HexColor("#e85d04")
+EMBER_DEEP = colors.HexColor("#c2410c")  # readable ember text
+EMBER_DARK = colors.HexColor("#a72906")
+SUCCESS = colors.HexColor("#3d7a24")
+
+PAGE_W, PAGE_H = letter
+MARGIN_X = 0.75 * inch
+AVAIL_W = PAGE_W - 2 * MARGIN_X
+
 
 class PdfService:
     def __init__(self):
         pass
 
+    # ───────────────────────────── page decor ─────────────────────────────
+
+    def _cover_page(self, canvas, doc):
+        """Fancy cover: cream wash, ember rings, soft blob, thin rounded frame."""
+        canvas.saveState()
+        canvas.setFillColor(SURFACE)
+        canvas.rect(0, 0, PAGE_W, PAGE_H, stroke=0, fill=1)
+
+        # Top-right concentric ember rings + solid core
+        canvas.setStrokeColor(colors.Color(1.0, 0.32, 0.0, alpha=0.28))
+        canvas.setLineWidth(1.4)
+        canvas.circle(PAGE_W - 46, PAGE_H - 64, 96, stroke=1, fill=0)
+        canvas.circle(PAGE_W - 46, PAGE_H - 64, 66, stroke=1, fill=0)
+        canvas.setFillColor(colors.Color(1.0, 0.32, 0.0, alpha=0.9))
+        canvas.circle(PAGE_W - 46, PAGE_H - 64, 30, stroke=0, fill=1)
+        canvas.setFillColor(colors.Color(1.0, 0.95, 0.92, alpha=1.0))
+        canvas.circle(PAGE_W - 46, PAGE_H - 64, 10, stroke=0, fill=1)
+
+        # Bottom-left soft sunken blob + ember ring
+        canvas.setFillColor(colors.Color(0.945, 0.89, 0.87, alpha=1.0))
+        canvas.circle(40, 52, 78, stroke=0, fill=1)
+        canvas.setStrokeColor(colors.Color(0.76, 0.255, 0.075, alpha=0.45))
+        canvas.setLineWidth(1.2)
+        canvas.circle(40, 52, 46, stroke=1, fill=0)
+
+        # Thin rounded frame around the cover
+        canvas.setStrokeColor(LINE)
+        canvas.setLineWidth(0.9)
+        canvas.roundRect(34, 34, PAGE_W - 68, PAGE_H - 68, 20, stroke=1, fill=0)
+        canvas.restoreState()
+
+    def _later_page(self, canvas, doc):
+        """Content pages: cream wash, brand header rule, warm footer."""
+        canvas.saveState()
+        canvas.setFillColor(SURFACE)
+        canvas.rect(0, 0, PAGE_W, PAGE_H, stroke=0, fill=1)
+
+        # Header: brand + ember tick + hairline
+        canvas.setFillColor(EMBER_DEEP)
+        canvas.setFont("Helvetica-Bold", 8.5)
+        canvas.drawString(MARGIN_X, PAGE_H - 42, "MINDFLOW AI")
+        canvas.setFillColor(INK_FAINT)
+        canvas.setFont("Helvetica", 8.5)
+        canvas.drawString(MARGIN_X + 72, PAGE_H - 42, "•  Personalized Study Notes")
+        canvas.setStrokeColor(EMBER_MID)
+        canvas.setLineWidth(2)
+        canvas.line(MARGIN_X, PAGE_H - 48, MARGIN_X + 46, PAGE_H - 48)
+        canvas.setStrokeColor(LINE)
+        canvas.setLineWidth(0.6)
+        canvas.line(MARGIN_X, PAGE_H - 48, PAGE_W - MARGIN_X, PAGE_H - 48)
+
+        # Footer
+        canvas.setFillColor(INK_FAINT)
+        canvas.setFont("Helvetica", 8)
+        canvas.drawString(MARGIN_X, 34, "Learned through active recall — review often.")
+        canvas.drawRightString(PAGE_W - MARGIN_X, 34, f"Page {doc.page}")
+        canvas.restoreState()
+
+    # ───────────────────────────── main entry ─────────────────────────────
+
     def markdown_to_pdf(self, title: str, markdown_content: str) -> bytes:
-        """Render markdown text into a styled, professional PDF document."""
+        """Render the session notes into a warm, light-themed PDF with a cover page."""
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
             pagesize=letter,
-            rightMargin=0.75 * inch,
-            leftMargin=0.75 * inch,
-            topMargin=0.75 * inch,
-            bottomMargin=0.75 * inch
+            rightMargin=MARGIN_X,
+            leftMargin=MARGIN_X,
+            topMargin=0.95 * inch,
+            bottomMargin=0.75 * inch,
+            title=title,
+            author="MindFlow AI",
         )
 
         styles = getSampleStyleSheet()
 
-        # Define custom styles
-        primary_color = colors.HexColor("#1e293b")  # slate-800
-        accent_color = colors.HexColor("#2563eb")   # blue-600
-        text_color = colors.HexColor("#334155")     # slate-700
-        quote_bg = colors.HexColor("#f8fafc")       # slate-50
-
-        title_style = ParagraphStyle(
-            'DocTitle',
-            parent=styles['Heading1'],
-            fontName='Helvetica-Bold',
-            fontSize=22,
-            leading=26,
-            textColor=primary_color,
-            spaceAfter=12
+        # Cover styles
+        brand_style = ParagraphStyle(
+            'CoverBrand', parent=styles['Normal'], fontName='Helvetica-Bold',
+            fontSize=11, leading=14, textColor=EMBER_DEEP, alignment=TA_CENTER,
+        )
+        cover_title_style = ParagraphStyle(
+            'CoverTitle', parent=styles['Normal'], fontName='Helvetica-Bold',
+            fontSize=26, leading=32, textColor=INK, alignment=TA_CENTER,
+        )
+        cover_sub_style = ParagraphStyle(
+            'CoverSub', parent=styles['Normal'], fontName='Helvetica-Oblique',
+            fontSize=13, leading=18, textColor=INK_MUTED, alignment=TA_CENTER,
+        )
+        cover_meta_style = ParagraphStyle(
+            'CoverMeta', parent=styles['Normal'], fontName='Helvetica',
+            fontSize=9.5, leading=14, textColor=INK_FAINT, alignment=TA_CENTER,
         )
 
-        h1_style = ParagraphStyle(
-            'Heading1_Custom',
-            parent=styles['Heading1'],
-            fontName='Helvetica-Bold',
-            fontSize=16,
-            leading=20,
-            textColor=accent_color,
-            spaceBefore=14,
-            spaceAfter=6
+        # Content styles
+        section_style = ParagraphStyle(
+            'SectionCard', parent=styles['Normal'], fontName='Helvetica-Bold',
+            fontSize=13, leading=17, textColor=INK,
         )
-
-        h2_style = ParagraphStyle(
-            'Heading2_Custom',
-            parent=styles['Heading2'],
-            fontName='Helvetica-Bold',
-            fontSize=13,
-            leading=17,
-            textColor=primary_color,
-            spaceBefore=10,
-            spaceAfter=4
+        q_style = ParagraphStyle(
+            'QCard', parent=styles['Normal'], fontName='Helvetica',
+            fontSize=10, leading=14.5, textColor=INK,
         )
-
-        body_style = ParagraphStyle(
-            'Body_Custom',
-            parent=styles['Normal'],
-            fontName='Helvetica',
-            fontSize=10,
-            leading=14,
-            textColor=text_color,
-            spaceAfter=6
+        a_style = ParagraphStyle(
+            'ACard', parent=styles['Normal'], fontName='Helvetica',
+            fontSize=10, leading=14.5, textColor=INK_MUTED,
         )
-
-        bullet_style = ParagraphStyle(
-            'Bullet_Custom',
-            parent=styles['Normal'],
-            fontName='Helvetica',
-            fontSize=10,
-            leading=14,
-            textColor=text_color,
-            leftIndent=15,
-            firstLineIndent=-10,
-            spaceAfter=3
-        )
-
-        quote_style = ParagraphStyle(
-            'Quote_Custom',
-            parent=styles['Normal'],
-            fontName='Helvetica-Oblique',
-            fontSize=9.5,
-            leading=13.5,
-            textColor=colors.HexColor("#475569"),
-            leftIndent=20,
-            spaceBefore=4,
-            spaceAfter=6
+        small_style = ParagraphStyle(
+            'SmallNote', parent=styles['Normal'], fontName='Helvetica-Oblique',
+            fontSize=9, leading=13, textColor=INK_FAINT,
         )
 
         story = []
 
-        # Document Header
-        story.append(Paragraph(self._clean_text(title), title_style))
-        story.append(HRFlowable(width="100%", thickness=1.5, color=accent_color, spaceBefore=4, spaceAfter=14))
+        # ── Cover page ──
+        lines = [l.strip() for l in markdown_content.split('\n')]
+        n_sections = sum(1 for l in lines if l.startswith('## '))
+        n_qa = len(re.findall(r'(?m)^\*\*Q\d+:?\*\*', markdown_content))
+        story.append(Spacer(1, 1.9 * inch))
+        story.append(Paragraph("M I N D F L O W&nbsp;&nbsp;A I", brand_style))
+        story.append(Spacer(1, 22))
+        story.append(Paragraph(self._format_inline_markdown(self._clean_text(title)), cover_title_style))
+        story.append(Spacer(1, 8))
+        story.append(Paragraph("Personalized Study Notes", cover_sub_style))
+        story.append(Spacer(1, 26))
+        story.append(HRFlowable(width="42%", thickness=2.5, color=EMBER_MID,
+                                spaceBefore=0, spaceAfter=18, hAlign='CENTER'))
+        meta = f"{n_sections} topic{'s' if n_sections != 1 else ''}" \
+               f"&nbsp;&nbsp;•&nbsp;&nbsp;{n_qa} active-recall answer{'s' if n_qa != 1 else ''}" \
+               f"&nbsp;&nbsp;•&nbsp;&nbsp;{date.today().strftime('%B %d, %Y')}"
+        story.append(Paragraph(meta, cover_meta_style))
+        story.append(PageBreak())
 
-        # Process Markdown lines
-        lines = markdown_content.split('\n')
-        for line in lines:
-            line_str = line.strip()
+        # ── Content pages ──
+        pending_q = None  # (label, text) waiting for its answer line
+        for line in markdown_content.split('\n'):
+            raw = line.rstrip()
+            line_str = raw.strip()
             if not line_str:
-                story.append(Spacer(1, 4))
                 continue
 
-            # Markdown H1 (# ...)
-            if line_str.startswith("# "):
-                text = line_str[2:].strip()
+            # Section heading → accent-bar card
+            if line_str.startswith('## '):
+                text = self._format_inline_markdown(line_str[3:].strip())
+                tbl = Table([[Paragraph(text, section_style)]], colWidths=[AVAIL_W])
+                tbl.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), RAISED),
+                    ('LINEBEFORE', (0, 0), (0, -1), 4, EMBER_MID),
+                    ('BOX', (0, 0), (-1, -1), 0.75, LINE),
+                    ('ROUNDEDCORNERS', [0, 8, 8, 0]),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 12),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 7),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+                ]))
+                story.append(Spacer(1, 12))
+                story.append(tbl)
                 story.append(Spacer(1, 8))
-                story.append(Paragraph(self._format_inline_markdown(text), h1_style))
-                story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#cbd5e1"), spaceBefore=2, spaceAfter=6))
-            # Markdown H2 (## ...)
-            elif line_str.startswith("## "):
-                text = line_str[3:].strip()
-                story.append(Spacer(1, 6))
-                story.append(Paragraph(self._format_inline_markdown(text), h1_style))
-            # Markdown H3 (### ...)
-            elif line_str.startswith("### "):
-                text = line_str[4:].strip()
-                story.append(Spacer(1, 4))
-                story.append(Paragraph(self._format_inline_markdown(text), h2_style))
-            # Horizontal Rule (---)
-            elif line_str == "---":
-                story.append(Spacer(1, 4))
-                story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#e2e8f0"), spaceBefore=4, spaceAfter=4))
-            # Bullet point (- or *)
-            elif line_str.startswith("- ") or line_str.startswith("* "):
-                text = line_str[2:].strip()
-                story.append(Paragraph(f"• {self._format_inline_markdown(text)}", bullet_style))
-            # Nested or sub-bullet (  - or   *)
-            elif line.startswith("    - ") or line.startswith("  - "):
-                text = line_str[2:].strip()
-                sub_bullet = ParagraphStyle('SubBullet', parent=bullet_style, leftIndent=25)
-                story.append(Paragraph(f"– {self._format_inline_markdown(text)}", sub_bullet))
-            # Blockquote (> ...)
-            elif line_str.startswith("> "):
-                text = line_str[2:].strip()
-                story.append(Paragraph(self._format_inline_markdown(text), quote_style))
-            # Regular paragraph
-            else:
-                story.append(Paragraph(self._format_inline_markdown(line_str), body_style))
+                continue
 
-        doc.build(story)
+            # Q / A lines → collect into a card pair
+            q_match = re.match(r'^\*\*(Q\d+):?\*\*\s*(.*)$', line_str)
+            a_match = re.match(r'^\*\*(A\d+):?\*\*\s*(.*)$', line_str)
+            if q_match:
+                pending_q = (q_match.group(1), q_match.group(2))
+                continue
+            if a_match and pending_q:
+                q_label, q_text = pending_q
+                a_label, a_text = a_match.group(1), a_match.group(2)
+                pending_q = None
+                q_para = Paragraph(
+                    f'<font name="Helvetica-Bold" color="#a72906">{q_label}.</font>'
+                    f'&nbsp; {self._format_inline_markdown(q_text)}', q_style)
+                a_para = Paragraph(
+                    f'<font name="Helvetica-Bold" color="#3d7a24">{a_label}.</font>'
+                    f'&nbsp; {self._format_inline_markdown(a_text)}', a_style)
+                card = Table([[q_para], [a_para]], colWidths=[AVAIL_W])
+                card.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (0, 0), SUNKEN),
+                    ('BACKGROUND', (0, 1), (0, 1), RAISED),
+                    ('BOX', (0, 0), (-1, -1), 0.75, LINE),
+                    ('LINEBELOW', (0, 0), (0, 0), 0.6, LINE),
+                    ('ROUNDEDCORNERS', [8, 8, 8, 8]),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 12),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+                    ('TOPPADDING', (0, 0), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                story.append(card)
+                story.append(Spacer(1, 8))
+                continue
+            if a_match:  # answer without a question — render as plain card row
+                pending_q = None
+                story.append(Paragraph(
+                    f'<font name="Helvetica-Bold" color="#3d7a24">{a_match.group(1)}.</font>'
+                    f'&nbsp; {self._format_inline_markdown(a_match.group(2))}', a_style))
+                story.append(Spacer(1, 6))
+                continue
+            if pending_q:  # question continuation line
+                q_label, q_text = pending_q
+                pending_q = (q_label, f"{q_text} {line_str}")
+                continue
+
+            # Source / note lines (italics or plain)
+            story.append(Paragraph(self._format_inline_markdown(line_str), small_style))
+            story.append(Spacer(1, 6))
+
+        if not story:
+            story.append(Paragraph("No notes were generated for this session.", small_style))
+
+        doc.build(story, onFirstPage=self._cover_page, onLaterPages=self._later_page)
         pdf_data = buffer.getvalue()
         buffer.close()
         return pdf_data
@@ -238,17 +332,21 @@ class PdfService:
         return re.sub(r'(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)', _repl, text)
 
     def _format_inline_markdown(self, text: str) -> str:
-        """Convert markdown bold (**text**), italics (*text*), code (`code`), and LaTeX ($...$) to ReportLab tags."""
+        """Convert markdown bold/italic/code/links/LaTeX to ReportLab tags."""
         # 1. Escape XML entities
         t = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        # 2. Convert LaTeX math expressions  ($F_n$ → F<sub>n</sub>, $\mu$ → μ, etc.)
+        # 2. Convert LaTeX math expressions
         t = self._replace_latex_dollars(t)
-        # 3. Bold: **word** -> <b>word</b>
+        # 3. Links: [text](url) -> clickable anchor
+        t = re.sub(r'\[([^\]]+)\]\((https?://[^)\s]+)\)',
+                   r'<a href="\2" color="#c2410c">\1</a>', t)
+        # 4. Bold: **word** -> <b>word</b>
         t = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', t)
-        # 4. Italic: *word* -> <i>word</i>
+        # 5. Italic: *word* -> <i>word</i>
         t = re.sub(r'(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)', r'<i>\1</i>', t)
-        # 5. Inline code: `code` -> <font name="Courier">\1</font>
-        t = re.sub(r'`(.*?)`', r'<font name="Courier" color="#0f766e">\1</font>', t)
+        # 6. Inline code: `code`
+        t = re.sub(r'`(.*?)`', r'<font name="Courier" color="#a72906">\1</font>', t)
         return t
+
 
 pdf_service = PdfService()

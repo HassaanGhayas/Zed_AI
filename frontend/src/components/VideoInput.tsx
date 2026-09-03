@@ -140,7 +140,7 @@ export const VideoInput: React.FC<VideoInputProps> = ({
               type="button"
               onClick={() => handleSelectPreset(preset.url)}
               disabled={isLoading}
-              className="group flex items-center gap-2 px-3 py-2 rounded-xl bg-raised border border-line-soft hover:border-ember-500/50 hover:bg-cosmos-800/80 transition-all text-left text-xs"
+              className="group flex items-center gap-2 px-3 py-2 rounded-xl bg-raised border border-line-soft hover:border-ember-500/50 hover:bg-sunken transition-all text-left text-xs"
             >
               <span className="px-1.5 py-0.5 rounded bg-ember-500/10 text-ember-300 font-medium">
                 {preset.tag}

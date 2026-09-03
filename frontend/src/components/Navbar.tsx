@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Sparkles, Key, Video, FileText, CheckCircle2 } from 'lucide-react';
+import { ThemeToggle } from './ThemeToggle';
 
 interface NavbarProps {
   hasActiveSession: boolean;
@@ -55,6 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             {canViewNotes && onOpenNotes && (
               <button
                 onClick={onOpenNotes}
@@ -68,7 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {hasActiveSession && (
               <button
                 onClick={onReset}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-ink-muted hover:text-ink bg-cosmos-800/80 hover:bg-cosmos-700 rounded-lg border border-line/60 transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-all"
               >
                 <Video className="w-4 h-4 text-ink-faint" />
                 <span>New Video</span>
@@ -77,7 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={() => setIsKeyModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-ink-faint hover:text-ink-muted bg-cosmos-800/40 hover:bg-cosmos-800/80 rounded-lg border border-line/50 transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-ink-faint hover:text-ink-muted bg-sunken/60 hover:bg-sunken rounded-lg border border-line/50 transition-all"
               title="Configure Gemini API Key"
             >
               <Key className="w-4 h-4 text-warning" />

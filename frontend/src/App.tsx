@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { VideoInput } from './components/VideoInput';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -17,10 +18,16 @@ export const App: React.FC = () => {
   const [activeSegmentIndex, setActiveSegmentIndex] = useState(0);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [completedSegmentIds, setCompletedSegmentIds] = useState<Set<number>>(new Set());
+  // High-water mark of chapters reached this session — nav locking uses this so
+  // revisiting earlier chapters never re-locks forward ones.
+  const [maxReachedIndex, setMaxReachedIndex] = useState(0);
   const [isPausedForQuiz, setIsPausedForQuiz] = useState(false);
   const [seekTime, setSeekTime] = useState<number | null>(null);
   const [qaHistory, setQaHistory] = useState<QAHistoryItem[]>([]);
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
+  // Latch so one boundary crossing can't fire twice (interval tick race), and so
+  // revisits via nav/rewatch/proceed re-arm boundary handling for that segment.
+  const boundaryLatchRef = useRef<number | null>(null);
 
   const handleProcessVideo = async (url: string) => {
     setIsLoading(true);
@@ -31,6 +38,7 @@ export const App: React.FC = () => {
       setActiveSegmentIndex(0);
       setActiveQuestionIndex(0);
       setCompletedSegmentIds(new Set());
+      setMaxReachedIndex(0);
       setIsPausedForQuiz(false);
       setQaHistory([]);
     } finally {
@@ -40,20 +48,41 @@ export const App: React.FC = () => {
   };
 
   const handleReset = () => {
+    boundaryLatchRef.current = null;
     setSession(null);
     setActiveSegmentIndex(0);
     setActiveQuestionIndex(0);
     setCompletedSegmentIds(new Set());
+    setMaxReachedIndex(0);
     setIsPausedForQuiz(false);
     setQaHistory([]);
     setIsNotesModalOpen(false);
   };
 
   const handleBoundaryReached = () => {
+    if (!session || !activeSegment) return;
+    if (boundaryLatchRef.current === activeSegment.segment_id) return;
+    boundaryLatchRef.current = activeSegment.segment_id;
+
+    // Already quizzed on this segment: flow into the next one seamlessly instead
+    // of re-locking playback (contiguous boundaries, so no seek needed).
+    if (completedSegmentIds.has(activeSegment.segment_id)) {
+      if (activeSegmentIndex < session.segments.length - 1) {
+        setMaxReachedIndex((p) => Math.max(p, activeSegmentIndex + 1));
+        setActiveSegmentIndex(activeSegmentIndex + 1);
+        setActiveQuestionIndex(0);
+      }
+      return;
+    }
+    setIsPausedForQuiz(true);
+  };
+
+  const handleTriggerQuiz = () => {
     setIsPausedForQuiz(true);
   };
 
   const handleRewatchSegment = () => {
+    boundaryLatchRef.current = null;
     setIsPausedForQuiz(false);
     if (activeSegment) {
       setSeekTime(activeSegment.start_time);
@@ -85,6 +114,7 @@ export const App: React.FC = () => {
 
   const handleProceedToNextTopic = () => {
     if (!session || !activeSegment) return;
+    boundaryLatchRef.current = null;
 
     // Check if more questions remain in current segment
     if (activeQuestionIndex < activeSegment.questions.length - 1) {
@@ -101,6 +131,7 @@ export const App: React.FC = () => {
     if (activeSegmentIndex < session.segments.length - 1) {
       const nextIndex = activeSegmentIndex + 1;
       const nextSeg = session.segments[nextIndex];
+      setMaxReachedIndex((p) => Math.max(p, nextIndex));
       setActiveSegmentIndex(nextIndex);
       setActiveQuestionIndex(0);
       setIsPausedForQuiz(false);
@@ -113,6 +144,7 @@ export const App: React.FC = () => {
 
   const handleSelectSegment = (index: number) => {
     if (!session) return;
+    boundaryLatchRef.current = null;
     const seg = session.segments[index];
     setActiveSegmentIndex(index);
     setActiveQuestionIndex(0);
@@ -128,6 +160,7 @@ export const App: React.FC = () => {
     : true;
 
   return (
+    <ThemeProvider>
     <div className="min-h-screen bg-surface text-ink flex flex-col selection:bg-ember-500/30 selection:text-ember-100">
       <Navbar
         hasActiveSession={!!session}
@@ -158,7 +191,7 @@ export const App: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setIsPausedForQuiz(true)}
+                  onClick={handleTriggerQuiz}
                   className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-warning/10 text-warning border border-warning/25 hover:bg-warning/20 transition-all cursor-pointer"
                 >
                   Trigger Quiz Check Now
@@ -174,55 +207,43 @@ export const App: React.FC = () => {
 
             {/* Main Interactive Studio Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left Column: Video Player (7 cols) */}
-              <div className="lg:col-span-7 flex flex-col gap-6">
+              {/* Left Column: Video Player + quiz overlay (8 cols) */}
+              <div className="lg:col-span-8 flex flex-col gap-6">
                 {activeSegment && (
                   <VideoPlayer
                     videoId={session.video_id}
                     activeSegment={activeSegment}
+                    segments={session.segments}
                     isPausedForQuiz={isPausedForQuiz}
                     onBoundaryReached={handleBoundaryReached}
                     seekTime={seekTime}
                     onRewatchSegment={handleRewatchSegment}
+                    quizOverlay={
+                      <SocraticQuiz
+                        videoId={session.video_id}
+                        activeSegment={activeSegment}
+                        activeQuestionIndex={activeQuestionIndex}
+                        isPausedForQuiz={isPausedForQuiz}
+                        isLastSegment={isLastSegment}
+                        isLastQuestion={isLastQuestion}
+                        onQuestionCompleted={handleQuestionCompleted}
+                        onProceedToNextTopic={handleProceedToNextTopic}
+                        onOpenNotes={() => setIsNotesModalOpen(true)}
+                      />
+                    }
                   />
                 )}
-
-                {/* Segment Chapters Navigation */}
-                <div className="hidden lg:block">
-                  <SegmentNav
-                    segments={session.segments}
-                    activeSegmentIndex={activeSegmentIndex}
-                    completedSegmentIds={completedSegmentIds}
-                    onSelectSegment={handleSelectSegment}
-                  />
-                </div>
               </div>
 
-              {/* Right Column: Socratic Active Recall Quiz (5 cols) */}
-              <div className="lg:col-span-5 flex flex-col gap-6">
-                {activeSegment && (
-                  <SocraticQuiz
-                    videoId={session.video_id}
-                    activeSegment={activeSegment}
-                    activeQuestionIndex={activeQuestionIndex}
-                    isPausedForQuiz={isPausedForQuiz}
-                    isLastSegment={isLastSegment}
-                    isLastQuestion={isLastQuestion}
-                    onQuestionCompleted={handleQuestionCompleted}
-                    onProceedToNextTopic={handleProceedToNextTopic}
-                    onOpenNotes={() => setIsNotesModalOpen(true)}
-                  />
-                )}
-
-                {/* Mobile Segment Chapters Navigation */}
-                <div className="block lg:hidden">
-                  <SegmentNav
-                    segments={session.segments}
-                    activeSegmentIndex={activeSegmentIndex}
-                    completedSegmentIds={completedSegmentIds}
-                    onSelectSegment={handleSelectSegment}
-                  />
-                </div>
+              {/* Right Column: Segment Chapters (4 cols; stacks below video on mobile) */}
+              <div className="lg:col-span-4 flex flex-col gap-6">
+                <SegmentNav
+                  segments={session.segments}
+                  activeSegmentIndex={activeSegmentIndex}
+                  completedSegmentIds={completedSegmentIds}
+                  unlockedUpTo={maxReachedIndex}
+                  onSelectSegment={handleSelectSegment}
+                />
               </div>
             </div>
           </div>
@@ -241,6 +262,7 @@ export const App: React.FC = () => {
         />
       )}
     </div>
+    </ThemeProvider>
   );
 };
 

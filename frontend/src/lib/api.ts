@@ -80,6 +80,30 @@ export async function generateNotes(
   return data.markdown_notes;
 }
 
+export async function transcribeAudio(blob: Blob, apiKey?: string): Promise<string> {
+  const headers: Record<string, string> = {
+    'Content-Type': blob.type || 'audio/webm',
+  };
+  const key = apiKey || localStorage.getItem('gemini_api_key') || '';
+  if (key) {
+    headers['X-Gemini-Key'] = key;
+  }
+
+  const res = await fetch(`${API_BASE}/api/voice/transcribe`, {
+    method: 'POST',
+    headers,
+    body: blob,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Transcription failed' }));
+    throw new Error(err.detail || 'Transcription failed');
+  }
+
+  const data = await res.json();
+  return data.text || '';
+}
+
 export async function downloadNotesPdf(title: string, markdownContent: string): Promise<void> {
   const res = await fetch(`${API_BASE}/api/notes/download-pdf`, {
     method: 'POST',

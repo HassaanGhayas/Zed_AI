@@ -6,7 +6,8 @@ import {
   X,
   Loader2,
   BookOpen,
-  AlertCircle
+  AlertCircle,
+  ExternalLink
 } from 'lucide-react';
 import type { QAHistoryItem, Segment } from '../types';
 import { generateNotes, downloadNotesPdf } from '../lib/api';
@@ -76,6 +77,23 @@ export const NotesModal: React.FC<NotesModalProps> = ({
     setTimeout(() => setIsCopied(false), 1500);
   };
 
+  const formatSeconds = (s: number) => {
+    const mins = Math.floor(s / 60);
+    const secs = Math.floor(s % 60);
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  // Group the Q&A history by segment (in segment order) for the rendered view
+  const qaByTitle = new Map<string, QAHistoryItem[]>();
+  for (const item of qaHistory) {
+    const arr = qaByTitle.get(item.segment_title) ?? [];
+    arr.push(item);
+    qaByTitle.set(item.segment_title, arr);
+  }
+  const segmentsWithQa = segments
+    .map((seg) => ({ seg, items: qaByTitle.get(seg.title) ?? [] }))
+    .filter((g) => g.items.length > 0);
+
   if (!isOpen) return null;
 
   return (
@@ -104,7 +122,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-ink-faint hover:text-ink hover:bg-cosmos-800 transition-colors"
+            className="p-2 rounded-xl text-ink-faint hover:text-ink hover:bg-sunken transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -112,26 +130,62 @@ export const NotesModal: React.FC<NotesModalProps> = ({
 
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-6 text-left">
-          {isLoading ? (
-            <div className="py-20 flex flex-col items-center justify-center text-center">
-              <Loader2 className="w-8 h-8 text-ember-400 animate-spin mb-4" />
-              <h4 className="text-base font-semibold text-ink mb-1">
-                Synthesizing Notes & Verifications...
-              </h4>
-              <p className="text-xs text-ink-faint max-w-sm leading-relaxed">
-                Merging the core video concepts with your personal explanations and resolved misconceptions.
-              </p>
-            </div>
-          ) : error ? (
+          {error ? (
             <div className="p-4 rounded-xl bg-danger/10 border border-danger/30 text-danger text-sm flex items-start gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           ) : (
-            <div className="max-w-none text-ink-muted text-sm leading-relaxed space-y-4">
-              <pre className="whitespace-pre-wrap font-sans bg-sunken/60 p-5 rounded-2xl border border-line-soft text-ink-muted text-sm leading-relaxed">
-                {markdownNotes}
-              </pre>
+            <div className="space-y-6">
+              {/* Source video link */}
+              <a
+                href={`https://www.youtube.com/watch?v=${videoId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-ink-faint hover:text-ember-300 transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Source video on YouTube</span>
+              </a>
+
+              {/* Per-segment Q&A cards */}
+              {segmentsWithQa.map(({ seg, items }) => (
+                <section key={seg.segment_id} className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="text-sm font-bold text-ink truncate">{seg.title}</h4>
+                    <span className="px-2 py-0.5 rounded bg-sunken text-ink-muted font-mono text-[11px] flex-shrink-0">
+                      {formatSeconds(seg.start_time)} - {formatSeconds(seg.end_time)}
+                    </span>
+                  </div>
+                  {items.map((item, i) => (
+                    <div
+                      key={`${seg.segment_id}-${i}`}
+                      className="rounded-2xl border border-line-soft bg-sunken/40 p-4 space-y-3"
+                    >
+                      <div>
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-ember-500/10 text-ember-300 border border-ember-500/25 mb-1.5">
+                          Q{i + 1}
+                        </span>
+                        <p className="text-sm text-ink leading-relaxed">{item.question}</p>
+                      </div>
+                      <div className="border-t border-line-soft pt-3">
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/10 text-success border border-success/25 mb-1.5">
+                          A{i + 1}
+                        </span>
+                        <p className="text-sm text-ink-muted leading-relaxed">
+                          {item.user_final_answer}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </section>
+              ))}
+
+              {qaHistory.length === 0 && (
+                <p className="text-sm text-ink-faint text-center py-10">
+                  No active-recall questions were completed in this session.
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -146,7 +200,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             <button
               onClick={handleCopyMarkdown}
               disabled={isLoading || !markdownNotes}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-xl bg-cosmos-800 hover:bg-cosmos-700 text-ink-muted hover:text-ink border border-line transition-all cursor-pointer disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-xl bg-sunken hover:bg-line-soft text-ink-muted hover:text-ink border border-line transition-all cursor-pointer disabled:opacity-40"
             >
               {isCopied ? (
                 <>

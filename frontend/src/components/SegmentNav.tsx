@@ -6,6 +6,7 @@ interface SegmentNavProps {
   segments: Segment[];
   activeSegmentIndex: number;
   completedSegmentIds: Set<number>;
+  unlockedUpTo: number;
   onSelectSegment: (index: number) => void;
 }
 
@@ -13,6 +14,7 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
   segments,
   activeSegmentIndex,
   completedSegmentIds,
+  unlockedUpTo,
   onSelectSegment,
 }) => {
   const formatSeconds = (s: number) => {
@@ -48,7 +50,10 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
         {segments.map((seg, idx) => {
           const isCompleted = completedSegmentIds.has(seg.segment_id);
           const isActive = idx === activeSegmentIndex;
-          const isLocked = !isCompleted && !isActive && idx > activeSegmentIndex;
+          // Locked = never reached this session. Revisiting earlier chapters must
+          // not re-lock forward ones, so this uses the high-water mark, not the
+          // current active index.
+          const isLocked = !isCompleted && idx > unlockedUpTo;
 
           return (
             <button
@@ -59,7 +64,7 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
                 isActive
                   ? 'bg-ember-600/15 border-ember-500/50 shadow-md shadow-ember-500/10'
                   : isCompleted
-                  ? 'bg-raised/60 border-line-soft hover:border-line hover:bg-cosmos-800/40'
+                  ? 'bg-raised/60 border-line-soft hover:border-line hover:bg-sunken/60'
                   : 'bg-sunken/40 border-line-soft/40 opacity-50 cursor-not-allowed'
               }`}
             >

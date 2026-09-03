@@ -4,6 +4,7 @@ from app.core.config import settings
 from app.api.routes_video import router as video_router
 from app.api.routes_qa import router as qa_router
 from app.api.routes_notes import router as notes_router
+from app.api.routes_voice import router as voice_router
 
 app = FastAPI(
     title="Active Recall Video Learning API",
@@ -23,6 +24,7 @@ app.add_middleware(
 app.include_router(video_router)
 app.include_router(qa_router)
 app.include_router(notes_router)
+app.include_router(voice_router)
 
 @app.get("/api/health")
 async def health_check():

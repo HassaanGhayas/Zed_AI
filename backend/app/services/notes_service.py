@@ -19,33 +19,31 @@ class NotesService:
         qa_history: List[QAHistoryItem],
         custom_api_key: str = ""
     ) -> str:
-        """Synthesize video concepts with the student's verified answers into polished Markdown notes."""
+        """Synthesize the session's Q&A into minimal, straight question/answer Markdown notes."""
         # Try Gemini generation
         try:
             client = self._get_client(custom_api_key)
             qa_summary = "\n".join([
-                f"- **Topic**: {item.segment_title}\n  - **Question**: {item.question}\n  - **Student's Response**: {item.user_final_answer}\n  - **Feedback/Takeaway**: {item.ai_feedback}"
+                f"- **Topic**: {item.segment_title}\n  - **Question**: {item.question}\n  - **Student's Response**: {item.user_final_answer}"
                 for item in qa_history
             ])
             segments_summary = "\n".join([
-                f"- **{s.title}** ({int(s.start_time // 60)}m{int(s.start_time % 60)}s - {int(s.end_time // 60)}m{int(s.end_time % 60)}s): {s.summary}"
+                f"- **{s.title}** ({int(s.start_time // 60):02d}:{int(s.start_time % 60):02d} - {int(s.end_time // 60):02d}:{int(s.end_time % 60):02d})"
                 for s in segments
             ])
 
-            prompt = f"""You are an expert educational note-taker and synthesis specialist.
-Create comprehensive, polished, and beautifully structured study notes for:
-Video: "{video_title}" (https://www.youtube.com/watch?v={video_id})
+            prompt = f"""You are an expert educational note-taker.
+Create MINIMAL, clean study notes for the video: "{video_title}" (https://www.youtube.com/watch?v={video_id})
 
-IMPORTANT REQUIREMENTS:
-1. Harmonize the actual video content with the student's own responses and understanding demonstrated during the Q&A sessions.
-2. Refine grammar, eliminate awkward phrasing, and integrate the student's insights with formal explanations.
-3. Structure the notes with:
-   - # [Video Title] - Comprehensive Study Notes
-   - ## 📌 Executive Summary (Big Picture Takeaways)
-   - ## 🧩 Topic Deep Dives (For each segment, combine video concepts with student's verified insights)
-   - ## 💡 Active Recall Q&A & Pitfall Clarifications (Highlighting questions asked, key misconceptions addressed, and final accurate conclusions)
-   - ## 📝 Review Checklist / Key Terminology Glossary
-4. Use standard Markdown with bolding, lists, and callout sections (> [!NOTE]).
+STRICT FORMAT RULES:
+1. Output ONLY straight question/answer pairs grouped by topic segment. No executive summary, no concept summaries, no glossary, no checklists, no feedback or commentary, no emojis, and do NOT repeat the video title as a heading (the document already prints one).
+2. For each segment that has Q&A history, write exactly:
+   ## [Segment Title] ([mm:ss] - [mm:ss])
+   **Q1:** [question, verbatim]
+   **A1:** [student's final answer; keep it verbatim, at most fix spelling/grammar]
+   (number questions Q1/Q2... per segment)
+3. Skip segments with no Q&A history entirely.
+4. Use plain Markdown only (## headings and **bold** labels). Nothing else.
 
 Source Data:
 Segments Overview:
@@ -68,13 +66,10 @@ Student Q&A History:
         except Exception as e:
             print(f"[NotesService] Gemini call failed ({e}). Falling back to template synthesis.")
 
-        # Fallback template notes generator
+        # Fallback template notes generator — minimal, straight Q&A only.
+        # No emojis: the PDF's Helvetica font cannot encode them (garbled glyphs).
         lines = [
-            f"# Study Notes: {video_title}",
-            f"\n*Source Video: [YouTube Video](https://www.youtube.com/watch?v={video_id})*\n",
-            "## 📌 Executive Summary",
-            f"These study notes synthesize the fundamental principles covered across {len(segments)} topic segments, incorporating the active-recall exercises and conceptual clarifications completed during the study session.\n",
-            "## 🧩 Topic Breakdown & Student Understanding\n"
+            f"*Source Video: [YouTube Video](https://www.youtube.com/watch?v={video_id})*\n",
         ]
 
         # Map QA by segment title
@@ -83,22 +78,20 @@ Student Q&A History:
             qa_by_topic.setdefault(qa.segment_title, []).append(qa)
 
         for s in segments:
-            lines.append(f"### {s.title}")
-            lines.append(f"**Timestamp**: `{int(s.start_time // 60):02d}:{int(s.start_time % 60):02d}` - `{int(s.end_time // 60):02d}:{int(s.end_time % 60):02d}`\n")
-            lines.append(f"**Concept Summary**: {s.summary}\n")
-            
             topic_qas = qa_by_topic.get(s.title, [])
-            if topic_qas:
-                lines.append("**Your Verified Takeaways & Reflections:**")
-                for item in topic_qas:
-                    lines.append(f"- **Key Question**: {item.question}")
-                    lines.append(f"  - **Your Explanation**: *\"{item.user_final_answer}\"*")
-                    lines.append(f"  - **Concept Validation**: {item.ai_feedback}\n")
-            lines.append("---")
+            if not topic_qas:
+                continue
+            lines.append(
+                f"## {s.title} "
+                f"({int(s.start_time // 60):02d}:{int(s.start_time % 60):02d} - "
+                f"{int(s.end_time // 60):02d}:{int(s.end_time % 60):02d})\n"
+            )
+            for i, item in enumerate(topic_qas, 1):
+                lines.append(f"**Q{i}:** {item.question}")
+                lines.append(f"**A{i}:** {item.user_final_answer}\n")
 
-        lines.append("\n## 💡 Active Recall Synthesis & Review")
-        lines.append("- Review the questions above periodically to reinforce long-term memory retention.")
-        lines.append("- Focus on concepts where initial misconceptions occurred, ensuring mental models remain precise.")
+        if len(lines) == 1:
+            lines.append("_No active-recall questions were completed in this session._")
 
         return "\n".join(lines)
 
