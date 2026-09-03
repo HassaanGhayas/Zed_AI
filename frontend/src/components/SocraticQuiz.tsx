@@ -228,7 +228,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
           <button
             type="submit"
             disabled={isEvaluating || !userAnswer.trim()}
-            className="w-full py-3 bg-gradient-to-r from-ember-600 to-ember-500 hover:from-ember-500 hover:to-ember-400 text-on-accent font-semibold rounded-xl shadow-lg shadow-ember-500/20 flex items-center justify-center gap-2 text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full py-3 bg-gradient-to-r from-ember-500 to-ember-400 hover:from-ember-400 hover:to-ember-300 text-on-accent font-semibold rounded-xl shadow-lg shadow-ember-500/20 flex items-center justify-center gap-2 text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             {isEvaluating ? (
               <>

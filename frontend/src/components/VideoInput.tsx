@@ -90,7 +90,7 @@ export const VideoInput: React.FC<VideoInputProps> = ({
           <button
             type="submit"
             disabled={isLoading}
-            className="absolute right-2 top-2 bottom-2 px-5 bg-gradient-to-r from-ember-600 to-ember-500 hover:from-ember-500 hover:to-ember-400 text-on-accent font-semibold rounded-xl shadow-md flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="absolute right-2 top-2 bottom-2 px-5 bg-gradient-to-r from-ember-500 to-ember-400 hover:from-ember-400 hover:to-ember-300 text-on-accent font-semibold rounded-xl shadow-md flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
               <>

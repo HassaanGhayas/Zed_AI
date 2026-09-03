@@ -40,15 +40,15 @@
   --color-line-soft: var(--color-cosmos-800);
   --color-ink: #f6ece8;
   --color-ink-muted: var(--color-cosmos-300);
-  --color-ink-faint: var(--color-cosmos-400);
+  --color-ink-faint: #a86e65; /* cosmos-400 lightened to clear WCAG AA (4.84:1 on surface) */
   --color-accent: var(--color-ember-500);
   --color-accent-hover: var(--color-ember-400);
   --color-accent-deep: var(--color-ember-600);
   --color-on-accent: #1a0503;
   --color-success: #86b96e;
   --color-on-success: #10240c;
-  --color-warning: #ffb454;
-  --color-danger: #ff6b5e;
+  --color-warning: #ffc93d;
+  --color-danger: #f2555a;
 }
 
 @layer base {
