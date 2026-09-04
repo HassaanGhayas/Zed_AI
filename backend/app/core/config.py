@@ -11,7 +11,23 @@ class Settings(BaseSettings):
         "gemini-1.5-flash",
         "gemini-2.0-flash-lite"
     ]
-    cors_origins: list[str] = ["*"]
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
+    cors_origin_regex: str = r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$"
+
+    # ── Visual analysis (Gemini vision over extracted video frames) ──
+    # Toggled via ENABLE_VISUAL_ANALYSIS env var; degrades gracefully when the
+    # media toolchain (yt-dlp + ffmpeg) is unavailable.
+    enable_visual_analysis: bool = True
+    visual_frame_height: int = 480
+    visual_clip_seconds: float = 6.0
+    media_cache_ttl_hours: int = 72
 
     class Config:
         env_file = ".env"

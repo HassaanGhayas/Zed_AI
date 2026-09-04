@@ -189,33 +189,37 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
             Conceptual Question
           </p>
           {tts.supported && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={toggleAutoRead}
                 title={autoRead ? 'Auto-read questions: on' : 'Auto-read questions: off'}
-                className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                aria-label={autoRead ? 'Disable auto-reading questions' : 'Enable auto-reading questions'}
+                aria-pressed={autoRead}
+                className={`p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg border transition-colors cursor-pointer ${
                   autoRead
                     ? 'bg-ember-500/10 border-ember-500/25 text-ember-400'
                     : 'bg-transparent border-line-soft text-ink-faint hover:text-ink-muted'
                 }`}
               >
-                <AudioLines className="w-3.5 h-3.5" />
+                <AudioLines className="w-4 h-4" />
               </button>
               <button
                 type="button"
                 onClick={() => tts.toggle(currentQuestion.prompt)}
                 title={tts.isSpeaking ? 'Stop reading aloud' : 'Read question aloud'}
-                className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                aria-label={tts.isSpeaking ? 'Stop reading question aloud' : 'Read question aloud'}
+                aria-pressed={tts.isSpeaking}
+                className={`p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg border transition-colors cursor-pointer ${
                   tts.isSpeaking
                     ? 'bg-ember-500/10 border-ember-500/25 text-ember-400 animate-pulse'
                     : 'bg-transparent border-line-soft text-ink-faint hover:text-ink-muted'
                 }`}
               >
                 {tts.isSpeaking ? (
-                  <VolumeX className="w-3.5 h-3.5" />
+                  <VolumeX className="w-4 h-4" />
                 ) : (
-                  <Volume2 className="w-3.5 h-3.5" />
+                  <Volume2 className="w-4 h-4" />
                 )}
               </button>
             </div>
@@ -248,7 +252,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
 
       {/* Misconception / Clarification Alert */}
       {evaluationResult && !evaluationResult.is_correct && (
-        <div className="p-4 rounded-xl bg-warning/10 border border-warning/30 text-warning mb-4 animate-in fade-in zoom-in-95 duration-150">
+        <div role="alert" aria-live="polite" className="p-4 rounded-xl bg-warning/10 border border-warning/30 text-warning mb-4 animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-start gap-2.5">
             <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
             <div className="text-xs sm:text-sm flex-1">
@@ -271,7 +275,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
 
       {/* Correct Celebration Alert */}
       {evaluationResult && evaluationResult.is_correct && (
-        <div className="p-4 rounded-xl bg-success/10 border border-success/30 text-success mb-4 animate-in fade-in zoom-in-95 duration-150">
+        <div role="alert" aria-live="polite" className="p-4 rounded-xl bg-success/10 border border-success/30 text-success mb-4 animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-start gap-2.5">
             <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
             <div className="text-xs sm:text-sm">
@@ -291,7 +295,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
         <form onSubmit={handleSubmit} className="flex flex-col flex-1">
           <div className="flex-1 mb-3">
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-semibold text-ink-faint">
+              <label htmlFor="socratic-answer-textarea" className="block text-xs font-semibold text-ink-faint">
                 Explain in your own words:
               </label>
               {stt.supported && (
@@ -299,7 +303,9 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
                   type="button"
                   onClick={handleMicToggle}
                   disabled={isEvaluating || stt.isTranscribing}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                  aria-pressed={stt.isListening}
+                  aria-label={stt.isListening ? 'Stop voice recording' : 'Answer by voice'}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-full text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                     stt.isListening
                       ? 'bg-danger/10 border-danger/30 text-danger animate-pulse'
                       : 'bg-sunken border-line-soft text-ink-faint hover:text-ink-muted'
@@ -319,15 +325,17 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
               )}
             </div>
             <textarea
+              id="socratic-answer-textarea"
               rows={4}
               value={userAnswer}
               onChange={(e) => setUserAnswer(e.target.value)}
               disabled={isEvaluating}
+              aria-describedby={errorMessage ? 'socratic-answer-error' : undefined}
               placeholder="Type your explanation here — or tap the mic and say it. Focus on the core mechanism or cause..."
-              className="w-full p-3.5 bg-sunken border border-line/80 rounded-xl text-ink text-sm placeholder-ink-faint/70 focus:outline-none focus:ring-2 focus:ring-ember-500 focus:border-transparent transition-all resize-none disabled:opacity-50"
+              className="w-full p-3.5 bg-sunken border border-line/80 rounded-xl text-ink text-sm placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-ember-500 focus:border-transparent transition-all resize-none disabled:opacity-50"
             />
             {(stt.isListening || stt.isTranscribing) && (
-              <p className="mt-1.5 text-[11px] italic text-ink-faint flex items-center gap-1.5">
+              <p className="mt-1.5 text-[11px] italic text-ink-faint flex items-center gap-1.5" role="status" aria-live="polite">
                 <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse flex-shrink-0" />
                 {stt.isTranscribing
                   ? 'Transcribing your answer…'
@@ -339,20 +347,20 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
               </p>
             )}
             {stt.error && (
-              <p className="mt-1.5 text-xs text-danger flex items-center gap-1">
+              <p className="mt-1.5 text-xs text-danger flex items-center gap-1" role="alert">
                 <AlertCircle className="w-3.5 h-3.5" /> {stt.error}
               </p>
             )}
           </div>
 
           {errorMessage && (
-            <p className="text-xs text-danger mb-3 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errorMessage}</p>
+            <p id="socratic-answer-error" role="alert" className="text-xs text-danger mb-3 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errorMessage}</p>
           )}
 
           <button
             type="submit"
             disabled={isEvaluating || !userAnswer.trim()}
-            className="w-full py-3 bg-gradient-to-r from-ember-500 to-ember-400 hover:from-ember-400 hover:to-ember-300 text-on-accent font-semibold rounded-xl shadow-lg shadow-ember-500/20 flex items-center justify-center gap-2 text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="w-full py-3 min-h-[44px] bg-gradient-to-r from-ember-500 to-ember-400 hover:from-ember-400 hover:to-ember-300 text-on-accent font-semibold rounded-xl shadow-lg shadow-ember-500/20 flex items-center justify-center gap-2 text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             {isEvaluating ? (
               <>

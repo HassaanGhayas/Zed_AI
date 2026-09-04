@@ -32,6 +32,28 @@ class NotesService:
                 for s in segments
             ])
 
+            # Visual context captured from keyframes (Gemini vision), when present.
+            # Fed in as SOURCE CONTEXT only so answers can reference diagrams/equations;
+            # it intentionally does not add new sections (notes stay minimal Q&A).
+            visual_lines = []
+            for s in segments:
+                v = getattr(s, "visual", None)
+                if not v:
+                    continue
+                bits = []
+                if getattr(v, "diagram_description", ""):
+                    bits.append(f"diagram: {v.diagram_description}")
+                if getattr(v, "key_concept", ""):
+                    bits.append(f"key concept: {v.key_concept}")
+                for eq in (getattr(v, "equations", []) or []):
+                    latex = getattr(eq, "latex", "")
+                    if latex:
+                        desc = getattr(eq, "description", "")
+                        bits.append(f"equation: ${latex}$" + (f" ({desc})" if desc else ""))
+                if bits:
+                    visual_lines.append(f"- **{s.title}**: " + "; ".join(bits))
+            visual_context = "\n".join(visual_lines)
+
             prompt = f"""You are an expert educational note-taker.
 Create MINIMAL, clean study notes for the video: "{video_title}" (https://www.youtube.com/watch?v={video_id})
 
@@ -48,6 +70,9 @@ STRICT FORMAT RULES:
 Source Data:
 Segments Overview:
 {segments_summary}
+
+Visual Context (from keyframes; may be empty — use ONLY to enrich answers where relevant, do NOT add headings or new sections):
+{visual_context}
 
 Student Q&A History:
 {qa_summary}

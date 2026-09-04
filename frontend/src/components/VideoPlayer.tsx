@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pause, RotateCcw, Maximize, Minimize, ChevronDown } from 'lucide-react';
-import type { Segment } from '../types';
+import { Pause, RotateCcw, Maximize, Minimize, ChevronDown, ScanEye, X, Loader2 } from 'lucide-react';
+import type { Segment, FrameExplanation } from '../types';
+import { explainFrame, visualAvailability, frameUrl } from '../lib/api';
 
 declare global {
   interface Window {
@@ -43,6 +44,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [duration, setDuration] = useState<number>(0);
   const [apiLoaded, setApiLoaded] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  // Gemini-vision "Explain this screen" — only shown when the backend reports the
+  // media toolchain is available, so the UI hides cleanly where it's unsupported.
+  const [visualEnabled, setVisualEnabled] = useState<boolean>(false);
+  const [explain, setExplain] = useState<{
+    open: boolean;
+    loading: boolean;
+    error: string | null;
+    data: FrameExplanation | null;
+    timestamp: number;
+  }>({ open: false, loading: false, error: null, data: null, timestamp: 0 });
 
   // Load YouTube IFrame API script once
   useEffect(() => {
@@ -181,6 +192,72 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
+  // Ask the backend once whether frame extraction + Gemini vision are available.
+  useEffect(() => {
+    let alive = true;
+    visualAvailability()
+      .then((a) => {
+        if (alive) setVisualEnabled(!!a.enabled);
+      })
+      .catch(() => {
+        if (alive) setVisualEnabled(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const closeExplain = useCallback(() => {
+    setExplain((s) => ({ ...s, open: false }));
+  }, []);
+
+  // Close visual explanation on Escape
+  useEffect(() => {
+    if (!explain.open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeExplain();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [explain.open, closeExplain]);
+
+  // Capture the current playback position, pause, and ask Gemini to explain the frame.
+  const handleExplainScreen = useCallback(() => {
+    if (!playerRef.current?.getCurrentTime) return;
+    let t = 0;
+    try {
+      t = playerRef.current.getCurrentTime();
+    } catch {
+      return;
+    }
+    try {
+      playerRef.current.pauseVideo?.();
+    } catch {
+      // ignore — player may still be initializing
+    }
+    setExplain({ open: true, loading: true, error: null, data: null, timestamp: t });
+    explainFrame({
+      video_id: videoId,
+      timestamp: t,
+      segment_title: activeSegment.title,
+      segment_summary: activeSegment.summary,
+    })
+      .then((data) =>
+        setExplain({ open: true, loading: false, error: null, data, timestamp: t })
+      )
+      .catch((err) =>
+        setExplain({
+          open: true,
+          loading: false,
+          error: err?.message || 'Visual explanation failed.',
+          data: null,
+          timestamp: t,
+        })
+      );
+  }, [videoId, activeSegment.title, activeSegment.summary]);
+
   // "More below" affordance for the scrollbar-less Q&A overlay: a fade + chevron
   // that hides at the scroll bottom and never shows when everything fits.
   const overlayScrollRef = useRef<HTMLDivElement>(null);
@@ -304,16 +381,27 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             className="no-scrollbar absolute inset-0 overflow-y-auto bg-surface/95 backdrop-blur-md animate-in fade-in duration-200"
           >
             <div ref={overlayContentRef} className="min-h-full flex flex-col gap-3 p-4 sm:p-6 pb-16 max-w-3xl mx-auto">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-xs min-w-0">
                 <Pause className="w-4 h-4 text-ember-400 flex-shrink-0" />
                 <span className="font-semibold text-ink flex-shrink-0">Paused for Active Recall</span>
                 <span className="hidden sm:inline text-ink-faint truncate">• {activeSegment.title}</span>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
+                {visualEnabled && (
+                  <button
+                    onClick={handleExplainScreen}
+                    aria-label="Explain what is on screen"
+                    className="flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] text-xs font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
+                  >
+                    <ScanEye className="w-3.5 h-3.5" />
+                    <span>Explain screen</span>
+                  </button>
+                )}
                 <button
                   onClick={handleReplaySegment}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
+                  aria-label="Re-watch this segment"
+                  className="flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] text-xs font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Re-watch Segment</span>
@@ -323,7 +411,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 <button
                   onClick={toggleFullscreen}
                   title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
-                  className="p-1.5 rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
+                  aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
+                  className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
                 >
                   {isFullscreen ? (
                     <Minimize className="w-3.5 h-3.5" />
@@ -345,6 +434,102 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
+      {/* Gemini-vision explanation panel — sits above the quiz overlay (z-60) and
+          inside the fullscreen shell so it never forces an exit from fullscreen. */}
+      {explain.open && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="visual-explanation-title"
+          className="absolute inset-0 z-[60]"
+        >
+          <div className="no-scrollbar absolute inset-0 overflow-y-auto bg-surface/95 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="min-h-full flex flex-col gap-4 p-4 sm:p-6 max-w-3xl mx-auto">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs min-w-0">
+                  <ScanEye className="w-4 h-4 text-ember-400 flex-shrink-0" />
+                  <span id="visual-explanation-title" className="font-semibold text-ink flex-shrink-0">Visual Explanation</span>
+                  <span className="hidden sm:inline text-ink-faint font-mono">
+                    @ {formatSeconds(explain.timestamp)}
+                  </span>
+                </div>
+                <button
+                  onClick={closeExplain}
+                  title="Close visual explanation"
+                  aria-label="Close visual explanation"
+                  className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer flex-shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {explain.loading && (
+                <div role="status" aria-live="polite" className="flex items-center justify-center gap-2 text-sm text-ink-muted py-10">
+                  <Loader2 className="w-4 h-4 animate-spin text-ember-400" />
+                  Analyzing the current frame…
+                </div>
+              )}
+
+              {!explain.loading && explain.error && (
+                <div className="text-sm text-ink-muted bg-sunken border border-line rounded-xl p-4">
+                  {explain.error}
+                </div>
+              )}
+
+              {!explain.loading && explain.data && (
+                <div className="flex flex-col gap-4">
+                  <img
+                    src={frameUrl(videoId, explain.timestamp)}
+                    alt={`Video frame at ${formatSeconds(explain.timestamp)}`}
+                    className="w-full max-h-72 object-contain rounded-xl border border-line-soft bg-black"
+                  />
+                  <p className="text-sm leading-relaxed text-ink">{explain.data.explanation}</p>
+
+                  {explain.data.key_concept && (
+                    <div className="text-xs">
+                      <span className="font-semibold text-ink-muted">Key concept: </span>
+                      <span className="text-ink">{explain.data.key_concept}</span>
+                    </div>
+                  )}
+
+                  {explain.data.on_screen_text && (
+                    <div>
+                      <div className="text-xs font-semibold text-ink-muted mb-1">On-screen text</div>
+                      <div className="text-xs font-mono bg-sunken border border-line rounded-lg p-3 whitespace-pre-wrap text-ink">
+                        {explain.data.on_screen_text}
+                      </div>
+                    </div>
+                  )}
+
+                  {explain.data.diagram_description && (
+                    <div>
+                      <div className="text-xs font-semibold text-ink-muted mb-1">Diagram</div>
+                      <p className="text-sm text-ink">{explain.data.diagram_description}</p>
+                    </div>
+                  )}
+
+                  {explain.data.equations && explain.data.equations.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold text-ink-muted mb-1">Equations</div>
+                      <div className="flex flex-col gap-2">
+                        {explain.data.equations.map((eq, i) => (
+                          <div key={i} className="bg-sunken border border-line rounded-lg p-3">
+                            <div className="font-mono text-sm text-ink whitespace-pre-wrap">{eq.latex}</div>
+                            {eq.description && (
+                              <div className="text-xs text-ink-muted mt-1">{eq.description}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Segment Status & Scrubber Bar (hidden in fullscreen so the video owns the screen) */}
       {!isFullscreen && (
       <div className="p-4 border-t border-line-soft bg-raised/90">
@@ -359,17 +544,30 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <span className="font-mono">{formatSeconds(currentTime)}</span>
+            {visualEnabled && (
+              <button
+                onClick={handleExplainScreen}
+                title="Explain what's on screen"
+                aria-label="Explain what's on screen"
+                className="flex items-center gap-1 px-2.5 py-1.5 min-h-[36px] rounded-lg hover:bg-sunken text-ink-faint hover:text-ink transition-colors cursor-pointer"
+              >
+                <ScanEye className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline text-[11px] font-semibold">Explain screen</span>
+              </button>
+            )}
             <button
               onClick={handleReplaySegment}
               title="Rewind to start of segment"
-              className="p-1 hover:text-ink rounded hover:bg-sunken transition-colors"
+              aria-label="Rewind to start of segment"
+              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center hover:text-ink rounded-lg hover:bg-sunken transition-colors cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={toggleFullscreen}
-              title="Enter full screen"
-              className="p-1 hover:text-ink rounded hover:bg-sunken transition-colors"
+              title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
+              aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
+              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center hover:text-ink rounded-lg hover:bg-sunken transition-colors cursor-pointer"
             >
               <Maximize className="w-3.5 h-3.5" />
             </button>

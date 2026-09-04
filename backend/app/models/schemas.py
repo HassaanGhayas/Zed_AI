@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 from pydantic import BaseModel, Field
 
 class TranscriptCue(BaseModel):
@@ -12,6 +12,18 @@ class Question(BaseModel):
     expected_concept: str
     hints: List[str] = Field(default_factory=list)
 
+class EquationItem(BaseModel):
+    latex: str
+    description: str = ""
+
+class FrameAnalysis(BaseModel):
+    has_visual_content: bool = False
+    on_screen_text: str = ""
+    equations: List[EquationItem] = Field(default_factory=list)
+    diagram_description: str = ""
+    key_concept: str = ""
+    flashcard: Optional[Dict[str, str]] = None
+
 class Segment(BaseModel):
     segment_id: int
     title: str
@@ -19,6 +31,10 @@ class Segment(BaseModel):
     end_time: float
     summary: str
     questions: List[Question] = Field(default_factory=list)
+    # Optional visual enrichment (populated only when visual analysis is requested)
+    visual: Optional[FrameAnalysis] = None
+    keyframe_url: Optional[str] = None
+    keyframe_time: Optional[float] = None
 
 class VideoProcessRequest(BaseModel):
     url: str
@@ -69,6 +85,42 @@ class GenerateNotesRequest(BaseModel):
 class GenerateNotesResponse(BaseModel):
     markdown_notes: str
 
+class PdfKeyframe(BaseModel):
+    title: str
+    timestamp: float
+    caption: str = ""
+
 class DownloadPdfRequest(BaseModel):
     title: str
     markdown_content: str
+    video_id: str = ""
+    keyframes: List[PdfKeyframe] = Field(default_factory=list)
+
+class ExplainFrameRequest(BaseModel):
+    video_id: str
+    timestamp: float
+    question: Optional[str] = ""
+    segment_title: Optional[str] = ""
+    segment_summary: Optional[str] = ""
+    transcript_excerpt: Optional[str] = ""
+
+class ExplainFrameResponse(BaseModel):
+    timestamp: float
+    frame_url: str
+    explanation: str
+    on_screen_text: str = ""
+    equations: List[EquationItem] = Field(default_factory=list)
+    diagram_description: str = ""
+    key_concept: str = ""
+
+class SegmentVisualRequest(BaseModel):
+    video_id: str
+    start_time: float
+    end_time: float
+    title: Optional[str] = ""
+    summary: Optional[str] = ""
+
+class SegmentVisualResponse(BaseModel):
+    timestamp: float
+    frame_url: str
+    visual: FrameAnalysis

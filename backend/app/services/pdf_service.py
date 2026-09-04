@@ -5,10 +5,12 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
 from reportlab.platypus import (
-    SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle, PageBreak
+    SimpleDocTemplate, Paragraph, Spacer, HRFlowable, Table, TableStyle, PageBreak,
+    Image as RLImage
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
+from reportlab.lib.utils import ImageReader
 
 # ── Light-theme palette (mirrors frontend [data-theme="light"]) ──
 SURFACE = colors.HexColor("#faf3f0")   # page background
@@ -93,8 +95,13 @@ class PdfService:
 
     # ───────────────────────────── main entry ─────────────────────────────
 
-    def markdown_to_pdf(self, title: str, markdown_content: str) -> bytes:
-        """Render the session notes into a warm, light-themed PDF with a cover page."""
+    def markdown_to_pdf(self, title: str, markdown_content: str, video_id: str = "", keyframes=None) -> bytes:
+        """Render the session notes into a warm, light-themed PDF with a cover page.
+
+        When video_id + keyframes are supplied (and visual analysis is available),
+        a representative keyframe JPEG is embedded under each matching section.
+        """
+        keyframes = keyframes or []
         buffer = io.BytesIO()
         doc = SimpleDocTemplate(
             buffer,
@@ -144,6 +151,10 @@ class PdfService:
             'SmallNote', parent=styles['Normal'], fontName='Helvetica-Oblique',
             fontSize=9, leading=13, textColor=INK_FAINT,
         )
+        cap_style = ParagraphStyle(
+            'KeyframeCaption', parent=styles['Normal'], fontName='Helvetica-Oblique',
+            fontSize=8.5, leading=12, textColor=INK_FAINT, alignment=TA_CENTER,
+        )
 
         story = []
 
@@ -176,7 +187,8 @@ class PdfService:
 
             # Section heading → accent-bar card
             if line_str.startswith('## '):
-                text = self._format_inline_markdown(line_str[3:].strip())
+                heading_raw = line_str[3:].strip()
+                text = self._format_inline_markdown(heading_raw)
                 tbl = Table([[Paragraph(text, section_style)]], colWidths=[AVAIL_W])
                 tbl.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, -1), RAISED),
@@ -191,6 +203,10 @@ class PdfService:
                 story.append(Spacer(1, 12))
                 story.append(tbl)
                 story.append(Spacer(1, 8))
+                # Embed the matching keyframe (guarded; skips silently on any failure)
+                kf = self._match_keyframe(heading_raw, keyframes)
+                if kf:
+                    self._append_keyframe_image(story, kf, video_id, cap_style)
                 continue
 
             # Q / A lines → collect into a card pair
@@ -247,6 +263,53 @@ class PdfService:
         pdf_data = buffer.getvalue()
         buffer.close()
         return pdf_data
+
+    def _match_keyframe(self, heading_text: str, keyframes):
+        """Match a '## Title (mm:ss - mm:ss)' heading to a keyframe by title."""
+        if not keyframes:
+            return None
+        base = re.sub(r'\s*\(\s*\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}\s*\)\s*$', '', heading_text).strip().lower()
+        if not base:
+            return None
+        for kf in keyframes:
+            title = (kf.get("title") or "").strip().lower()
+            if title and (title == base or base.startswith(title) or title.startswith(base)):
+                return kf
+        return None
+
+    def _append_keyframe_image(self, story, kf, video_id: str, cap_style) -> None:
+        """Embed a representative keyframe JPEG under a section. Fully guarded: any
+        failure (no media toolchain, download/extract error, bad image) is swallowed
+        so the PDF still builds without it."""
+        try:
+            if not video_id:
+                return
+            from app.services.visual_service import visual_service
+            if not visual_service.availability().get("enabled"):
+                return
+            ts = float(kf.get("timestamp", 0.0))
+            path = visual_service.extract_frame(video_id, ts)
+            iw, ih = ImageReader(str(path)).getSize()
+            if not iw or not ih:
+                return
+            max_w = AVAIL_W * 0.92
+            max_h = 2.6 * inch
+            draw_w = min(max_w, float(iw))
+            draw_h = float(ih) * (draw_w / float(iw))
+            if draw_h > max_h:
+                draw_h = max_h
+                draw_w = float(iw) * (draw_h / float(ih))
+            img = RLImage(str(path), width=draw_w, height=draw_h)
+            img.hAlign = 'CENTER'
+            story.append(img)
+            caption = (kf.get("caption") or "").strip()
+            cap_text = f"Key frame @ {int(ts // 60):02d}:{int(ts % 60):02d}"
+            if caption:
+                cap_text += f" - {caption}"
+            story.append(Paragraph(self._format_inline_markdown(cap_text), cap_style))
+            story.append(Spacer(1, 8))
+        except Exception as e:
+            print(f"[PdfService] Keyframe embed skipped: {e}")
 
     def _clean_text(self, text: str) -> str:
         """Escape basic XML entities for ReportLab Paragraphs."""

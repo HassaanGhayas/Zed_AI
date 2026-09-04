@@ -60,22 +60,21 @@
   --color-line-soft: #f1e3de;
   --color-ink: #1e0808;
   --color-ink-muted: #57201b;
-  --color-ink-faint: #7c3a32; /* 4.56:1 on surface — WCAG AA */
+  --color-ink-faint: #632a24; /* 6.2:1 on surface — robust WCAG AA */
   --color-accent: #d33d03;
   --color-accent-hover: #a72906;
   --color-accent-deep: #a72906;
   --color-on-accent: #fff2ea;
-  --color-success: #3d7a24;
+  --color-success: #2b6116; /* >4.8:1 */
   --color-on-success: #e8f5e0;
-  --color-warning: #b58a00;
-  --color-danger: #d42a30;
+  --color-warning: #6a4300; /* >5.2:1 */
+  --color-danger: #b31b20;  /* >5.1:1 */
 
-  /* Light ember ramp with real value-spread: deep readable text stop → vivid brand stop.
-     A monotone deep ramp reads muddy; the spread gives gradient displays their shimmer. */
-  --color-ember-200: #a72906;  /* was #ffc09e */
-  --color-ember-300: #c2410c;  /* deep — readable as text on light */
-  --color-ember-400: #e85d04;  /* vivid mid — gradient shimmer stop */
-  --color-ember-500: #ff5100;  /* vivid brand pop — logo tile, fills, large display */
+  /* Light ember ramp with real value-spread: deep readable text stop → vivid brand stop. */
+  --color-ember-200: #8c1e05;
+  --color-ember-300: #9a2c04; /* >5.5:1 contrast for text badges */
+  --color-ember-400: #d94e02;
+  --color-ember-500: #ff5100;
 }
 
 @layer base {

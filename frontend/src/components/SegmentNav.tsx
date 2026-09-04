@@ -27,11 +27,11 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
   const progressPct = Math.round((completedCount / Math.max(1, segments.length)) * 100);
 
   return (
-    <div className="bg-raised border border-line-soft rounded-2xl p-4 flex flex-col h-full shadow-lg">
+    <nav aria-label="Topic chapters" className="bg-raised border border-line-soft rounded-2xl p-4 flex flex-col h-full shadow-lg">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-bold text-ink uppercase tracking-wider">
+        <h2 className="text-sm font-bold text-ink uppercase tracking-wider">
           Topic Chapters
-        </h3>
+        </h2>
         <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-ember-500/10 text-ember-300 border border-ember-500/25">
           {completedCount} / {segments.length} Mastered ({progressPct}%)
         </span>
@@ -59,8 +59,9 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
             <button
               key={seg.segment_id}
               disabled={isLocked}
+              aria-current={isActive ? 'step' : undefined}
               onClick={() => onSelectSegment(idx)}
-              className={`w-full text-left p-3 rounded-xl border transition-all flex items-start gap-3 cursor-pointer ${
+              className={`w-full text-left p-3 min-h-[56px] rounded-xl border transition-all flex items-start gap-3 cursor-pointer ${
                 isActive
                   ? 'bg-ember-600/15 border-ember-500/50 shadow-md shadow-ember-500/10'
                   : isCompleted
@@ -79,6 +80,16 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
                 )}
               </div>
 
+              {/* Keyframe thumbnail (Gemini vision) — appears once enrichment lands */}
+              {seg.keyframe_url && (
+                <img
+                  src={seg.keyframe_url}
+                  alt=""
+                  loading="lazy"
+                  className="w-14 h-9 rounded-md object-cover border border-line-soft bg-black flex-shrink-0"
+                />
+              )}
+
               {/* Title & Metadata */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1 mb-0.5">
@@ -90,8 +101,8 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
                     {seg.title}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-ink-faint">
-                  <Clock className="w-3 h-3" />
+                <div className="flex items-center gap-1.5 text-xs text-ink-muted">
+                  <Clock className="w-3.5 h-3.5" />
                   <span className="font-mono">
                     {formatSeconds(seg.start_time)} - {formatSeconds(seg.end_time)}
                   </span>
@@ -101,6 +112,6 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 };

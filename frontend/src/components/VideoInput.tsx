@@ -73,24 +73,29 @@ export const VideoInput: React.FC<VideoInputProps> = ({
 
       {/* Input Box */}
       <form onSubmit={handleSubmit} className="relative max-w-2xl mx-auto mb-6">
-        <div className="relative flex items-center">
-          <div className="absolute left-4 text-ember-500 flex items-center justify-center">
+        <label htmlFor="youtube-url-input" className="sr-only">
+          YouTube Video URL
+        </label>
+        <div className="flex items-center bg-raised/90 border border-line hover:border-cosmos-600 focus-within:border-ember-500 rounded-2xl p-1.5 sm:p-2 shadow-xl focus-within:ring-4 focus-within:ring-ember-500/20 transition-all">
+          <div className="pl-3 pr-2 text-ember-500 flex items-center justify-center flex-shrink-0 pointer-events-none" aria-hidden="true">
             <svg className="w-6 h-6 fill-current text-ember-500" viewBox="0 0 24 24">
               <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
             </svg>
           </div>
           <input
+            id="youtube-url-input"
             type="text"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={isLoading}
+            aria-describedby={error ? 'youtube-url-error' : undefined}
             placeholder="Paste any public YouTube video link..."
-            className="w-full pl-13 pr-32 py-4 bg-raised/90 border border-line hover:border-cosmos-600 focus:border-ember-500 rounded-2xl text-ink placeholder-ink-faint/70 text-base shadow-xl focus:outline-none focus:ring-4 focus:ring-ember-500/20 transition-all disabled:opacity-50"
+            className="flex-1 min-w-0 bg-transparent px-2 py-2.5 text-ink placeholder-ink-faint text-sm sm:text-base focus:outline-none disabled:opacity-50"
           />
           <button
             type="submit"
             disabled={isLoading}
-            className="absolute right-2 top-2 bottom-2 px-5 bg-gradient-to-r from-ember-500 to-ember-400 hover:from-ember-400 hover:to-ember-300 text-on-accent font-semibold rounded-xl shadow-md flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="flex-shrink-0 px-3.5 sm:px-5 py-2.5 min-h-[44px] bg-gradient-to-r from-ember-500 to-ember-400 hover:from-ember-400 hover:to-ember-300 text-on-accent font-semibold rounded-xl shadow-md flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isLoading ? (
               <>
@@ -109,7 +114,7 @@ export const VideoInput: React.FC<VideoInputProps> = ({
 
       {/* Loading Progress State */}
       {isLoading && (
-        <div className="max-w-md mx-auto p-4 rounded-xl bg-raised/80 border border-line-soft text-left mb-6 shadow-xl animate-in fade-in duration-200">
+        <div role="status" aria-live="polite" className="max-w-md mx-auto p-4 rounded-xl bg-raised/80 border border-line-soft text-left mb-6 shadow-xl animate-in fade-in duration-200">
           <div className="flex items-center gap-3">
             <Loader2 className="w-5 h-5 text-ember-400 animate-spin flex-shrink-0" />
             <div>
@@ -122,7 +127,7 @@ export const VideoInput: React.FC<VideoInputProps> = ({
 
       {/* Error Banner */}
       {error && (
-        <div className="max-w-md mx-auto p-3.5 rounded-xl bg-danger/10 border border-danger/30 text-danger text-sm mb-6 text-left flex items-start gap-2">
+        <div id="youtube-url-error" role="alert" aria-live="polite" className="max-w-md mx-auto p-3.5 rounded-xl bg-danger/10 border border-danger/30 text-danger text-sm mb-6 text-left flex items-start gap-2">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
@@ -133,19 +138,19 @@ export const VideoInput: React.FC<VideoInputProps> = ({
         <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint mb-3">
           Or try one of these educational classics:
         </p>
-        <div className="flex flex-wrap justify-center gap-2.5">
+        <div className="flex flex-wrap justify-center gap-2">
           {PRESET_VIDEOS.map((preset, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => handleSelectPreset(preset.url)}
               disabled={isLoading}
-              className="group flex items-center gap-2 px-3 py-2 rounded-xl bg-raised border border-line-soft hover:border-ember-500/50 hover:bg-sunken transition-all text-left text-xs"
+              className="group flex items-center gap-2 px-3 py-2 min-h-[44px] max-w-full rounded-xl bg-raised border border-line-soft hover:border-ember-500/50 hover:bg-sunken transition-all text-left text-xs cursor-pointer"
             >
-              <span className="px-1.5 py-0.5 rounded bg-ember-500/10 text-ember-300 font-medium">
+              <span className="px-1.5 py-0.5 rounded bg-ember-500/10 text-ember-300 font-medium flex-shrink-0">
                 {preset.tag}
               </span>
-              <span className="text-ink-muted group-hover:text-ink transition-colors truncate max-w-xs">
+              <span className="text-ink-muted group-hover:text-ink transition-colors truncate min-w-0 flex-1 max-w-[200px] sm:max-w-xs">
                 {preset.title}
               </span>
             </button>

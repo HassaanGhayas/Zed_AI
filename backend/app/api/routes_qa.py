@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import APIRouter, Header
 from typing import Optional
 from app.models.schemas import AnswerEvaluationRequest, AnswerEvaluationResponse
@@ -10,7 +11,8 @@ async def evaluate_answer(
     req: AnswerEvaluationRequest,
     x_gemini_key: Optional[str] = Header(None, alias="X-Gemini-Key")
 ):
-    result = evaluator_service.evaluate_answer(
+    result = await asyncio.to_thread(
+        evaluator_service.evaluate_answer,
         question_prompt=req.question_prompt,
         expected_concept=req.expected_concept,
         segment_summary=req.segment_summary,

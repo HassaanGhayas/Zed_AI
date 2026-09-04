@@ -1,4 +1,10 @@
-import type { VideoSession, AnswerEvaluation, QAHistoryItem } from '../types';
+import type {
+  VideoSession,
+  AnswerEvaluation,
+  QAHistoryItem,
+  FrameExplanation,
+  SegmentVisualResult,
+} from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -104,13 +110,19 @@ export async function transcribeAudio(blob: Blob, apiKey?: string): Promise<stri
   return data.text || '';
 }
 
-export async function downloadNotesPdf(title: string, markdownContent: string): Promise<void> {
+export async function downloadNotesPdf(
+  title: string,
+  markdownContent: string,
+  opts?: { videoId?: string; keyframes?: { title: string; timestamp: number; caption?: string }[] }
+): Promise<void> {
   const res = await fetch(`${API_BASE}/api/notes/download-pdf`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       title,
       markdown_content: markdownContent,
+      video_id: opts?.videoId || '',
+      keyframes: opts?.keyframes || [],
     }),
   });
 
@@ -128,4 +140,73 @@ export async function downloadNotesPdf(title: string, markdownContent: string): 
   a.click();
   window.URL.revokeObjectURL(url);
   document.body.removeChild(a);
+}
+
+// ── Visual analysis (Gemini vision over extracted video frames) ──
+
+/** Absolute URL for a cached extracted frame at t seconds (used as an <img> src). */
+export function frameUrl(videoId: string, tSeconds: number): string {
+  const t = Math.max(0, tSeconds).toFixed(3);
+  return `${API_BASE}/api/video/frame?video_id=${encodeURIComponent(videoId)}&t=${t}`;
+}
+
+export async function visualAvailability(
+  apiKey?: string
+): Promise<{ enabled: boolean; media_ready: boolean; config_enabled?: boolean }> {
+  const res = await fetch(`${API_BASE}/api/video/visual/availability`, {
+    headers: getHeaders(apiKey),
+  });
+  if (!res.ok) {
+    throw new Error('Availability check failed');
+  }
+  return res.json();
+}
+
+export async function explainFrame(
+  payload: {
+    video_id: string;
+    timestamp: number;
+    question?: string;
+    segment_title?: string;
+    segment_summary?: string;
+    transcript_excerpt?: string;
+  },
+  apiKey?: string
+): Promise<FrameExplanation> {
+  const res = await fetch(`${API_BASE}/api/video/explain-frame`, {
+    method: 'POST',
+    headers: getHeaders(apiKey),
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Frame explanation failed' }));
+    throw new Error(err.detail || 'Frame explanation failed');
+  }
+
+  return res.json();
+}
+
+export async function segmentVisual(
+  payload: {
+    video_id: string;
+    start_time: number;
+    end_time: number;
+    title?: string;
+    summary?: string;
+  },
+  apiKey?: string
+): Promise<SegmentVisualResult> {
+  const res = await fetch(`${API_BASE}/api/video/segment-visual`, {
+    method: 'POST',
+    headers: getHeaders(apiKey),
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Segment visual analysis failed' }));
+    throw new Error(err.detail || 'Segment visual analysis failed');
+  }
+
+  return res.json();
 }

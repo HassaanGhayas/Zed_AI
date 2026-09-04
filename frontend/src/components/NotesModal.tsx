@@ -63,7 +63,17 @@ export const NotesModal: React.FC<NotesModalProps> = ({
     if (!markdownNotes) return;
     setIsDownloading(true);
     try {
-      await downloadNotesPdf(videoTitle, markdownNotes);
+      // Attach a representative keyframe per enriched chapter so the PDF can embed
+      // the actual diagram/slide under each section. The backend skips embedding
+      // gracefully when the media toolchain is unavailable.
+      const keyframes = segments
+        .filter((s) => s.keyframe_url || s.visual?.has_visual_content)
+        .map((s) => ({
+          title: s.title,
+          timestamp: s.keyframe_time ?? (s.start_time + s.end_time) / 2,
+          caption: s.visual?.key_concept || s.visual?.diagram_description || '',
+        }));
+      await downloadNotesPdf(videoTitle, markdownNotes, { videoId, keyframes });
     } catch (err: any) {
       setError(err.message || 'Failed to download PDF');
     } finally {
@@ -93,28 +103,44 @@ export const NotesModal: React.FC<NotesModalProps> = ({
   const segmentsWithQa = segments
     .map((seg) => ({ seg, items: qaByTitle.get(seg.title) ?? [] }))
     .filter((g) => g.items.length > 0);
+  // Close modal on Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 sm:p-6 animate-in fade-in duration-150">
-      <div className="bg-raised border border-line-soft rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="notes-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-6 animate-in fade-in duration-150"
+    >
+      <div className="bg-raised border border-line-soft rounded-2xl sm:rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-line-soft flex items-center justify-between bg-raised/90">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-ember-500/10 border border-ember-500/25 text-ember-400 flex items-center justify-center">
-              <BookOpen className="w-5 h-5" />
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-line-soft flex items-center justify-between gap-2.5 bg-raised/90">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-ember-500/10 border border-ember-500/25 text-ember-400 flex items-center justify-center flex-shrink-0">
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-display text-base sm:text-lg font-bold text-ink">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h3 id="notes-modal-title" className="font-display text-sm sm:text-lg font-bold text-ink truncate">
                   Personalized Study Notes
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-ember-500/10 text-ember-300 border border-ember-500/25">
+                <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-ember-500/10 text-ember-300 border border-ember-500/25 flex-shrink-0">
                   AI Synthesized
                 </span>
               </div>
-              <p className="text-xs text-ink-faint truncate max-w-sm sm:max-w-md">
+              <p className="text-xs text-ink-faint truncate max-w-xs sm:max-w-md">
                 {videoTitle}
               </p>
             </div>
@@ -122,7 +148,8 @@ export const NotesModal: React.FC<NotesModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-ink-faint hover:text-ink hover:bg-sunken transition-colors"
+            aria-label="Close notes modal"
+            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-ink-faint hover:text-ink hover:bg-sunken transition-colors cursor-pointer flex-shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -200,7 +227,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             <button
               onClick={handleCopyMarkdown}
               disabled={isLoading || !markdownNotes}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-xl bg-sunken hover:bg-line-soft text-ink-muted hover:text-ink border border-line transition-all cursor-pointer disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] text-xs font-medium rounded-xl bg-sunken hover:bg-line-soft text-ink-muted hover:text-ink border border-line transition-all cursor-pointer disabled:opacity-40"
             >
               {isCopied ? (
                 <>
@@ -218,7 +245,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             <button
               onClick={handleDownloadPdf}
               disabled={isLoading || !markdownNotes || isDownloading}
-              className="flex items-center gap-2 px-5 py-2 text-xs font-semibold rounded-xl bg-accent hover:bg-accent-hover text-on-accent shadow-lg shadow-ember-500/25 transition-all cursor-pointer disabled:opacity-40"
+              className="flex items-center gap-2 px-5 py-2 min-h-[44px] text-xs font-semibold rounded-xl bg-accent hover:bg-accent-hover text-on-accent shadow-lg shadow-ember-500/25 transition-all cursor-pointer disabled:opacity-40"
             >
               {isDownloading ? (
                 <>

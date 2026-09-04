@@ -60,6 +60,7 @@ export function useSpeechRecognition(
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const listeningRef = useRef(false);
+  const isMountedRef = useRef(true);
   const onFinalRef = useRef(onFinalText);
   onFinalRef.current = onFinalText;
   const fallbackRef = useRef(fallbackTranscribe);
@@ -174,11 +175,11 @@ export function useSpeechRecognition(
         streamRef.current?.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
         listeningRef.current = false;
-        setIsListening(false);
+        if (isMountedRef.current) setIsListening(false);
         const blob = new Blob(chunksRef.current, { type: rec.mimeType || 'audio/webm' });
         chunksRef.current = [];
         if (blob.size === 0) return;
-        setIsTranscribing(true);
+        if (isMountedRef.current) setIsTranscribing(true);
         try {
           // Gemini rejects webm/ogg containers — transcode to 16 kHz mono WAV first
           let payload = blob;
@@ -188,20 +189,24 @@ export function useSpeechRecognition(
             /* decode unsupported: send the original clip as-is */
           }
           const text = (await transcribe(payload)).trim();
-          if (text) onFinalRef.current(text);
+          if (text && isMountedRef.current) onFinalRef.current(text);
         } catch (e) {
-          setError(e instanceof Error ? e.message : 'Transcription failed.');
+          if (isMountedRef.current) {
+            setError(e instanceof Error ? e.message : 'Transcription failed.');
+          }
         } finally {
-          setIsTranscribing(false);
+          if (isMountedRef.current) setIsTranscribing(false);
         }
       };
 
       mediaRecRef.current = rec;
       listeningRef.current = true;
-      setIsListening(true);
+      if (isMountedRef.current) setIsListening(true);
       rec.start();
     } catch {
-      setError('Microphone access was denied. Allow it in your browser settings to use voice input.');
+      if (isMountedRef.current) {
+        setError('Microphone access was denied. Allow it in your browser settings to use voice input.');
+      }
     }
   }, []);
 
@@ -225,6 +230,7 @@ export function useSpeechRecognition(
   // Hard-abort on unmount so the mic never stays hot
   useEffect(
     () => () => {
+      isMountedRef.current = false;
       listeningRef.current = false;
       try {
         recRef.current?.abort();

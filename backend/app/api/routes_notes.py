@@ -1,3 +1,4 @@
+import asyncio
 import re
 from fastapi import APIRouter, Header, Response
 from typing import Optional
@@ -12,7 +13,8 @@ async def generate_notes(
     req: GenerateNotesRequest,
     x_gemini_key: Optional[str] = Header(None, alias="X-Gemini-Key")
 ):
-    notes = notes_service.generate_personalized_notes(
+    notes = await asyncio.to_thread(
+        notes_service.generate_personalized_notes,
         video_title=req.video_title,
         video_id=req.video_id,
         segments=req.segments,
@@ -23,9 +25,12 @@ async def generate_notes(
 
 @router.post("/download-pdf")
 async def download_pdf(req: DownloadPdfRequest):
-    pdf_bytes = pdf_service.markdown_to_pdf(
+    pdf_bytes = await asyncio.to_thread(
+        pdf_service.markdown_to_pdf,
         title=req.title,
-        markdown_content=req.markdown_content
+        markdown_content=req.markdown_content,
+        video_id=req.video_id,
+        keyframes=[k.model_dump() for k in req.keyframes],
     )
     clean_title = re.sub(r'[^a-zA-Z0-9_-]', '_', req.title)[:40]
     filename = f"{clean_title}_Study_Notes.pdf"

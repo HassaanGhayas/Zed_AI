@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { VideoInput } from './components/VideoInput';
@@ -7,27 +7,132 @@ import { SegmentNav } from './components/SegmentNav';
 import { SocraticQuiz } from './components/SocraticQuiz';
 import { NotesModal } from './components/NotesModal';
 import type { VideoSession, QAHistoryItem } from './types';
-import { processVideo } from './lib/api';
+import { processVideo, segmentVisual, visualAvailability, frameUrl } from './lib/api';
+import {
+  loadPersistedSession,
+  savePersistedSession,
+  clearPersistedSession,
+  type PersistedSession,
+} from './lib/persistence';
 
 export const App: React.FC = () => {
-  const [session, setSession] = useState<VideoSession | null>(null);
+  // Restore the last study session (video + chapter + mastery) on reload so a
+  // refresh resumes instead of resetting progress.
+  const [restored] = useState<PersistedSession | null>(() => loadPersistedSession());
+  const restoredSegCount = restored?.session?.segments.length ?? 0;
+  const clampIdx = (i: number) =>
+    Math.max(0, Math.min(i, Math.max(restoredSegCount - 1, 0)));
+
+  const [session, setSession] = useState<VideoSession | null>(
+    restored?.session ?? null
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
   
   // Progression state
-  const [activeSegmentIndex, setActiveSegmentIndex] = useState(0);
-  const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
-  const [completedSegmentIds, setCompletedSegmentIds] = useState<Set<number>>(new Set());
+  const [activeSegmentIndex, setActiveSegmentIndex] = useState(
+    clampIdx(restored?.activeSegmentIndex ?? 0)
+  );
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState(
+    Math.max(0, restored?.activeQuestionIndex ?? 0)
+  );
+  const [completedSegmentIds, setCompletedSegmentIds] = useState<Set<number>>(
+    () => new Set(restored?.completedSegmentIds ?? [])
+  );
   // High-water mark of chapters reached this session — nav locking uses this so
   // revisiting earlier chapters never re-locks forward ones.
-  const [maxReachedIndex, setMaxReachedIndex] = useState(0);
+  const [maxReachedIndex, setMaxReachedIndex] = useState(
+    clampIdx(restored?.maxReachedIndex ?? 0)
+  );
   const [isPausedForQuiz, setIsPausedForQuiz] = useState(false);
   const [seekTime, setSeekTime] = useState<number | null>(null);
-  const [qaHistory, setQaHistory] = useState<QAHistoryItem[]>([]);
+  const [qaHistory, setQaHistory] = useState<QAHistoryItem[]>(
+    restored?.qaHistory ?? []
+  );
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   // Latch so one boundary crossing can't fire twice (interval tick race), and so
   // revisits via nav/rewatch/proceed re-arm boundary handling for that segment.
   const boundaryLatchRef = useRef<number | null>(null);
+
+  // Lazily enrich each chapter with a Gemini-vision keyframe (thumbnail + visual
+  // insight) once a session loads. Fully opt-in: skipped when the backend reports
+  // the media toolchain is unavailable, and cancellable so a reset/new video stops it.
+  const sessionVideoId = session?.video_id;
+  useEffect(() => {
+    if (!sessionVideoId || !session) return;
+    const segs = session.segments;
+    if (!segs || segs.length === 0) return;
+    let alive = true;
+
+    (async () => {
+      try {
+        const avail = await visualAvailability();
+        if (!alive || !avail.enabled) return;
+      } catch {
+        return;
+      }
+      for (const seg of segs) {
+        if (!alive) return;
+        if (seg.visual) continue;
+        try {
+          const res = await segmentVisual({
+            video_id: sessionVideoId,
+            start_time: seg.start_time,
+            end_time: seg.end_time,
+            title: seg.title,
+            summary: seg.summary,
+          });
+          if (!alive) return;
+          setSession((prev) => {
+            if (!prev || prev.video_id !== sessionVideoId) return prev;
+            return {
+              ...prev,
+              segments: prev.segments.map((s) =>
+                s.segment_id === seg.segment_id
+                  ? {
+                      ...s,
+                      visual: res.visual,
+                      keyframe_url: frameUrl(sessionVideoId, res.timestamp),
+                      keyframe_time: res.timestamp,
+                    }
+                  : s
+              ),
+            };
+          });
+        } catch {
+          // Per-segment failures are non-fatal; leave that chapter text-only.
+          if (!alive) return;
+        }
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+    // Keyed only on the session video id: enrichment merges additively and must
+    // not re-trigger itself as segments gain visual fields.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionVideoId]);
+
+  // Persist progress on every change so a refresh resumes the same session.
+  useEffect(() => {
+    if (!session) return;
+    savePersistedSession({
+      session,
+      activeSegmentIndex,
+      activeQuestionIndex,
+      completedSegmentIds: Array.from(completedSegmentIds),
+      maxReachedIndex,
+      qaHistory,
+    });
+  }, [
+    session,
+    activeSegmentIndex,
+    activeQuestionIndex,
+    completedSegmentIds,
+    maxReachedIndex,
+    qaHistory,
+  ]);
 
   const handleProcessVideo = async (url: string) => {
     setIsLoading(true);
@@ -49,6 +154,7 @@ export const App: React.FC = () => {
 
   const handleReset = () => {
     boundaryLatchRef.current = null;
+    clearPersistedSession();
     setSession(null);
     setActiveSegmentIndex(0);
     setActiveQuestionIndex(0);
@@ -180,25 +286,25 @@ export const App: React.FC = () => {
           <div className="flex-1 flex flex-col gap-6">
             {/* Top Video Information Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-line-soft">
-              <div>
-                <h2 className="font-display text-xl sm:text-2xl font-bold text-ink tracking-tight">
+              <div className="min-w-0 flex-1">
+                <h1 className="font-display text-xl sm:text-2xl font-bold text-ink tracking-tight truncate">
                   {session.title}
-                </h2>
+                </h1>
                 {session.author && (
                   <p className="text-xs text-ink-faint">By {session.author}</p>
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5 flex-shrink-0">
                 <button
                   onClick={handleTriggerQuiz}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-warning/10 text-warning border border-warning/25 hover:bg-warning/20 transition-all cursor-pointer"
+                  className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-warning/10 text-warning border border-warning/25 hover:bg-warning/20 transition-all cursor-pointer flex items-center justify-center"
                 >
                   Trigger Quiz Check Now
                 </button>
                 <button
                   onClick={() => setIsNotesModalOpen(true)}
-                  className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-ember-500/10 text-ember-300 border border-ember-500/25 hover:bg-ember-500/20 transition-all cursor-pointer"
+                  className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-ember-500/10 text-ember-300 border border-ember-500/25 hover:bg-ember-500/20 transition-all cursor-pointer flex items-center justify-center"
                 >
                   Notes Preview ({qaHistory.length})
                 </button>

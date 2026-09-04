@@ -40,8 +40,8 @@ Your task is to break the video into 3 to 6 logical pedagogical segments based o
 For EACH segment, you must provide:
 1. segment_id (1-indexed integer)
 2. title (short, clear topic title representing the concept covered)
-3. start_time (start in seconds, float)
-4. end_time (end in seconds, float, must align with where the topic naturally concludes)
+3. start_time (start in SECONDS, float, on the same 0..{total_duration:.1f} scale as the transcript timestamps)
+4. end_time (end in SECONDS, float, must align with where the topic naturally concludes)
 5. summary (2-3 concise sentences explaining the scientific/conceptual mechanism explained in this segment. Do NOT include greetings or video filler)
 6. questions: 1 to 2 targeted active-recall conceptual questions. Each question must have:
    - id: unique string e.g. "s1_q1"
@@ -90,7 +90,10 @@ Transcript:
                     data = json.loads(raw_text)
                     segments = [Segment(**item) for item in data]
                     if segments:
-                        return segments
+                        fixed = self._sanitize_segments(segments, total_duration)
+                        if fixed:
+                            return fixed
+                        print(f"[SegmenterService] Model {model_name} returned an unusable timeline; trying next.")
                 except Exception as model_err:
                     print(f"[SegmenterService] Model {model_name} attempt failed: {model_err}")
                     continue
@@ -100,6 +103,51 @@ Transcript:
 
         # Fallback heuristic segmenter:
         return self._heuristic_segmentation(video_title, cues, total_duration)
+
+    def _sanitize_segments(
+        self,
+        segments: List[Segment],
+        total_duration: float
+    ) -> List[Segment]:
+        """Repair model-produced timelines so segments always cover the real video.
+
+        Models sometimes return a compressed/hallucinated scale (e.g. 0-10 for a
+        5-minute video). Rescale proportionally onto the true duration, force
+        contiguity and full coverage, and reject degenerate partitions.
+        Returns None when the timeline is unusable (caller falls back).
+        """
+        if not segments or total_duration <= 0:
+            return None
+
+        segs = sorted(segments, key=lambda s: s.start_time)
+        last_end = segs[-1].end_time
+        if last_end <= 0:
+            return None
+
+        # Rescale when the model's timeline doesn't match the real duration.
+        if abs(last_end - total_duration) > max(5.0, 0.1 * total_duration):
+            factor = total_duration / last_end
+            for s in segs:
+                s.start_time = round(s.start_time * factor, 1)
+                s.end_time = round(s.end_time * factor, 1)
+
+        # Force exact, contiguous coverage of [0, total_duration].
+        segs[0].start_time = 0.0
+        for i in range(len(segs) - 1):
+            segs[i].end_time = segs[i + 1].start_time
+        segs[-1].end_time = round(total_duration, 1)
+
+        # Reject partitions with degenerate (sub-second) or reversed segments.
+        for s in segs:
+            if s.end_time - s.start_time < 1.0:
+                return None
+
+        for i, s in enumerate(segs, 1):
+            s.segment_id = i
+            # Keep question ids unique and consistent with the repaired ordering.
+            for qi, q in enumerate(s.questions, 1):
+                q.id = f"s{s.segment_id}_q{qi}"
+        return segs
 
     def _heuristic_segmentation(
         self,

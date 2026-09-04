@@ -32,10 +32,12 @@ export function useSpeechSynthesis() {
     return () => window.speechSynthesis.removeEventListener('voiceschanged', pick);
   }, [supported]);
 
+  const isMountedRef = useRef(true);
+
   const cancel = useCallback(() => {
     if (!supported) return;
     window.speechSynthesis.cancel();
-    setIsSpeaking(false);
+    if (isMountedRef.current) setIsSpeaking(false);
   }, [supported]);
 
   const speak = useCallback(
@@ -46,9 +48,13 @@ export function useSpeechSynthesis() {
       if (voiceRef.current) utterance.voice = voiceRef.current;
       utterance.rate = 0.95;
       utterance.pitch = 1;
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      setIsSpeaking(true);
+      utterance.onend = () => {
+        if (isMountedRef.current) setIsSpeaking(false);
+      };
+      utterance.onerror = () => {
+        if (isMountedRef.current) setIsSpeaking(false);
+      };
+      if (isMountedRef.current) setIsSpeaking(true);
       window.speechSynthesis.speak(utterance);
     },
     [supported]
@@ -66,6 +72,7 @@ export function useSpeechSynthesis() {
   // Never leave narration running after the quiz unmounts
   useEffect(
     () => () => {
+      isMountedRef.current = false;
       if (supported) window.speechSynthesis.cancel();
     },
     [supported]

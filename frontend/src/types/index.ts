@@ -12,6 +12,39 @@ export interface Segment {
   end_time: number;
   summary: string;
   questions: Question[];
+  visual?: FrameVisual;
+  keyframe_url?: string;
+  keyframe_time?: number;
+}
+
+export interface EquationItem {
+  latex: string;
+  description?: string;
+}
+
+export interface FrameVisual {
+  has_visual_content: boolean;
+  on_screen_text?: string;
+  equations?: EquationItem[];
+  diagram_description?: string;
+  key_concept?: string;
+  flashcard?: { front: string; back: string } | null;
+}
+
+export interface FrameExplanation {
+  timestamp: number;
+  frame_url: string;
+  explanation: string;
+  on_screen_text?: string;
+  equations?: EquationItem[];
+  diagram_description?: string;
+  key_concept?: string;
+}
+
+export interface SegmentVisualResult {
+  timestamp: number;
+  frame_url: string;
+  visual: FrameVisual;
 }
 
 export interface VideoSession {
