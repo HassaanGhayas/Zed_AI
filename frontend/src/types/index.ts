@@ -56,10 +56,28 @@ export interface VideoSession {
   segments: Segment[];
 }
 
+export interface AttemptHistoryItem {
+  attempt_number: number;
+  student_answer: string;
+  verdict?: string;
+  score?: number;
+  feedback?: string;
+  understood_concepts?: string[];
+  missing_concepts?: string[];
+  misconceptions?: string[];
+}
+
 export interface AnswerEvaluation {
   status: 'CORRECT' | 'MISCONCEPTION' | 'INCORRECT';
   is_correct: boolean;
+  score: number;
   feedback: string;
+  understood_concepts: string[];
+  missing_concepts: string[];
+  misconceptions: string[];
+  retry_question?: string | null;
+  can_advance: boolean;
+  needs_review: boolean;
   follow_up_prompt?: string | null;
 }
 
@@ -69,4 +87,26 @@ export interface QAHistoryItem {
   user_final_answer: string;
   ai_feedback: string;
   attempts: number;
+  score?: number;
+  needs_review?: boolean;
+  understood_concepts?: string[];
+  missing_concepts?: string[];
+  misconceptions?: string[];
+}
+
+export type TutorStage = 'SETUP' | 'WATCHING' | 'ACTIVE_RECALL' | 'REVIEW' | 'COMPLETE';
+
+export interface SessionHistoryEntry {
+  sessionId: string;
+  lectureTitle: string;
+  videoId: string;
+  totalTopics: number;
+  completedTopics: number;
+  currentTopicIndex: number;
+  status: 'active' | 'complete';
+  needsReviewCount: number;
+  understoodConcepts: string[];
+  missingConcepts: string[];
+  misconceptions: string[];
+  lastUpdated: string;
 }

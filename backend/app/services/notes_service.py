@@ -23,59 +23,47 @@ class NotesService:
         # Try Gemini generation
         try:
             client = self._get_client(custom_api_key)
-            qa_summary = "\n".join([
-                f"- **Topic**: {item.segment_title}\n  - **Question**: {item.question}\n  - **Student's Response**: {item.user_final_answer}"
-                for item in qa_history
-            ])
-            segments_summary = "\n".join([
-                f"- **{s.title}** ({int(s.start_time // 60):02d}:{int(s.start_time % 60):02d} - {int(s.end_time // 60):02d}:{int(s.end_time % 60):02d})"
-                for s in segments
-            ])
+            qa_details = []
+            flagged_items = []
+            for item in qa_history:
+                flag_txt = " [NEEDS REVIEW]" if item.needs_review else " [MASTERED]"
+                misc_txt = f", Misconceptions: {', '.join(item.misconceptions)}" if item.misconceptions else ""
+                concepts_txt = f", Understood: {', '.join(item.understood_concepts)}" if item.understood_concepts else ""
+                qa_details.append(
+                    f"- **Topic**: {item.segment_title}{flag_txt}\n"
+                    f"  - **Question**: {item.question}\n"
+                    f"  - **Student's Articulation**: {item.user_final_answer}\n"
+                    f"  - **Tutor Feedback**: {item.ai_feedback}{concepts_txt}{misc_txt}"
+                )
+                if item.needs_review or item.misconceptions:
+                    flagged_items.append(
+                        f"- **{item.segment_title}**: Concept: {item.question} | Notes: {', '.join(item.misconceptions) or 'Requires conceptual revision'}"
+                    )
+            qa_summary = "\n".join(qa_details)
+            flagged_summary = "\n".join(flagged_items) if flagged_items else "None (All checkpoints mastered)."
 
-            # Visual context captured from keyframes (Gemini vision), when present.
-            # Fed in as SOURCE CONTEXT only so answers can reference diagrams/equations;
-            # it intentionally does not add new sections (notes stay minimal Q&A).
-            visual_lines = []
-            for s in segments:
-                v = getattr(s, "visual", None)
-                if not v:
-                    continue
-                bits = []
-                if getattr(v, "diagram_description", ""):
-                    bits.append(f"diagram: {v.diagram_description}")
-                if getattr(v, "key_concept", ""):
-                    bits.append(f"key concept: {v.key_concept}")
-                for eq in (getattr(v, "equations", []) or []):
-                    latex = getattr(eq, "latex", "")
-                    if latex:
-                        desc = getattr(eq, "description", "")
-                        bits.append(f"equation: ${latex}$" + (f" ({desc})" if desc else ""))
-                if bits:
-                    visual_lines.append(f"- **{s.title}**: " + "; ".join(bits))
-            visual_context = "\n".join(visual_lines)
+            prompt = f"""You are an expert personalized educational synthesis tutor.
+Create high-value, personalized study notes for the lecture: "{video_title}" (https://www.youtube.com/watch?v={video_id})
 
-            prompt = f"""You are an expert educational note-taker.
-Create MINIMAL, clean study notes for the video: "{video_title}" (https://www.youtube.com/watch?v={video_id})
-
-STRICT FORMAT RULES:
-1. Output ONLY straight question/answer pairs grouped by topic segment. No executive summary, no concept summaries, no glossary, no checklists, no feedback or commentary, no emojis, and do NOT repeat the video title as a heading (the document already prints one).
-2. For each segment that has Q&A history, write exactly:
-   ## [Segment Title] ([mm:ss] - [mm:ss])
-   **Q1:** [question, verbatim]
-   **A1:** [student's final answer; keep it verbatim, at most fix spelling/grammar]
-   (number questions Q1/Q2... per segment)
-3. Skip segments with no Q&A history entirely.
-4. Use plain Markdown only (## headings and **bold** labels). Nothing else.
+IMPORTANT PEDAGOGICAL RULES:
+1. Personalization: Synthesize each segment by honoring the student's own wording, intuitions, and analogies where they showed genuine mastery.
+2. If the student had misconceptions or a segment is marked [NEEDS REVIEW], do NOT pretend it was mastered. Instead, include a dedicated "## Concepts to Revisit" section at the end detailing the exact conceptual gaps and how to think about them correctly.
+3. Keep the notes clean, structured, and easy to review before an exam. Use Markdown headings (## and ###) and bullet points.
+4. Do NOT use emojis (PDF export standard fonts cannot render emoji glyphs).
+5. Do NOT repeat the video title as the top heading (the viewer header prints it).
 
 Source Data:
 Segments Overview:
 {segments_summary}
 
-Visual Context (from keyframes; may be empty — use ONLY to enrich answers where relevant, do NOT add headings or new sections):
+Keyframe Visual Insights (use where equations/diagrams were discussed):
 {visual_context}
 
-Student Q&A History:
+Student Checkpoint History:
 {qa_summary}
+
+Flagged Checkpoints Requiring Review:
+{flagged_summary}
 """
             for model_name in settings.gemini_candidate_models:
                 try:
@@ -91,16 +79,17 @@ Student Q&A History:
         except Exception as e:
             print(f"[NotesService] Gemini call failed ({e}). Falling back to template synthesis.")
 
-        # Fallback template notes generator — minimal, straight Q&A only.
-        # No emojis: the PDF's Helvetica font cannot encode them (garbled glyphs).
+        # Fallback template notes generator — clean, personalized synthesis without emojis.
         lines = [
-            f"*Source Video: [YouTube Video](https://www.youtube.com/watch?v={video_id})*\n",
+            f"*Source Video: [YouTube Lecture](https://www.youtube.com/watch?v={video_id})*\n",
         ]
 
         # Map QA by segment title
         qa_by_topic: Dict[str, List[QAHistoryItem]] = {}
         for qa in qa_history:
             qa_by_topic.setdefault(qa.segment_title, []).append(qa)
+
+        revisit_items: List[str] = []
 
         for s in segments:
             topic_qas = qa_by_topic.get(s.title, [])
@@ -112,8 +101,23 @@ Student Q&A History:
                 f"{int(s.end_time // 60):02d}:{int(s.end_time % 60):02d})\n"
             )
             for i, item in enumerate(topic_qas, 1):
-                lines.append(f"**Q{i}:** {item.question}")
-                lines.append(f"**A{i}:** {item.user_final_answer}\n")
+                status_label = " (Needs Review)" if item.needs_review else " (Mastered)"
+                lines.append(f"### Checkpoint {i}: {item.question}{status_label}")
+                lines.append(f"**Your Explanation:** {item.user_final_answer}")
+                if item.understood_concepts:
+                    lines.append(f"**Validated Concepts:** {', '.join(item.understood_concepts)}")
+                lines.append(f"**Tutor Insight:** {item.ai_feedback}\n")
+
+                if item.needs_review or item.misconceptions:
+                    misc_desc = ", ".join(item.misconceptions) if item.misconceptions else "Review key mechanisms"
+                    revisit_items.append(f"- **{s.title}**: {misc_desc} (Question: {item.question})")
+
+        if revisit_items:
+            lines.append("## Concepts to Revisit\n")
+            lines.append("The following topics encountered difficulties during active recall. Review before your exam:\n")
+            for r in revisit_items:
+                lines.append(r)
+            lines.append("")
 
         if len(lines) == 1:
             lines.append("_No active-recall questions were completed in this session._")

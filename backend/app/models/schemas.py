@@ -51,6 +51,16 @@ class MessageItem(BaseModel):
     role: str
     content: str
 
+class AttemptHistoryItem(BaseModel):
+    attempt_number: int = 1
+    student_answer: str = ""
+    verdict: Optional[str] = ""
+    score: Optional[int] = 0
+    feedback: Optional[str] = ""
+    understood_concepts: List[str] = Field(default_factory=list)
+    missing_concepts: List[str] = Field(default_factory=list)
+    misconceptions: List[str] = Field(default_factory=list)
+
 class AnswerEvaluationRequest(BaseModel):
     video_id: str
     segment_id: int
@@ -62,11 +72,20 @@ class AnswerEvaluationRequest(BaseModel):
     user_answer: str
     attempt_count: int = 1
     chat_history: List[MessageItem] = Field(default_factory=list)
+    attempt_history: List[AttemptHistoryItem] = Field(default_factory=list)
+    current_question_prompt: Optional[str] = None
 
 class AnswerEvaluationResponse(BaseModel):
     status: str  # "CORRECT", "MISCONCEPTION", "INCORRECT"
     is_correct: bool
+    score: int = 0  # 0-100 mastery score
     feedback: str
+    understood_concepts: List[str] = Field(default_factory=list)
+    missing_concepts: List[str] = Field(default_factory=list)
+    misconceptions: List[str] = Field(default_factory=list)
+    retry_question: Optional[str] = None
+    can_advance: bool = False
+    needs_review: bool = False
     follow_up_prompt: Optional[str] = None
 
 class QAHistoryItem(BaseModel):
@@ -75,6 +94,11 @@ class QAHistoryItem(BaseModel):
     user_final_answer: str
     ai_feedback: str
     attempts: int = 1
+    score: int = 0
+    needs_review: bool = False
+    understood_concepts: List[str] = Field(default_factory=list)
+    missing_concepts: List[str] = Field(default_factory=list)
+    misconceptions: List[str] = Field(default_factory=list)
 
 class GenerateNotesRequest(BaseModel):
     video_title: str

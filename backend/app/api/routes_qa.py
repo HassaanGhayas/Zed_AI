@@ -20,6 +20,8 @@ async def evaluate_answer(
         user_answer=req.user_answer,
         attempt_count=req.attempt_count,
         chat_history=req.chat_history,
+        attempt_history=req.attempt_history,
+        current_question_prompt=req.current_question_prompt,
         custom_api_key=x_gemini_key or ""
     )
     return result

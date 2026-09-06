@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Key, Video, FileText, CheckCircle2, X } from 'lucide-react';
+import { Sparkles, Key, Video, FileText, CheckCircle2, X, PieChart } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 
 interface NavbarProps {
@@ -7,13 +7,15 @@ interface NavbarProps {
   onReset: () => void;
   onOpenNotes?: () => void;
   canViewNotes?: boolean;
+  onOpenProgress?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   hasActiveSession,
   onReset,
   onOpenNotes,
-  canViewNotes
+  canViewNotes,
+  onOpenProgress,
 }) => {
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState(
@@ -91,6 +93,17 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
             <ThemeToggle />
+            {onOpenProgress && (
+              <button
+                onClick={onOpenProgress}
+                aria-label="View learning dashboard & progress"
+                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-amber-200 bg-amber-950/40 border border-amber-800/50 rounded-lg hover:bg-amber-900/60 transition-all shadow-sm cursor-pointer"
+              >
+                <PieChart className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <span className="hidden sm:inline">Analytics</span>
+              </button>
+            )}
+
             {canViewNotes && onOpenNotes && (
               <button
                 onClick={onOpenNotes}

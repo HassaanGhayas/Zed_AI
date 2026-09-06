@@ -1,6 +1,7 @@
 import type {
   VideoSession,
   AnswerEvaluation,
+  AttemptHistoryItem,
   QAHistoryItem,
   FrameExplanation,
   SegmentVisualResult,
@@ -45,6 +46,8 @@ export async function evaluateAnswer(
     segment_transcript?: string;
     user_answer: string;
     attempt_count: number;
+    attempt_history?: AttemptHistoryItem[];
+    current_question_prompt?: string;
   },
   apiKey?: string
 ): Promise<AnswerEvaluation> {

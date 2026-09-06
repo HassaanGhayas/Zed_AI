@@ -6,6 +6,8 @@ import { VideoPlayer } from './components/VideoPlayer';
 import { SegmentNav } from './components/SegmentNav';
 import { SocraticQuiz } from './components/SocraticQuiz';
 import { NotesModal } from './components/NotesModal';
+import { AiTutorPanel } from './components/AiTutorPanel';
+import { ProgressView } from './components/ProgressView';
 import type { VideoSession, QAHistoryItem } from './types';
 import { processVideo, segmentVisual, visualAvailability, frameUrl } from './lib/api';
 import {
@@ -14,6 +16,7 @@ import {
   clearPersistedSession,
   type PersistedSession,
 } from './lib/persistence';
+import { saveSessionToHistory } from './lib/sessionHistory';
 
 export const App: React.FC = () => {
   // Restore the last study session (video + chapter + mastery) on reload so a
@@ -39,6 +42,9 @@ export const App: React.FC = () => {
   const [completedSegmentIds, setCompletedSegmentIds] = useState<Set<number>>(
     () => new Set(restored?.completedSegmentIds ?? [])
   );
+  const [needsReviewSegmentIds, setNeedsReviewSegmentIds] = useState<Set<number>>(
+    () => new Set(restored?.needsReviewSegmentIds ?? [])
+  );
   // High-water mark of chapters reached this session — nav locking uses this so
   // revisiting earlier chapters never re-locks forward ones.
   const [maxReachedIndex, setMaxReachedIndex] = useState(
@@ -50,6 +56,7 @@ export const App: React.FC = () => {
     restored?.qaHistory ?? []
   );
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
+  const [isProgressOpen, setIsProgressOpen] = useState(false);
   // Latch so one boundary crossing can't fire twice (interval tick race), and so
   // revisits via nav/rewatch/proceed re-arm boundary handling for that segment.
   const boundaryLatchRef = useRef<number | null>(null);
@@ -122,6 +129,7 @@ export const App: React.FC = () => {
       activeSegmentIndex,
       activeQuestionIndex,
       completedSegmentIds: Array.from(completedSegmentIds),
+      needsReviewSegmentIds: Array.from(needsReviewSegmentIds),
       maxReachedIndex,
       qaHistory,
     });
@@ -130,7 +138,36 @@ export const App: React.FC = () => {
     activeSegmentIndex,
     activeQuestionIndex,
     completedSegmentIds,
+    needsReviewSegmentIds,
     maxReachedIndex,
+    qaHistory,
+  ]);
+
+  // Synchronize cross-video learning history into localStorage
+  useEffect(() => {
+    if (!session) return;
+    const completedCount = completedSegmentIds.size;
+    const totalTopics = session.segments.length;
+    const isAllDone = totalTopics > 0 && completedCount >= totalTopics;
+
+    saveSessionToHistory({
+      sessionId: session.video_id,
+      videoId: session.video_id,
+      lectureTitle: session.title,
+      totalTopics,
+      completedTopics: completedCount,
+      currentTopicIndex: activeSegmentIndex,
+      status: isAllDone ? 'complete' : 'active',
+      needsReviewCount: needsReviewSegmentIds.size,
+      understoodConcepts: qaHistory.flatMap((q) => q.understood_concepts || []),
+      missingConcepts: qaHistory.flatMap((q) => q.missing_concepts || []),
+      misconceptions: qaHistory.flatMap((q) => q.misconceptions || []),
+    });
+  }, [
+    session,
+    completedSegmentIds,
+    needsReviewSegmentIds,
+    activeSegmentIndex,
     qaHistory,
   ]);
 
@@ -143,6 +180,7 @@ export const App: React.FC = () => {
       setActiveSegmentIndex(0);
       setActiveQuestionIndex(0);
       setCompletedSegmentIds(new Set());
+      setNeedsReviewSegmentIds(new Set());
       setMaxReachedIndex(0);
       setIsPausedForQuiz(false);
       setQaHistory([]);
@@ -159,10 +197,12 @@ export const App: React.FC = () => {
     setActiveSegmentIndex(0);
     setActiveQuestionIndex(0);
     setCompletedSegmentIds(new Set());
+    setNeedsReviewSegmentIds(new Set());
     setMaxReachedIndex(0);
     setIsPausedForQuiz(false);
     setQaHistory([]);
     setIsNotesModalOpen(false);
+    setIsProgressOpen(false);
   };
 
   const handleBoundaryReached = () => {
@@ -200,11 +240,24 @@ export const App: React.FC = () => {
   const handleQuestionCompleted = (
     userAnswer: string,
     aiFeedback: string,
-    attempts: number
+    attempts: number,
+    needsReview?: boolean,
+    score?: number,
+    understood?: string[],
+    missing?: string[],
+    misconceptions?: string[]
   ) => {
     if (!activeSegment) return;
     const currentQ = activeSegment.questions[activeQuestionIndex];
     if (!currentQ) return;
+
+    if (needsReview) {
+      setNeedsReviewSegmentIds((prev) => {
+        const next = new Set(prev);
+        next.add(activeSegment.segment_id);
+        return next;
+      });
+    }
 
     setQaHistory((prev) => [
       ...prev,
@@ -214,6 +267,11 @@ export const App: React.FC = () => {
         user_final_answer: userAnswer,
         ai_feedback: aiFeedback,
         attempts,
+        needs_review: Boolean(needsReview),
+        score: score ?? (needsReview ? 40 : 85),
+        understood_concepts: understood || [],
+        missing_concepts: missing || [],
+        misconceptions: misconceptions || [],
       },
     ]);
   };
@@ -273,6 +331,7 @@ export const App: React.FC = () => {
         onReset={handleReset}
         onOpenNotes={() => setIsNotesModalOpen(true)}
         canViewNotes={qaHistory.length > 0}
+        onOpenProgress={() => setIsProgressOpen(true)}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col">
@@ -296,6 +355,15 @@ export const App: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2.5 flex-shrink-0">
+                <button
+                  onClick={() => setIsProgressOpen(true)}
+                  className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/25 hover:bg-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span>Analytics</span>
+                  {needsReviewSegmentIds.size > 0 && (
+                    <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  )}
+                </button>
                 <button
                   onClick={handleTriggerQuiz}
                   className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-warning/10 text-warning border border-warning/25 hover:bg-warning/20 transition-all cursor-pointer flex items-center justify-center"
@@ -341,12 +409,24 @@ export const App: React.FC = () => {
                 )}
               </div>
 
-              {/* Right Column: Segment Chapters (4 cols; stacks below video on mobile) */}
+              {/* Right Column: AI Tutor Guidance & Segment Chapters (4 cols; stacks below video on mobile) */}
               <div className="lg:col-span-4 flex flex-col gap-6">
+                <AiTutorPanel
+                  segments={session.segments}
+                  activeSegmentIndex={activeSegmentIndex}
+                  completedSegmentIds={completedSegmentIds}
+                  needsReviewSegmentIds={needsReviewSegmentIds}
+                  isPausedForQuiz={isPausedForQuiz}
+                  activeQuestionIndex={activeQuestionIndex}
+                  totalQuestionsInSegment={activeSegment?.questions.length || 1}
+                  onSelectSegment={handleSelectSegment}
+                />
+
                 <SegmentNav
                   segments={session.segments}
                   activeSegmentIndex={activeSegmentIndex}
                   completedSegmentIds={completedSegmentIds}
+                  needsReviewSegmentIds={needsReviewSegmentIds}
                   unlockedUpTo={maxReachedIndex}
                   onSelectSegment={handleSelectSegment}
                 />
@@ -365,6 +445,21 @@ export const App: React.FC = () => {
           videoId={session.video_id}
           segments={session.segments}
           qaHistory={qaHistory}
+        />
+      )}
+
+      {/* Learning Progress & Analytics Modal */}
+      {session && (
+        <ProgressView
+          isOpen={isProgressOpen}
+          onClose={() => setIsProgressOpen(false)}
+          videoTitle={session.title}
+          videoId={session.video_id}
+          segments={session.segments}
+          completedSegmentIds={completedSegmentIds}
+          needsReviewSegmentIds={needsReviewSegmentIds}
+          qaHistory={qaHistory}
+          onOpenNotes={() => setIsNotesModalOpen(true)}
         />
       )}
     </div>

@@ -12,6 +12,7 @@ export interface PersistedSession {
   activeSegmentIndex: number;
   activeQuestionIndex: number;
   completedSegmentIds: number[];
+  needsReviewSegmentIds?: number[];
   maxReachedIndex: number;
   qaHistory: QAHistoryItem[];
 }
@@ -28,6 +29,9 @@ export function loadPersistedSession(): PersistedSession | null {
       data.session.segments.length === 0
     ) {
       return null;
+    }
+    if (!Array.isArray(data.needsReviewSegmentIds)) {
+      data.needsReviewSegmentIds = [];
     }
     return data;
   } catch {

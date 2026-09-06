@@ -30,7 +30,7 @@ def test_pipeline():
     assert len(segments) >= 1, "Segments should not be empty"
     print(f"[OK] Generated {len(segments)} segments successfully.")
 
-    print("Testing Evaluator...")
+    print("Testing Evaluator (Substantive Correct)...")
     eval_res = evaluator_service.evaluate_answer(
         question_prompt="What is a vector space?",
         expected_concept="A set closed under vector addition and scalar multiplication",
@@ -39,7 +39,41 @@ def test_pipeline():
         user_answer="It is a collection of objects that can be added together and scaled by numbers.",
         attempt_count=1
     )
-    print(f"[OK] Evaluator returned: status={eval_res.status}, is_correct={eval_res.is_correct}")
+    print(f"[OK] Evaluator returned: status={eval_res.status}, is_correct={eval_res.is_correct}, score={eval_res.score}")
+    assert eval_res.is_correct is True
+    assert eval_res.score >= 80
+    assert eval_res.can_advance is True
+    assert eval_res.needs_review is False
+
+    print("Testing Evaluator (Attempt 1 Retry Prompt)...")
+    eval_retry = evaluator_service.evaluate_answer(
+        question_prompt="What is a vector space?",
+        expected_concept="A set closed under vector addition and scalar multiplication",
+        segment_summary="Covers vector addition and scaling.",
+        segment_transcript="Vectors can be added and scaled.",
+        user_answer="It has numbers.",
+        attempt_count=1
+    )
+    assert eval_retry.is_correct is False
+    assert eval_retry.can_advance is False
+    assert eval_retry.needs_review is False
+    assert eval_retry.retry_question is not None
+    print(f"[OK] Retry question generated: {eval_retry.retry_question}")
+
+    print("Testing Evaluator (Strict 3-Attempt Ceiling - No Auto-Pass)...")
+    eval_ceiling = evaluator_service.evaluate_answer(
+        question_prompt="What is a vector space?",
+        expected_concept="A set closed under vector addition and scalar multiplication",
+        segment_summary="Covers vector addition and scaling.",
+        segment_transcript="Vectors can be added and scaled.",
+        user_answer="It is just lines.",
+        attempt_count=3
+    )
+    assert eval_ceiling.is_correct is False, "Failed attempt 3 must NOT auto-pass as correct"
+    assert eval_ceiling.can_advance is True, "Student must be permitted to advance after 3 attempts"
+    assert eval_ceiling.needs_review is True, "Segment must be flagged as Needs Review"
+    assert eval_ceiling.retry_question is None, "No more retry questions after attempt 3"
+    print(f"[OK] Strict 3-attempt ceiling verified: needs_review={eval_ceiling.needs_review}, can_advance={eval_ceiling.can_advance}")
 
     print("Testing Notes & PDF Generation...")
     qa_history = [
