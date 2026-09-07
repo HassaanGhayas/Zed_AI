@@ -86,9 +86,9 @@ class NotesService:
         custom_api_key: str = ""
     ) -> str:
         """Synthesize video concepts with the student's grammar-refined answers into polished Markdown notes."""
-        # 1. Build segment overview
+        # 1. Build segment overview (without timestamps)
         segments_summary = "\n".join([
-            f"- **{s.title}** ({int(s.start_time // 60):02d}:{int(s.start_time % 60):02d} - {int(s.end_time // 60):02d}:{int(s.end_time % 60):02d}): {s.summary}"
+            f"- **{s.title}**: {s.summary}"
             for s in segments
         ])
 
@@ -123,16 +123,16 @@ class NotesService:
             qa_details.append(
                 f"- **Topic**: {item.segment_title}{flag_txt}\n"
                 f"  - **Question**: {item.question}\n"
-                f"  - **Student's Articulation (Raw)**: {item.user_final_answer}\n"
-                f"  - **Student's Articulation (Pre-Polished)**: {cleaned_answer}\n"
+                f"  - **Student's Answer (Raw)**: {item.user_final_answer}\n"
+                f"  - **Student's Answer (Pre-Polished)**: {cleaned_answer}\n"
                 f"  - **Tutor Feedback**: {item.ai_feedback}{concepts_txt}{misc_txt}"
             )
             if item.needs_review or item.misconceptions:
                 flagged_items.append(
                     f"- **{item.segment_title}**: Concept: {item.question} | Notes: {', '.join(item.misconceptions) or 'Requires conceptual revision'}"
                 )
-        qa_summary = "\n".join(qa_details) if qa_details else "No active-recall checkpoints recorded."
-        flagged_summary = "\n".join(flagged_items) if flagged_items else "None (All checkpoints mastered)."
+        qa_summary = "\n".join(qa_details) if qa_details else "No questions recorded."
+        flagged_summary = "\n".join(flagged_items) if flagged_items else "None (All questions mastered)."
 
         # Try Gemini generation
         try:
@@ -170,25 +170,21 @@ CRITICAL PEDAGOGICAL & EDITORIAL RULES:
    Preserve the student's authentic concepts, intuitions, and real-world analogies, but formulate them in polished, grammatically impeccable English.
 
 2. SYNTHESIS STRUCTURE (FOLLOW THIS EXACT MARKDOWN PATTERN):
-   For each topic segment with completed questions:
-   ## [Segment Title]
-   ### [Question Prompt]
-   **Answer:** [Grammar-checked, polished version of the student's answer]
-
-   CRITICAL PROHIBITIONS:
-   - NO TIMESTAMPS. Do NOT include ([mm:ss] - [mm:ss]) anywhere.
-   - NO CHECKPOINT LABELS. Do NOT write "Checkpoint N:" or status labels like "[Mastered]" or "[Needs Review]". Just the question itself as a ### heading.
-   - NO "Validated Concepts" or "Tutor Insight" sections. Do NOT include these under any circumstances.
-   - Use exactly "**Answer:**" as the heading for the student's response.
+   For each topic segment with completed checkpoints:
+   ## [Segment Title] ([mm:ss] - [mm:ss])
+   ### Checkpoint [N]: [Question Prompt] ([Mastered] or [Needs Review])
+   **Your Explanation:** [Grammar-checked, polished version of the student's answer]
+   **Validated Concepts:** [Comma-separated key concepts understood]
+   **Tutor Insight:** [Concise academic takeaway connecting the student's answer to the lecture principles]
 
 3. CONCEPTS TO REVISIT SECTION:
-   If any question is marked [NEEDS REVIEW] or has misconceptions, conclude the notes with:
+   If any checkpoint is marked [NEEDS REVIEW] or has misconceptions, conclude the notes with:
    ## Concepts to Revisit
    The following topics encountered difficulties during active recall. Review before your exam:
    - **[Topic Title]**: [Specific misconception or gap identified and guidance on the correct conceptual model]
 
 4. GENERAL FORMATTING RULES:
-   - Use standard Markdown (## for topic sections, ### for questions, **bold** labels, and bullet points).
+   - Use standard Markdown (## for topic sections, ### for checkpoints, **bold** labels, and bullet points).
    - Do NOT use emojis (the PDF export engine cannot render emoji glyphs).
    - Do NOT repeat the video title as a top heading (the viewer header prints it).
 
@@ -199,7 +195,7 @@ Segments Overview:
 Keyframe Visual Insights (use where equations/diagrams were discussed):
 {visual_context}
 
-Student Question History:
+Student Checkpoint History:
 {qa_summary}
 
 Flagged Questions Requiring Review:
@@ -235,19 +231,11 @@ Flagged Questions Requiring Review:
             topic_qas = qa_by_topic.get(s.title, [])
             if not topic_qas:
                 continue
-            lines.append(
-                f"## {s.title} "
-                f"({int(s.start_time // 60):02d}:{int(s.start_time % 60):02d} - "
-                f"{int(s.end_time // 60):02d}:{int(s.end_time % 60):02d})\n"
-            )
-            for i, item in enumerate(topic_qas, 1):
-                status_label = " (Needs Review)" if item.needs_review else " (Mastered)"
+            lines.append(f"## {s.title}\n")
+            for item in topic_qas:
                 polished_answer = self.polish_student_grammar(item.user_final_answer)
-                lines.append(f"### Checkpoint {i}: {item.question}{status_label}")
-                lines.append(f"**Your Explanation:** {polished_answer}")
-                if item.understood_concepts:
-                    lines.append(f"**Validated Concepts:** {', '.join(item.understood_concepts)}")
-                lines.append(f"**Tutor Insight:** {item.ai_feedback}\n")
+                lines.append(f"### {item.question}")
+                lines.append(f"**Answer:** {polished_answer}\n")
 
                 if item.needs_review or item.misconceptions:
                     misc_desc = ", ".join(item.misconceptions) if item.misconceptions else "Review key mechanisms"

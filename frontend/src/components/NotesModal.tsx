@@ -9,7 +9,6 @@ import {
   AlertCircle,
   ExternalLink,
   Sparkles,
-  CheckCircle2,
   AlertTriangle,
   FileText,
   ListChecks,
@@ -30,13 +29,10 @@ interface ParsedCheckpoint {
   question: string;
   status: 'mastered' | 'needs_review' | '';
   explanation: string;
-  validatedConcepts: string[];
-  tutorInsight: string;
 }
 
 interface ParsedSection {
   title: string;
-  timeRange: string;
   isRevisit?: boolean;
   revisitItems?: string[];
   checkpoints: ParsedCheckpoint[];
@@ -107,12 +103,6 @@ export const NotesModal: React.FC<NotesModalProps> = ({
     setTimeout(() => setIsCopied(false), 1500);
   };
 
-  const formatSeconds = (s: number) => {
-    const mins = Math.floor(s / 60);
-    const secs = Math.floor(s % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
   // Group the Q&A history by segment for the raw log view
   const qaByTitle = useMemo(() => {
     const map = new Map<string, QAHistoryItem[]>();
@@ -155,7 +145,6 @@ export const NotesModal: React.FC<NotesModalProps> = ({
         }
         currentSection = {
           title: 'Concepts to Revisit',
-          timeRange: '',
           isRevisit: true,
           revisitItems: [],
           checkpoints: [],
@@ -164,7 +153,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
         continue;
       }
 
-      // Check for Section Heading: ## Topic (mm:ss - mm:ss)
+      // Check for Section Heading: ## Topic (strip timestamps)
       if (raw.startsWith('## ')) {
         if (currentCheckpoint && currentSection) {
           currentSection.checkpoints.push(currentCheckpoint);
@@ -174,13 +163,10 @@ export const NotesModal: React.FC<NotesModalProps> = ({
           sections.push(currentSection);
         }
         const headingText = raw.slice(3).trim();
-        const timeMatch = headingText.match(/\((?:(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2}))\)/);
-        const timeRange = timeMatch ? `${timeMatch[1]} - ${timeMatch[2]}` : '';
-        const title = headingText.replace(/\s*\(\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}\)/, '').trim();
+        const title = headingText.replace(/\s*\(\d{1,2}:\d{2}(?:\s*-\s*\d{1,2}:\d{2})?\)/, '').trim();
 
         currentSection = {
           title,
-          timeRange,
           checkpoints: [],
           extraLines: [],
         };
@@ -197,55 +183,36 @@ export const NotesModal: React.FC<NotesModalProps> = ({
         continue;
       }
 
-      // Check for Checkpoint Heading: ### Checkpoint N: Question (Status)
+      // Check for Question Heading: ### [Question] (no checkpoint labels, no timestamps)
       if (raw.startsWith('### ')) {
         if (currentCheckpoint && currentSection) {
           currentSection.checkpoints.push(currentCheckpoint);
         }
         const subRaw = raw.slice(4).trim();
-        let status: 'mastered' | 'needs_review' | '' = '';
-        let cleanQ = subRaw;
-        if (/mastered/i.test(subRaw)) {
-          status = 'mastered';
-          cleanQ = subRaw.replace(/\s*\(Mastered\)/i, '').trim();
-        } else if (/needs\s*review/i.test(subRaw)) {
-          status = 'needs_review';
-          cleanQ = subRaw.replace(/\s*\(Needs\s*Review\)/i, '').trim();
-        }
-        cleanQ = cleanQ.replace(/^Checkpoint\s*\d+:\s*/i, '').trim();
+        let cleanQ = subRaw.replace(/\s*\(\d{1,2}:\d{2}(?:\s*-\s*\d{1,2}:\d{2})?\)/, '').trim();
+        cleanQ = cleanQ.replace(/\s*\((?:Mastered|Needs\s*Review)\)/i, '').trim();
+        cleanQ = cleanQ.replace(/^Checkpoint\s*\d*:\s*/i, '').trim();
 
         currentCheckpoint = {
           question: cleanQ,
-          status,
+          status: '',
           explanation: '',
-          validatedConcepts: [],
-          tutorInsight: '',
         };
         continue;
       }
 
-      // Student Explanation line
-      const expMatch = raw.match(/^\*\*(?:Your\s+Explanation|Your\s+Articulation|Explanation):?\*\*\s*(.*)$/i);
+      // Student Answer line: **Answer:** ...
+      const expMatch = raw.match(/^\*\*(?:Answer|Your\s+Answer|Your\s+Explanation|Your\s+Articulation|Articulation\s*(?:Concept)?|Explanation):?\*\*\s*(.*)$/i);
       if (expMatch && currentCheckpoint) {
         currentCheckpoint.explanation = expMatch[1].trim();
         continue;
       }
 
-      // Validated Concepts line
-      const valMatch = raw.match(/^\*\*(?:Validated\s+Concepts|Key\s+Concepts\s+Validated):?\*\*\s*(.*)$/i);
-      if (valMatch && currentCheckpoint) {
-        const items = valMatch[1]
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean);
-        currentCheckpoint.validatedConcepts = items;
+      // Validated concepts and tutor insights must NOT appear in notes
+      if (/^\*\*(?:Validated\s+Concepts|Key\s+Concepts\s+Validated):?/i.test(raw)) {
         continue;
       }
-
-      // Tutor Insight line
-      const insMatch = raw.match(/^\*\*(?:Tutor\s+Insight|Tutor\s+Takeaway|Tutor\s+Feedback):?\*\*\s*(.*)$/i);
-      if (insMatch && currentCheckpoint) {
-        currentCheckpoint.tutorInsight = insMatch[1].trim();
+      if (/^\*\*(?:Tutor\s+Insight|Tutor\s+Takeaway|Tutor\s+Feedback):?/i.test(raw)) {
         continue;
       }
 
@@ -341,7 +308,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
               }`}
             >
               <ListChecks className="w-3.5 h-3.5" />
-              <span>Checkpoint History</span>
+              <span>Question History</span>
             </button>
             <button
               onClick={() => setActiveTab('markdown')}
@@ -427,86 +394,32 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                   return (
                     <section key={`sec-${sIdx}`} className="space-y-3">
                       {/* Section Title Header */}
-                      <div className="flex items-center justify-between gap-2 border-l-4 border-ember-500 pl-3 py-0.5">
+                      <div className="border-l-4 border-ember-500 pl-3 py-0.5">
                         <h4 className="text-sm sm:text-base font-bold text-ink">{section.title}</h4>
-                        {section.timeRange && (
-                          <span className="px-2 py-0.5 rounded bg-sunken text-ink-muted font-mono text-[11px] flex-shrink-0">
-                            {section.timeRange}
-                          </span>
-                        )}
                       </div>
 
-                      {/* Checkpoint Cards */}
+                      {/* Question Cards */}
                       {section.checkpoints.map((cp, cIdx) => (
                         <div
                           key={`cp-${sIdx}-${cIdx}`}
                           className="rounded-2xl border border-line-soft bg-raised shadow-sm overflow-hidden divide-y divide-line-soft"
                         >
-                          {/* Checkpoint Question Header */}
-                          <div className="p-3 sm:p-4 bg-sunken/40 flex items-start justify-between gap-3">
-                            <div className="space-y-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-ember-500/10 text-ember-300 border border-ember-500/25">
-                                  Checkpoint {cIdx + 1}
-                                </span>
-                                {cp.status === 'mastered' && (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/10 text-success border border-success/25">
-                                    <CheckCircle2 className="w-3 h-3" />
-                                    Mastered
-                                  </span>
-                                )}
-                                {cp.status === 'needs_review' && (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/25">
-                                    <AlertTriangle className="w-3 h-3" />
-                                    Needs Review
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-xs sm:text-sm font-medium text-ink leading-relaxed">
-                                {cp.question}
-                              </p>
-                            </div>
+                          {/* Question Header (no Checkpoint label, just the question) */}
+                          <div className="p-3 sm:p-4 bg-sunken/40">
+                            <h5 className="text-xs sm:text-sm font-semibold text-ink leading-relaxed">
+                              {cp.question}
+                            </h5>
                           </div>
 
-                          {/* Student's Grammar-Refined Articulation */}
+                          {/* Student Answer */}
                           {cp.explanation && (
                             <div className="p-3 sm:p-4 bg-raised space-y-1.5">
-                              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-ember-400">
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-ember-400">
                                 <Sparkles className="w-3.5 h-3.5 text-ember-400" />
-                                <span>Your Articulation (Grammar Refined)</span>
+                                <span>Answer</span>
                               </div>
                               <p className="text-xs sm:text-sm text-ink leading-relaxed bg-sunken/20 p-2.5 rounded-xl border border-line-soft">
                                 {cp.explanation}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Validated Concepts Chips */}
-                          {cp.validatedConcepts.length > 0 && (
-                            <div className="px-3 sm:px-4 py-2.5 bg-success/5 flex flex-wrap items-center gap-1.5">
-                              <span className="text-[11px] font-bold text-success flex items-center gap-1 mr-1">
-                                <Check className="w-3 h-3" />
-                                Validated:
-                              </span>
-                              {cp.validatedConcepts.map((vConcept, vIdx) => (
-                                <span
-                                  key={vIdx}
-                                  className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-medium bg-success/15 text-success border border-success/25"
-                                >
-                                  {vConcept}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Tutor Insight */}
-                          {cp.tutorInsight && (
-                            <div className="p-3 sm:p-4 bg-ember-500/5 space-y-1 border-t border-line-soft">
-                              <span className="text-[11px] font-semibold text-ember-400 block">
-                                💡 Tutor Insight:
-                              </span>
-                              <p className="text-xs text-ink-muted leading-relaxed italic">
-                                {cp.tutorInsight}
                               </p>
                             </div>
                           )}
@@ -529,16 +442,13 @@ export const NotesModal: React.FC<NotesModalProps> = ({
           ) : activeTab === 'raw' ? (
             <div className="space-y-6">
               <div className="p-3 rounded-xl bg-sunken/40 border border-line-soft text-xs text-ink-muted">
-                Showing the raw checkpoint attempts recorded during your video study session.
+                Showing questions and answers recorded during your video study session.
               </div>
 
               {segmentsWithQa.map(({ seg, items }) => (
                 <section key={seg.segment_id} className="space-y-3">
-                  <div className="flex items-center justify-between gap-2 border-l-4 border-line-soft pl-3">
+                  <div className="border-l-4 border-line-soft pl-3">
                     <h4 className="text-sm font-bold text-ink truncate">{seg.title}</h4>
-                    <span className="px-2 py-0.5 rounded bg-sunken text-ink-muted font-mono text-[11px] flex-shrink-0">
-                      {formatSeconds(seg.start_time)} - {formatSeconds(seg.end_time)}
-                    </span>
                   </div>
                   {items.map((item, i) => (
                     <div
@@ -546,24 +456,16 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                       className="rounded-2xl border border-line-soft bg-sunken/40 p-4 space-y-3"
                     >
                       <div>
-                        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-ember-500/10 text-ember-300 border border-ember-500/25 mb-1.5">
-                          Checkpoint {i + 1}
-                        </span>
-                        <p className="text-sm text-ink leading-relaxed">{item.question}</p>
+                        <p className="text-sm font-semibold text-ink leading-relaxed">{item.question}</p>
                       </div>
                       <div className="border-t border-line-soft pt-3 space-y-1">
                         <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/10 text-success border border-success/25">
-                          Raw Answer
+                          Answer
                         </span>
                         <p className="text-sm text-ink-muted leading-relaxed">
                           {item.user_final_answer}
                         </p>
                       </div>
-                      {item.ai_feedback && (
-                        <div className="text-xs text-ink-faint border-t border-line-soft pt-2">
-                          <b>Tutor Feedback:</b> {item.ai_feedback}
-                        </div>
-                      )}
                     </div>
                   ))}
                 </section>
@@ -571,7 +473,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
 
               {qaHistory.length === 0 && (
                 <p className="text-sm text-ink-faint text-center py-10">
-                  No active-recall questions were completed in this session.
+                  No questions were completed in this session.
                 </p>
               )}
             </div>
@@ -587,7 +489,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
         {/* Modal Footer */}
         <div className="px-4 sm:px-6 py-3.5 border-t border-line-soft bg-raised/90 flex flex-wrap items-center justify-between gap-3">
           <div className="text-xs text-ink-faint">
-            {qaHistory.length} active recall checkpoint(s) synthesized
+            {qaHistory.length} question(s) synthesized
           </div>
 
           <div className="flex items-center gap-2 sm:gap-2.5">

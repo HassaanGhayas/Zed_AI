@@ -7,7 +7,9 @@ interface NavbarProps {
   onReset: () => void;
   onOpenNotes?: () => void;
   canViewNotes?: boolean;
+  notesCount?: number;
   onOpenProgress?: () => void;
+  needsReviewCount?: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -15,7 +17,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onReset,
   onOpenNotes,
   canViewNotes,
+  notesCount = 0,
   onOpenProgress,
+  needsReviewCount = 0,
 }) => {
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState(
@@ -80,7 +84,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-display font-bold text-base sm:text-lg text-ink tracking-tight truncate">MindFlow AI</span>
+                <span className="font-display font-bold text-base sm:text-lg text-ink tracking-tight truncate">Studify AI</span>
                 <span className="hidden min-[480px]:inline-block px-2 py-0.5 text-xs font-semibold rounded-full bg-ember-500/10 text-ember-300 border border-ember-500/25 flex-shrink-0">
                   Active Recall
                 </span>
@@ -97,10 +101,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={onOpenProgress}
                 aria-label="View learning dashboard & progress"
+<<<<<<< HEAD
                 className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-amber-800 dark:text-amber-200 bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 dark:border-amber-800/50 rounded-lg hover:bg-amber-500/20 dark:hover:bg-amber-900/60 transition-all shadow-sm cursor-pointer"
+=======
+                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-amber-200 bg-amber-950/40 border border-amber-800/50 rounded-lg hover:bg-amber-900/60 transition-all shadow-sm cursor-pointer relative"
+>>>>>>> b76a893 (Work in progress: contributor changes)
               >
                 <PieChart className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                 <span className="hidden sm:inline">Analytics</span>
+                {needsReviewCount > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-amber-400" title="Has topics needing review" />
+                )}
               </button>
             )}
 
@@ -112,6 +123,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <FileText className="w-4 h-4 text-ember-600 dark:text-ember-400 flex-shrink-0" />
                 <span className="hidden sm:inline">Study Notes</span>
+                {notesCount > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-ember-500/20 text-ember-300 border border-ember-500/30">
+                    {notesCount}
+                  </span>
+                )}
               </button>
             )}
 
@@ -144,7 +160,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <Key className="w-4 h-4 text-warning flex-shrink-0" />
             <p className="text-xs text-ink-muted flex-1 min-w-[160px]">
-              No Gemini API key set — MindFlow is running on built-in fallbacks.
+              No Gemini API key set — Studify AI is running on built-in fallbacks.
               Add a free key for full AI chaptering, answer evaluation & visual insights.
             </p>
             <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto sm:ml-0">

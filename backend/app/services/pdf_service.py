@@ -75,10 +75,10 @@ class PdfService:
         # Header: brand + ember tick + hairline
         canvas.setFillColor(EMBER_DEEP)
         canvas.setFont("Helvetica-Bold", 8.5)
-        canvas.drawString(MARGIN_X, PAGE_H - 42, "MINDFLOW AI")
+        canvas.drawString(MARGIN_X, PAGE_H - 42, "STUDIFY AI")
         canvas.setFillColor(INK_FAINT)
         canvas.setFont("Helvetica", 8.5)
-        canvas.drawString(MARGIN_X + 72, PAGE_H - 42, "•  Personalized Study Notes")
+        canvas.drawString(MARGIN_X + 64, PAGE_H - 42, "•  Personalized Study Notes")
         canvas.setStrokeColor(EMBER_MID)
         canvas.setLineWidth(2)
         canvas.line(MARGIN_X, PAGE_H - 48, MARGIN_X + 46, PAGE_H - 48)
@@ -111,7 +111,7 @@ class PdfService:
             topMargin=0.95 * inch,
             bottomMargin=0.75 * inch,
             title=title,
-            author="MindFlow AI",
+            author="Studify AI",
         )
 
         styles = getSampleStyleSheet()
@@ -185,7 +185,7 @@ class PdfService:
         # ── Cover page ──
         lines = [l.strip() for l in markdown_content.split('\n')]
         n_sections = sum(1 for l in lines if l.startswith('## ') and not l.lower().startswith('## concepts to revisit'))
-        n_qa = len(re.findall(r'(?m)^\*\*Q\d+:?\*\*|^### Checkpoint', markdown_content))
+        n_qa = len(re.findall(r'(?m)^\*\*Q\d+:?\*\*|^### ', markdown_content))
         story.append(Spacer(1, 1.9 * inch))
         story.append(Paragraph("M I N D F L O W&nbsp;&nbsp;A I", brand_style))
         story.append(Spacer(1, 22))
@@ -235,11 +235,12 @@ class PdfService:
                 story.append(Spacer(1, 8))
                 continue
 
-            # Section heading → accent-bar card
+            # Section heading → accent-bar card (strip timestamps)
             if line_str.startswith('## '):
                 in_revisit_section = False
                 heading_raw = line_str[3:].strip()
-                text = self._format_inline_markdown(heading_raw)
+                heading_clean = re.sub(r'\s*\(\d{1,2}:\d{2}(?:\s*-\s*\d{1,2}:\d{2})?\)', '', heading_raw).strip()
+                text = self._format_inline_markdown(heading_clean)
                 tbl = Table([[Paragraph(text, section_style)]], colWidths=[AVAIL_W])
                 tbl.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, -1), RAISED),
@@ -255,25 +256,19 @@ class PdfService:
                 story.append(tbl)
                 story.append(Spacer(1, 8))
                 # Embed the matching keyframe (guarded; skips silently on any failure)
-                kf = self._match_keyframe(heading_raw, keyframes)
+                kf = self._match_keyframe(heading_clean, keyframes)
                 if kf:
                     self._append_keyframe_image(story, kf, video_id, cap_style)
                 continue
 
-            # Subheading or Checkpoint banner: ### Checkpoint 1: Question (Status)
+            # Question banner: ### [Question] (no checkpoint labels, no timestamps)
             if line_str.startswith('### '):
                 sub_raw = line_str[4:].strip()
-                # Check for status indicator like (Mastered) or (Needs Review)
-                status_html = ""
-                clean_sub = sub_raw
-                if re.search(r'\(Mastered\)', sub_raw, re.IGNORECASE):
-                    clean_sub = re.sub(r'\s*\(Mastered\)', '', sub_raw, flags=re.IGNORECASE).strip()
-                    status_html = '&nbsp;&nbsp;<font color="#2b5e19"><b>[MASTERED ✓]</b></font>'
-                elif re.search(r'\(Needs\s*Review\)', sub_raw, re.IGNORECASE):
-                    clean_sub = re.sub(r'\s*\(Needs\s*Review\)', '', sub_raw, flags=re.IGNORECASE).strip()
-                    status_html = '&nbsp;&nbsp;<font color="#c2410c"><b>[NEEDS REVIEW ⚠]</b></font>'
+                clean_sub = re.sub(r'\s*\(\d{1,2}:\d{2}(?:\s*-\s*\d{1,2}:\d{2})?\)', '', sub_raw).strip()
+                clean_sub = re.sub(r'^Checkpoint\s*\d*:\s*', '', clean_sub, flags=re.IGNORECASE).strip()
+                clean_sub = re.sub(r'\s*\((?:Mastered|Needs\s*Review)\)', '', clean_sub, flags=re.IGNORECASE).strip()
 
-                header_text = f"<b>{self._format_inline_markdown(clean_sub)}</b>{status_html}"
+                header_text = f"<b>{self._format_inline_markdown(clean_sub)}</b>"
                 card_p = Paragraph(header_text, card_text_style)
                 tbl = Table([[card_p]], colWidths=[AVAIL_W])
                 tbl.setStyle(TableStyle([
@@ -290,12 +285,12 @@ class PdfService:
                 story.append(Spacer(1, 4))
                 continue
 
-            # Student Explanation card: **Your Explanation:** ...
-            exp_match = re.match(r'^\*\*(?:Your\s+Explanation|Your\s+Articulation|Explanation):?\*\*\s*(.*)$', line_str, re.IGNORECASE)
+            # Student Answer card: **Answer:** ... (heading is "Answer:")
+            exp_match = re.match(r'^\*\*(?:Answer|Your\s+Answer|Your\s+Explanation|Your\s+Articulation|Articulation\s*(?:Concept)?|Explanation):?\*\*\s*(.*)$', line_str, re.IGNORECASE)
             if exp_match:
                 exp_text = exp_match.group(1).strip()
                 content_html = (
-                    f'<font name="Helvetica-Bold" color="#a72906">Your Articulation (Grammar-Refined):</font><br/>'
+                    f'<font name="Helvetica-Bold" color="#a72906">Answer:</font><br/>'
                     f'<font name="Helvetica" color="#1e0808">{self._format_inline_markdown(exp_text)}</font>'
                 )
                 exp_p = Paragraph(content_html, body_style)
@@ -311,53 +306,13 @@ class PdfService:
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                 ]))
                 story.append(tbl)
-                story.append(Spacer(1, 4))
-                continue
-
-            # Validated Concepts card: **Validated Concepts:** ...
-            val_match = re.match(r'^\*\*(?:Validated\s+Concepts|Key\s+Concepts\s+Validated):?\*\*\s*(.*)$', line_str, re.IGNORECASE)
-            if val_match:
-                val_text = val_match.group(1).strip()
-                content_html = (
-                    f'<font name="Helvetica-Bold" color="#2b5e19">✓ Validated Concepts:</font>&nbsp; '
-                    f'<font name="Helvetica" color="#2d5a1b">{self._format_inline_markdown(val_text)}</font>'
-                )
-                val_p = Paragraph(content_html, body_style)
-                tbl = Table([[val_p]], colWidths=[AVAIL_W])
-                tbl.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#edf7ed")),
-                    ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor("#b7deb5")),
-                    ('ROUNDEDCORNERS', [6, 6, 6, 6]),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                    ('TOPPADDING', (0, 0), (-1, -1), 5),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                ]))
-                story.append(tbl)
-                story.append(Spacer(1, 4))
-                continue
-
-            # Tutor Insight card: **Tutor Insight:** ...
-            insight_match = re.match(r'^\*\*(?:Tutor\s+Insight|Tutor\s+Takeaway|Tutor\s+Feedback):?\*\*\s*(.*)$', line_str, re.IGNORECASE)
-            if insight_match:
-                insight_text = insight_match.group(1).strip()
-                content_html = (
-                    f'<font name="Helvetica-Bold" color="#c2410c">💡 Tutor Insight:</font>&nbsp; '
-                    f'<font name="Helvetica-Oblique" color="#57201b">{self._format_inline_markdown(insight_text)}</font>'
-                )
-                ins_p = Paragraph(content_html, body_style)
-                tbl = Table([[ins_p]], colWidths=[AVAIL_W])
-                tbl.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#fbf5f2")),
-                    ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor("#e8d5cf")),
-                    ('ROUNDEDCORNERS', [6, 6, 6, 6]),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                    ('TOPPADDING', (0, 0), (-1, -1), 6),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ]))
-                story.append(tbl)
                 story.append(Spacer(1, 6))
+                continue
+
+            # Validated concepts and tutor insights must NOT appear in the PDF
+            if re.match(r'^\*\*(?:Validated\s+Concepts|Key\s+Concepts\s+Validated):?\*\*', line_str, re.IGNORECASE):
+                continue
+            if re.match(r'^\*\*(?:Tutor\s+Insight|Tutor\s+Takeaway|Tutor\s+Feedback):?\*\*', line_str, re.IGNORECASE):
                 continue
 
             # Q / A lines → collect into a card pair (for legacy formats)
