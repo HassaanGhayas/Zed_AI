@@ -139,6 +139,18 @@ class PdfService:
             'SectionCard', parent=styles['Normal'], fontName='Helvetica-Bold',
             fontSize=13, leading=17, textColor=INK,
         )
+        subheading_style = ParagraphStyle(
+            'Subheading', parent=styles['Normal'], fontName='Helvetica-Bold',
+            fontSize=11, leading=15, textColor=INK,
+        )
+        body_style = ParagraphStyle(
+            'BodyText', parent=styles['Normal'], fontName='Helvetica',
+            fontSize=10, leading=14.5, textColor=INK_MUTED,
+        )
+        bullet_style = ParagraphStyle(
+            'BulletText', parent=styles['Normal'], fontName='Helvetica',
+            fontSize=10, leading=14.5, textColor=INK_MUTED, leftIndent=16, firstLineIndent=-10,
+        )
         q_style = ParagraphStyle(
             'QCard', parent=styles['Normal'], fontName='Helvetica',
             fontSize=10, leading=14.5, textColor=INK,
@@ -155,13 +167,25 @@ class PdfService:
             'KeyframeCaption', parent=styles['Normal'], fontName='Helvetica-Oblique',
             fontSize=8.5, leading=12, textColor=INK_FAINT, alignment=TA_CENTER,
         )
+        card_text_style = ParagraphStyle(
+            'CardText', parent=styles['Normal'], fontName='Helvetica',
+            fontSize=10, leading=14.5, textColor=INK,
+        )
+        revisit_title_style = ParagraphStyle(
+            'RevisitTitle', parent=styles['Normal'], fontName='Helvetica-Bold',
+            fontSize=11.5, leading=15, textColor=colors.HexColor("#92400e"),
+        )
+        revisit_bullet_style = ParagraphStyle(
+            'RevisitBullet', parent=styles['Normal'], fontName='Helvetica',
+            fontSize=9.5, leading=14, textColor=colors.HexColor("#78350f"), leftIndent=16, firstLineIndent=-10,
+        )
 
         story = []
 
         # ── Cover page ──
         lines = [l.strip() for l in markdown_content.split('\n')]
-        n_sections = sum(1 for l in lines if l.startswith('## '))
-        n_qa = len(re.findall(r'(?m)^\*\*Q\d+:?\*\*', markdown_content))
+        n_sections = sum(1 for l in lines if l.startswith('## ') and not l.lower().startswith('## concepts to revisit'))
+        n_qa = len(re.findall(r'(?m)^\*\*Q\d+:?\*\*|^### Checkpoint', markdown_content))
         story.append(Spacer(1, 1.9 * inch))
         story.append(Paragraph("M I N D F L O W&nbsp;&nbsp;A I", brand_style))
         story.append(Spacer(1, 22))
@@ -178,15 +202,42 @@ class PdfService:
         story.append(PageBreak())
 
         # ── Content pages ──
+        in_revisit_section = False
         pending_q = None  # (label, text) waiting for its answer line
+
         for line in markdown_content.split('\n'):
             raw = line.rstrip()
             line_str = raw.strip()
             if not line_str:
                 continue
 
+            # Check if this is the "Concepts to Revisit" section
+            if line_str.lower().startswith('## concepts to revisit'):
+                in_revisit_section = True
+                heading_raw = line_str[3:].strip()
+                callout_p = Paragraph(
+                    f'<b>⚠️ &nbsp; {self._format_inline_markdown(heading_raw).upper()}</b>',
+                    revisit_title_style
+                )
+                tbl = Table([[callout_p]], colWidths=[AVAIL_W])
+                tbl.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#fef3c7")),
+                    ('LINEBEFORE', (0, 0), (0, -1), 4, colors.HexColor("#d97706")),
+                    ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor("#f59e0b")),
+                    ('ROUNDEDCORNERS', [0, 8, 8, 0]),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 12),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                story.append(Spacer(1, 14))
+                story.append(tbl)
+                story.append(Spacer(1, 8))
+                continue
+
             # Section heading → accent-bar card
             if line_str.startswith('## '):
+                in_revisit_section = False
                 heading_raw = line_str[3:].strip()
                 text = self._format_inline_markdown(heading_raw)
                 tbl = Table([[Paragraph(text, section_style)]], colWidths=[AVAIL_W])
@@ -209,7 +260,107 @@ class PdfService:
                     self._append_keyframe_image(story, kf, video_id, cap_style)
                 continue
 
-            # Q / A lines → collect into a card pair
+            # Subheading or Checkpoint banner: ### Checkpoint 1: Question (Status)
+            if line_str.startswith('### '):
+                sub_raw = line_str[4:].strip()
+                # Check for status indicator like (Mastered) or (Needs Review)
+                status_html = ""
+                clean_sub = sub_raw
+                if re.search(r'\(Mastered\)', sub_raw, re.IGNORECASE):
+                    clean_sub = re.sub(r'\s*\(Mastered\)', '', sub_raw, flags=re.IGNORECASE).strip()
+                    status_html = '&nbsp;&nbsp;<font color="#2b5e19"><b>[MASTERED ✓]</b></font>'
+                elif re.search(r'\(Needs\s*Review\)', sub_raw, re.IGNORECASE):
+                    clean_sub = re.sub(r'\s*\(Needs\s*Review\)', '', sub_raw, flags=re.IGNORECASE).strip()
+                    status_html = '&nbsp;&nbsp;<font color="#c2410c"><b>[NEEDS REVIEW ⚠]</b></font>'
+
+                header_text = f"<b>{self._format_inline_markdown(clean_sub)}</b>{status_html}"
+                card_p = Paragraph(header_text, card_text_style)
+                tbl = Table([[card_p]], colWidths=[AVAIL_W])
+                tbl.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), SUNKEN),
+                    ('BOX', (0, 0), (-1, -1), 0.75, LINE),
+                    ('ROUNDEDCORNERS', [6, 6, 6, 6]),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 7),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+                ]))
+                story.append(Spacer(1, 8))
+                story.append(tbl)
+                story.append(Spacer(1, 4))
+                continue
+
+            # Student Explanation card: **Your Explanation:** ...
+            exp_match = re.match(r'^\*\*(?:Your\s+Explanation|Your\s+Articulation|Explanation):?\*\*\s*(.*)$', line_str, re.IGNORECASE)
+            if exp_match:
+                exp_text = exp_match.group(1).strip()
+                content_html = (
+                    f'<font name="Helvetica-Bold" color="#a72906">Your Articulation (Grammar-Refined):</font><br/>'
+                    f'<font name="Helvetica" color="#1e0808">{self._format_inline_markdown(exp_text)}</font>'
+                )
+                exp_p = Paragraph(content_html, body_style)
+                tbl = Table([[exp_p]], colWidths=[AVAIL_W])
+                tbl.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), RAISED),
+                    ('LINEBEFORE', (0, 0), (0, -1), 3.5, EMBER_MID),
+                    ('BOX', (0, 0), (-1, -1), 0.75, LINE),
+                    ('ROUNDEDCORNERS', [0, 6, 6, 0]),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ]))
+                story.append(tbl)
+                story.append(Spacer(1, 4))
+                continue
+
+            # Validated Concepts card: **Validated Concepts:** ...
+            val_match = re.match(r'^\*\*(?:Validated\s+Concepts|Key\s+Concepts\s+Validated):?\*\*\s*(.*)$', line_str, re.IGNORECASE)
+            if val_match:
+                val_text = val_match.group(1).strip()
+                content_html = (
+                    f'<font name="Helvetica-Bold" color="#2b5e19">✓ Validated Concepts:</font>&nbsp; '
+                    f'<font name="Helvetica" color="#2d5a1b">{self._format_inline_markdown(val_text)}</font>'
+                )
+                val_p = Paragraph(content_html, body_style)
+                tbl = Table([[val_p]], colWidths=[AVAIL_W])
+                tbl.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#edf7ed")),
+                    ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor("#b7deb5")),
+                    ('ROUNDEDCORNERS', [6, 6, 6, 6]),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ]))
+                story.append(tbl)
+                story.append(Spacer(1, 4))
+                continue
+
+            # Tutor Insight card: **Tutor Insight:** ...
+            insight_match = re.match(r'^\*\*(?:Tutor\s+Insight|Tutor\s+Takeaway|Tutor\s+Feedback):?\*\*\s*(.*)$', line_str, re.IGNORECASE)
+            if insight_match:
+                insight_text = insight_match.group(1).strip()
+                content_html = (
+                    f'<font name="Helvetica-Bold" color="#c2410c">💡 Tutor Insight:</font>&nbsp; '
+                    f'<font name="Helvetica-Oblique" color="#57201b">{self._format_inline_markdown(insight_text)}</font>'
+                )
+                ins_p = Paragraph(content_html, body_style)
+                tbl = Table([[ins_p]], colWidths=[AVAIL_W])
+                tbl.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor("#fbf5f2")),
+                    ('BOX', (0, 0), (-1, -1), 0.75, colors.HexColor("#e8d5cf")),
+                    ('ROUNDEDCORNERS', [6, 6, 6, 6]),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ]))
+                story.append(tbl)
+                story.append(Spacer(1, 6))
+                continue
+
+            # Q / A lines → collect into a card pair (for legacy formats)
             q_match = re.match(r'^\*\*(Q\d+):?\*\*\s*(.*)$', line_str)
             a_match = re.match(r'^\*\*(A\d+):?\*\*\s*(.*)$', line_str)
             if q_match:
@@ -252,8 +403,27 @@ class PdfService:
                 pending_q = (q_label, f"{q_text} {line_str}")
                 continue
 
-            # Source / note lines (italics or plain)
-            story.append(Paragraph(self._format_inline_markdown(line_str), small_style))
+            # Bullet points: lines starting with '-' or '*'
+            if line_str.startswith('- ') or line_str.startswith('* '):
+                bullet_content = line_str[2:].strip()
+                cur_bullet_style = revisit_bullet_style if in_revisit_section else bullet_style
+                bullet_p = Paragraph(
+                    f'&bull;&nbsp;&nbsp;{self._format_inline_markdown(bullet_content)}',
+                    cur_bullet_style
+                )
+                story.append(bullet_p)
+                story.append(Spacer(1, 4))
+                continue
+
+            # Source video link or italicized note
+            if line_str.startswith('*Source Video:') or line_str.startswith('_No active-recall'):
+                story.append(Paragraph(self._format_inline_markdown(line_str), small_style))
+                story.append(Spacer(1, 6))
+                continue
+
+            # Default body paragraph (rendered in clear normal Helvetica font, never faint italics)
+            cur_body_style = revisit_bullet_style if in_revisit_section else body_style
+            story.append(Paragraph(self._format_inline_markdown(line_str), cur_body_style))
             story.append(Spacer(1, 6))
 
         if not story:
