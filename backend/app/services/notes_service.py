@@ -41,6 +41,12 @@ class NotesService:
                     )
             qa_summary = "\n".join(qa_details)
             flagged_summary = "\n".join(flagged_items) if flagged_items else "None (All checkpoints mastered)."
+            segments_summary = "\n".join([f"- **{s.title}**: {s.summary}" for s in segments]) or "No segment summaries available."
+            visual_context = "\n".join([
+                f"- **{s.title}**: {s.visual.key_concept or s.visual.diagram_description}"
+                for s in segments
+                if getattr(s, "visual", None) and (getattr(s.visual, "key_concept", None) or getattr(s.visual, "diagram_description", None))
+            ]) or "None recorded."
 
             prompt = f"""You are an expert personalized educational synthesis tutor.
 Create high-value, personalized study notes for the lecture: "{video_title}" (https://www.youtube.com/watch?v={video_id})

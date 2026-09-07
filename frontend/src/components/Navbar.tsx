@@ -91,15 +91,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
+          <nav aria-label="Main navigation" className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
             <ThemeToggle />
             {onOpenProgress && (
               <button
                 onClick={onOpenProgress}
                 aria-label="View learning dashboard & progress"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-amber-200 bg-amber-950/40 border border-amber-800/50 rounded-lg hover:bg-amber-900/60 transition-all shadow-sm cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-amber-800 dark:text-amber-200 bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 dark:border-amber-800/50 rounded-lg hover:bg-amber-500/20 dark:hover:bg-amber-900/60 transition-all shadow-sm cursor-pointer"
               >
-                <PieChart className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <PieChart className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                 <span className="hidden sm:inline">Analytics</span>
               </button>
             )}
@@ -108,9 +108,9 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={onOpenNotes}
                 aria-label="View study notes"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ember-200 bg-ember-900/40 border border-ember-700/50 rounded-lg hover:bg-ember-900/60 transition-all shadow-sm cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ember-800 dark:text-ember-200 bg-ember-500/10 dark:bg-ember-900/40 border border-ember-500/30 dark:border-ember-700/50 rounded-lg hover:bg-ember-500/20 dark:hover:bg-ember-900/60 transition-all shadow-sm cursor-pointer"
               >
-                <FileText className="w-4 h-4 text-ember-400 flex-shrink-0" />
+                <FileText className="w-4 h-4 text-ember-600 dark:text-ember-400 flex-shrink-0" />
                 <span className="hidden sm:inline">Study Notes</span>
               </button>
             )}
@@ -128,14 +128,13 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={() => setIsKeyModalOpen(true)}
-              className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-faint hover:text-ink-muted bg-sunken/60 hover:bg-sunken rounded-lg border border-line/50 transition-all cursor-pointer"
-              title="Configure Gemini API Key"
-              aria-label="Configure Gemini API Key"
+              aria-label="Manage Gemini API Key"
+              className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-all cursor-pointer"
             >
-              <Key className="w-4 h-4 text-warning flex-shrink-0" />
-              <span className="hidden md:inline">API Key</span>
+              <Key className="w-4 h-4 text-ink-faint flex-shrink-0" />
+              <span className="hidden sm:inline">API Key</span>
             </button>
-          </div>
+          </nav>
         </div>
       </header>
 
@@ -151,14 +150,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto sm:ml-0">
               <button
                 onClick={() => setIsKeyModalOpen(true)}
-                className="px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-all cursor-pointer"
+                className="px-3.5 py-2 min-h-[44px] rounded-lg text-xs font-semibold bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-all cursor-pointer"
               >
                 Add key
               </button>
               <button
                 onClick={dismissKeyHint}
                 aria-label="Dismiss API key hint"
-                className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg text-ink-faint hover:text-ink-muted hover:bg-sunken transition-all cursor-pointer"
+                className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-ink-faint hover:text-ink-muted hover:bg-sunken transition-all cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

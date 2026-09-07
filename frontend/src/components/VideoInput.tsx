@@ -53,7 +53,7 @@ export const VideoInput: React.FC<VideoInputProps> = ({
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-12 px-4 text-center">
+    <div className="max-w-3xl mx-auto py-8 sm:py-12 px-0 sm:px-4 text-center">
       {/* Hero Badge */}
       <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-ember-500/10 border border-ember-500/25 text-ember-300 text-xs font-medium mb-6">
         <Sparkles className="w-3.5 h-3.5" />
@@ -159,6 +159,7 @@ export const VideoInput: React.FC<VideoInputProps> = ({
       </div>
 
       {/* Feature Highlights Grid */}
+      <h2 className="sr-only">Key Learning Features</h2>
       <div className="grid sm:grid-cols-3 gap-5 mt-14 text-left">
         <div className="p-5 rounded-2xl bg-raised/50 border border-line-soft">
           <div className="w-9 h-9 rounded-xl bg-ember-500/10 text-ember-400 flex items-center justify-center mb-3">

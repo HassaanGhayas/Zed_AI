@@ -144,7 +144,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="progress-view-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-3 sm:p-6 overflow-y-auto overflow-x-hidden animate-in fade-in duration-150"
     >
       <div className="bg-raised border border-line-soft rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto animate-in zoom-in-95 duration-150">
         {/* Header */}

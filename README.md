@@ -25,9 +25,21 @@ An end-to-end interactive learning platform that transforms public YouTube educa
    - **Incorrect / Misconception**: Identifies the specific flaw in the student's mental model, explains the concept with reference to the video segment, and prompts them with a guided follow-up question to reformulate their response.
 
 5. **Personalized Study Notes & PDF Export**:
-   - Merges the video transcript takeaways with the student's verified answers.
+   - Merges the video transcript takeaways, keyframe visual insights, and the student's verified answers.
    - Formats study notes with refined grammar, executive summary, callout tips, and active recall review cards.
    - One-click compile to printable PDF using pure-Python ReportLab.
+
+6. **Gemini Vision "Explain Screen"**:
+   - Captures the current video frame and asks Gemini to explain the on-screen equation, diagram, or slide in context.
+   - Surfaces a visual explanation overlay without leaving fullscreen playback.
+
+7. **Voice Input & AI Tutor Panel**:
+   - Optional microphone-driven answers for the active-recall checkpoints.
+   - A live tutor panel tracks segment progress, current recall stage, and quick chapter jumps.
+
+8. **Analytics Dashboard, Theming & Accessibility**:
+   - Progress view summarizing mastered vs. flagged checkpoints across the session.
+   - Light/dark theme toggle with WCAG AA-oriented contrast, semantic design tokens, ARIA landmarks/live regions, `sr-only` headings, and 44px minimum touch targets.
 
 ---
 
@@ -40,7 +52,8 @@ d:/ZED_AI/
 │   │   ├── api/
 │   │   │   ├── routes_video.py      # Video ingestion, transcript extraction, and segmentation
 │   │   │   ├── routes_qa.py         # Socratic Q&A evaluation and misconception feedback
-│   │   │   └── routes_notes.py      # Personalized notes synthesis and PDF export
+│   │   │   ├── routes_notes.py      # Personalized notes synthesis and PDF export
+│   │   │   └── routes_voice.py      # Voice input transcription for spoken answers
 │   │   ├── core/
 │   │   │   └── config.py            # Environment configuration & Gemini settings
 │   │   ├── models/
@@ -50,6 +63,7 @@ d:/ZED_AI/
 │   │   │   ├── segmenter_service.py # Gemini semantic topic segmenter
 │   │   │   ├── evaluator_service.py # Socratic misconception evaluator
 │   │   │   ├── notes_service.py     # Markdown study notes generator
+│   │   │   ├── visual_service.py    # Gemini vision keyframe "explain screen" analysis
 │   │   │   └── pdf_service.py       # ReportLab PDF styling & compilation
 │   │   └── main.py                  # FastAPI application entrypoint
 │   ├── test_backend.py              # End-to-end backend verification test
@@ -57,11 +71,14 @@ d:/ZED_AI/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Navbar.tsx           # Navigation bar & Gemini API key modal
+│   │   │   ├── Navbar.tsx           # Navigation bar, theme toggle & Gemini API key modal
 │   │   │   ├── VideoInput.tsx       # YouTube URL input & curated educational presets
-│   │   │   ├── VideoPlayer.tsx      # YouTube IFrame player with auto-pause boundary protection
+│   │   │   ├── VideoPlayer.tsx      # YouTube IFrame player with auto-pause & visual explanation overlay
 │   │   │   ├── SegmentNav.tsx       # Chapter progress & lock/unlock status
+│   │   │   ├── AiTutorPanel.tsx     # Live recall-stage status & chapter quick jumps
 │   │   │   ├── SocraticQuiz.tsx     # Interactive active-recall & misconception resolution
+│   │   │   ├── ProgressView.tsx     # Analytics dashboard of mastered vs. flagged checkpoints
+│   │   │   ├── ThemeToggle.tsx      # Light/dark theme switch
 │   │   │   └── NotesModal.tsx       # Markdown notes preview & PDF download
 │   │   ├── lib/
 │   │   │   └── api.ts               # Backend API client

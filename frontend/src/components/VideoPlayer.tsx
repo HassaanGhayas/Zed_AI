@@ -392,18 +392,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   <button
                     onClick={handleExplainScreen}
                     aria-label="Explain what is on screen"
-                    className="flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] text-xs font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] text-xs font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
                   >
-                    <ScanEye className="w-3.5 h-3.5" />
+                    <ScanEye className="w-4 h-4" />
                     <span>Explain screen</span>
                   </button>
                 )}
                 <button
                   onClick={handleReplaySegment}
                   aria-label="Re-watch this segment"
-                  className="flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] text-xs font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] text-xs font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
+                  <RotateCcw className="w-4 h-4" />
                   <span>Re-watch Segment</span>
                 </button>
                 {/* Two-way fullscreen toggle — re-entering from the question works
@@ -412,12 +412,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   onClick={toggleFullscreen}
                   title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
                   aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
-                  className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
+                  className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
                 >
                   {isFullscreen ? (
-                    <Minimize className="w-3.5 h-3.5" />
+                    <Minimize className="w-4 h-4" />
                   ) : (
-                    <Maximize className="w-3.5 h-3.5" />
+                    <Maximize className="w-4 h-4" />
                   )}
                 </button>
               </div>
@@ -549,9 +549,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 onClick={handleExplainScreen}
                 title="Explain what's on screen"
                 aria-label="Explain what's on screen"
-                className="flex items-center gap-1 px-2.5 py-1.5 min-h-[36px] rounded-lg hover:bg-sunken text-ink-faint hover:text-ink transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-3 py-2 min-h-[44px] rounded-lg hover:bg-sunken text-ink-faint hover:text-ink transition-colors cursor-pointer"
               >
-                <ScanEye className="w-3.5 h-3.5" />
+                <ScanEye className="w-4 h-4" />
                 <span className="hidden sm:inline text-[11px] font-semibold">Explain screen</span>
               </button>
             )}
@@ -559,17 +559,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               onClick={handleReplaySegment}
               title="Rewind to start of segment"
               aria-label="Rewind to start of segment"
-              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center hover:text-ink rounded-lg hover:bg-sunken transition-colors cursor-pointer"
+              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:text-ink rounded-lg hover:bg-sunken transition-colors cursor-pointer"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
+              <RotateCcw className="w-4 h-4" />
             </button>
             <button
               onClick={toggleFullscreen}
               title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
               aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
-              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center hover:text-ink rounded-lg hover:bg-sunken transition-colors cursor-pointer"
+              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:text-ink rounded-lg hover:bg-sunken transition-colors cursor-pointer"
             >
-              <Maximize className="w-3.5 h-3.5" />
+              <Maximize className="w-4 h-4" />
             </button>
           </div>
         </div>

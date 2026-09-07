@@ -88,11 +88,11 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-ember-500/10 text-ember-300 border border-ember-500/25">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-ember-500/10 text-ember-700 dark:text-ember-300 border border-ember-500/25">
             {completedCount} / {totalSegments} Done
           </span>
           {reviewCount > 0 && (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/25">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
               {reviewCount} Review
             </span>
           )}
@@ -114,7 +114,7 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
                 <div
                   className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
                     isCurrent
-                      ? 'bg-ember-500/20 text-ember-300 border border-ember-500/40 shadow-sm'
+                      ? 'bg-ember-500/20 text-ember-800 dark:text-ember-300 border border-ember-500/40 shadow-sm'
                       : isPassed
                       ? 'text-success/90 font-medium'
                       : 'text-ink-faint'
@@ -134,11 +134,13 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
 
       {/* Real-time Status Card with Pulse */}
       <div
+        role="status"
+        aria-live="polite"
         className={`p-3.5 rounded-xl border flex items-start gap-2.5 transition-all ${
           stage === 'ACTIVE_RECALL'
-            ? 'bg-ember-500/10 border-ember-500/30 text-ember-200'
+            ? 'bg-ember-500/10 border-ember-500/30 text-ember-900 dark:text-ember-200'
             : stage === 'REVIEW'
-            ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+            ? 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200'
             : stage === 'COMPLETE'
             ? 'bg-success/10 border-success/30 text-success'
             : 'bg-sunken/80 border-line-soft text-ink-muted'
@@ -249,12 +251,12 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
 
       {/* Chapter Quick Jumps */}
       {segments.length > 1 && onSelectSegment && (
-        <div className="pt-2 border-t border-line-soft/80 flex items-center justify-between text-xs">
+        <div className="pt-2 border-t border-line-soft/80 flex items-center justify-between gap-2 text-xs">
           <button
             type="button"
             disabled={activeSegmentIndex === 0}
             onClick={() => onSelectSegment(activeSegmentIndex - 1)}
-            className="px-2.5 py-1 rounded-lg border border-line-soft text-ink-faint hover:text-ink hover:bg-sunken disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+            className="px-3 py-2 min-h-[44px] rounded-lg border border-line-soft text-ink-faint hover:text-ink hover:bg-sunken disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer flex items-center justify-center"
           >
             ← Prev Chapter
           </button>
@@ -265,7 +267,7 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
             type="button"
             disabled={activeSegmentIndex >= segments.length - 1}
             onClick={() => onSelectSegment(activeSegmentIndex + 1)}
-            className="px-2.5 py-1 rounded-lg border border-line-soft text-ink-faint hover:text-ink hover:bg-sunken disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+            className="px-3 py-2 min-h-[44px] rounded-lg border border-line-soft text-ink-faint hover:text-ink hover:bg-sunken disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer flex items-center justify-center"
           >
             Next Chapter →
           </button>

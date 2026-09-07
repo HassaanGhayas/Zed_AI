@@ -122,7 +122,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby="notes-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-6 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-6 overflow-x-hidden animate-in fade-in duration-150"
     >
       <div className="bg-raised border border-line-soft rounded-2xl sm:rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Modal Header */}
@@ -132,11 +132,11 @@ export const NotesModal: React.FC<NotesModalProps> = ({
               <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <h3 id="notes-modal-title" className="font-display text-sm sm:text-lg font-bold text-ink truncate">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <h3 id="notes-modal-title" className="font-display text-xs sm:text-lg font-bold text-ink truncate">
                   Personalized Study Notes
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-ember-500/10 text-ember-300 border border-ember-500/25 flex-shrink-0">
+                <span className="hidden min-[380px]:inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-ember-500/10 text-ember-300 border border-ember-500/25 flex-shrink-0">
                   AI Synthesized
                 </span>
               </div>
