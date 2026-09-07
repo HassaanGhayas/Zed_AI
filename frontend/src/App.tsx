@@ -356,8 +356,17 @@ export const App: React.FC = () => {
                 )}
               </div>
 
-<<<<<<< HEAD
               <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sunken/60 border border-line-soft text-xs">
+                  <span className="w-2 h-2 rounded-full bg-ember-500 animate-pulse" />
+                  <span className="text-ink-muted">
+                    Chapter <strong className="text-ink">{activeSegmentIndex + 1}</strong> of {session.segments.length}
+                  </span>
+                  <span className="text-line-soft">|</span>
+                  <span className="font-semibold text-ember-400">
+                    {Math.round((completedSegmentIds.size / Math.max(1, session.segments.length)) * 100)}% Mastered
+                  </span>
+                </div>
                 <button
                   onClick={() => setIsProgressOpen(true)}
                   className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-amber-500/15 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 dark:border-amber-500/25 hover:bg-amber-500/25 transition-all cursor-pointer flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
@@ -378,28 +387,6 @@ export const App: React.FC = () => {
                   className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-ember-500/15 dark:bg-ember-500/10 text-ember-800 dark:text-ember-300 border border-ember-500/30 dark:border-ember-500/25 hover:bg-ember-500/25 transition-all cursor-pointer flex items-center justify-center flex-1 sm:flex-initial"
                 >
                   Notes Preview ({qaHistory.length})
-=======
-              {/* Clean Session Progress Chip */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sunken/60 border border-line-soft text-xs">
-                  <span className="w-2 h-2 rounded-full bg-ember-500 animate-pulse" />
-                  <span className="text-ink-muted">
-                    Chapter <strong className="text-ink">{activeSegmentIndex + 1}</strong> of {session.segments.length}
-                  </span>
-                  <span className="text-line-soft">|</span>
-                  <span className="font-semibold text-ember-400">
-                    {Math.round((completedSegmentIds.size / Math.max(1, session.segments.length)) * 100)}% Mastered
-                  </span>
-                </div>
-
-                {/* Subtle trigger quiz button for quick testing */}
-                <button
-                  onClick={handleTriggerQuiz}
-                  title="Force checkpoint at current position"
-                  className="px-2.5 py-1.5 rounded-xl bg-sunken/40 hover:bg-sunken border border-line-soft text-ink-faint hover:text-ink transition-all cursor-pointer text-xs flex items-center gap-1"
-                >
-                  <span>⚡ Check Now</span>
->>>>>>> b76a893 (Work in progress: contributor changes)
                 </button>
               </div>
             </div>

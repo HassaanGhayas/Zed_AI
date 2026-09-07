@@ -101,11 +101,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={onOpenProgress}
                 aria-label="View learning dashboard & progress"
-<<<<<<< HEAD
                 className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-amber-800 dark:text-amber-200 bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 dark:border-amber-800/50 rounded-lg hover:bg-amber-500/20 dark:hover:bg-amber-900/60 transition-all shadow-sm cursor-pointer"
-=======
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-amber-200 bg-amber-950/40 border border-amber-800/50 rounded-lg hover:bg-amber-900/60 transition-all shadow-sm cursor-pointer relative"
->>>>>>> b76a893 (Work in progress: contributor changes)
               >
                 <PieChart className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                 <span className="hidden sm:inline">Analytics</span>

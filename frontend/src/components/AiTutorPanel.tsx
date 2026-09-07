@@ -1,8 +1,14 @@
 import React from 'react';
 import {
   Sparkles,
+  PlayCircle,
+  HelpCircle,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
   BookOpen,
   Clock,
+  Compass,
 } from 'lucide-react';
 import type { Segment, TutorStage } from '../types';
 
@@ -26,14 +32,15 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
   completedSegmentIds,
   needsReviewSegmentIds = new Set(),
   isPausedForQuiz,
-  activeQuestionIndex: _activeQuestionIndex,
-  totalQuestionsInSegment: _totalQuestionsInSegment,
+  activeQuestionIndex,
+  totalQuestionsInSegment,
   hasEvaluationResult = false,
   isCorrect = false,
   needsReview = false,
   onSelectSegment,
 }) => {
   const currentSegment = segments[activeSegmentIndex];
+  const nextSegment = segments[activeSegmentIndex + 1];
   const totalSegments = segments.length;
   const completedCount = completedSegmentIds.size;
   const reviewCount = Array.from(completedSegmentIds).filter((id) => needsReviewSegmentIds.has(id)).length;
@@ -53,11 +60,11 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
     stage = 'WATCHING';
   }
 
-  const STAGES: { id: TutorStage; label: string }[] = [
-    { id: 'WATCHING', label: 'Watch' },
-    { id: 'ACTIVE_RECALL', label: 'Recall' },
-    { id: 'REVIEW', label: 'Review' },
-    { id: 'COMPLETE', label: 'Mastered' },
+  const STAGES: { id: TutorStage; label: string; icon: React.ReactNode }[] = [
+    { id: 'WATCHING', label: 'Watching', icon: <PlayCircle className="w-3.5 h-3.5" /> },
+    { id: 'ACTIVE_RECALL', label: 'Recall Check', icon: <HelpCircle className="w-3.5 h-3.5" /> },
+    { id: 'REVIEW', label: 'Review', icon: <AlertTriangle className="w-3.5 h-3.5" /> },
+    { id: 'COMPLETE', label: 'Complete', icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
   ];
 
   const formatSeconds = (s: number) => {
@@ -67,7 +74,7 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
   };
 
   return (
-    <aside className="bg-raised border border-line-soft rounded-2xl p-4 flex flex-col gap-3.5 shadow-lg">
+    <aside className="bg-raised border border-line-soft rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-lg">
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-line-soft">
         <div className="flex items-center gap-2.5">
@@ -76,28 +83,7 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
           </div>
           <div>
             <h3 className="text-sm font-bold text-ink">AI Tutor Guidance</h3>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  stage === 'ACTIVE_RECALL'
-                    ? 'bg-ember-400 animate-pulse'
-                    : stage === 'REVIEW'
-                    ? 'bg-amber-400 animate-pulse'
-                    : stage === 'COMPLETE'
-                    ? 'bg-success'
-                    : 'bg-ember-500 animate-pulse'
-                }`}
-              />
-              <span className="text-[11px] font-medium text-ink-muted">
-                {stage === 'ACTIVE_RECALL'
-                  ? 'Active Recall Check'
-                  : stage === 'REVIEW'
-                  ? 'Review Needed'
-                  : stage === 'COMPLETE'
-                  ? 'All Complete'
-                  : 'Lecture Streaming'}
-              </span>
-            </div>
+            <p className="text-[11px] text-ink-faint">Adaptive Learning Assistant</p>
           </div>
         </div>
 
@@ -113,16 +99,16 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
         </div>
       </div>
 
-      {/* Sleek Stage Pipeline */}
-      <div className="flex items-center justify-between gap-1 p-1 rounded-xl bg-sunken/50 border border-line-soft text-[11px]">
-        {STAGES.map((s) => {
-          const isCurrent = stage === s.id;
-          const isPassed =
-            (s.id === 'WATCHING' && (stage === 'ACTIVE_RECALL' || stage === 'REVIEW' || stage === 'COMPLETE')) ||
-            (s.id === 'ACTIVE_RECALL' && (stage === 'REVIEW' || stage === 'COMPLETE')) ||
-            (s.id === 'REVIEW' && stage === 'COMPLETE');
+      {/* Stage Stepper Pipeline */}
+      <div className="p-2.5 rounded-xl bg-sunken/60 border border-line-soft/80">
+        <div className="flex items-center justify-between text-[11px] font-semibold">
+          {STAGES.map((s, idx) => {
+            const isCurrent = stage === s.id;
+            const isPassed =
+              (s.id === 'WATCHING' && (stage === 'ACTIVE_RECALL' || stage === 'REVIEW' || stage === 'COMPLETE')) ||
+              (s.id === 'ACTIVE_RECALL' && (stage === 'REVIEW' || stage === 'COMPLETE')) ||
+              (s.id === 'REVIEW' && stage === 'COMPLETE');
 
-<<<<<<< HEAD
             return (
               <React.Fragment key={s.id}>
                 <div
@@ -212,91 +198,70 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
             <div className="flex items-center gap-1 text-[11px] text-ink-faint font-mono">
               <Clock className="w-3 h-3" />
               <span>{formatSeconds(currentSegment.start_time)} - {formatSeconds(currentSegment.end_time)}</span>
-=======
-          return (
-            <div
-              key={s.id}
-              className={`flex-1 py-1 rounded-lg text-center font-medium transition-all ${
-                isCurrent
-                  ? 'bg-ember-500/20 text-ember-300 font-semibold border border-ember-500/30'
-                  : isPassed
-                  ? 'text-success font-normal bg-success/5'
-                  : 'text-ink-faint'
-              }`}
-            >
-              {s.label}
->>>>>>> b76a893 (Work in progress: contributor changes)
             </div>
-          );
-        })}
-      </div>
-
-      {/* Current Chapter Focus Card */}
-      {currentSegment && (
-        <div className="p-3.5 rounded-xl bg-sunken/40 border border-line-soft space-y-2">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="font-semibold text-ember-400 flex items-center gap-1">
-              <BookOpen className="w-3.5 h-3.5" />
-              Chapter {activeSegmentIndex + 1} of {totalSegments}
-            </span>
-            <span className="text-ink-faint font-mono flex items-center gap-1">
-              <Clock className="w-3 h-3" />
-              {formatSeconds(currentSegment.start_time)} - {formatSeconds(currentSegment.end_time)}
-            </span>
           </div>
 
-          <h4 className="text-sm font-bold text-ink leading-snug">
+          <h4 className="text-sm font-semibold text-ink mb-1.5 line-clamp-1">
             {currentSegment.title}
           </h4>
 
-          {/* Contextual Status Guidance */}
-          <div
-            className={`p-2.5 rounded-lg text-xs leading-relaxed ${
-              stage === 'ACTIVE_RECALL'
-                ? 'bg-ember-500/10 border border-ember-500/25 text-ember-200'
-                : stage === 'REVIEW'
-                ? 'bg-amber-500/10 border border-amber-500/25 text-amber-200'
-                : stage === 'COMPLETE'
-                ? 'bg-success/10 border border-success/25 text-success'
-                : 'bg-raised/80 border border-line-soft text-ink-muted'
-            }`}
-          >
-            {stage === 'COMPLETE' ? (
-              <span>🎉 All chapters finished! View your synthesized notes and mastery analytics.</span>
-            ) : stage === 'ACTIVE_RECALL' ? (
-              hasEvaluationResult && isCorrect ? (
-                <span>✓ Concept mastered! Proceed to continue video playback.</span>
+          <p className="text-xs text-ink-faint line-clamp-2 leading-relaxed mb-2">
+            {currentSegment.summary}
+          </p>
+
+          {currentSegment.questions && currentSegment.questions.length > 0 && (
+            <div className="pt-2 border-t border-line-soft/60 flex items-center justify-between text-[11px] text-ink-muted">
+              <span>Checkpoint Question {activeQuestionIndex + 1} of {totalQuestionsInSegment}</span>
+              {needsReviewSegmentIds.has(currentSegment.segment_id) ? (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                  Needs Review
+                </span>
+              ) : completedSegmentIds.has(currentSegment.segment_id) ? (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-success/15 text-success border border-success/30">
+                  Mastered
+                </span>
               ) : (
-                <span>✍️ Video paused: Answer the active recall prompt in the player to proceed.</span>
-              )
-            ) : stage === 'REVIEW' ? (
-              <span>⚠️ Flagged for review. You can continue advancing through the lecture.</span>
-            ) : (
-              <span>
-                ⏱ Video will automatically pause at <strong>{formatSeconds(currentSegment.end_time)}</strong> for a concept check.
-              </span>
-            )}
-          </div>
+                <span className="text-ink-faint">In Progress</span>
+              )}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Chapter Quick Navigation */}
+      {/* What Happens Next Guidance Card */}
+      <div className="p-3.5 rounded-xl bg-cosmos-900/30 border border-ember-500/20 text-xs">
+        <div className="flex items-center gap-1.5 font-bold text-ember-300 mb-1">
+          <Compass className="w-3.5 h-3.5 text-ember-400" />
+          <span>What Happens Next</span>
+        </div>
+        <p className="text-ink-muted text-[11px] leading-relaxed">
+          {stage === 'COMPLETE'
+            ? 'Open "Study Notes" or the "Learning Dashboard" to review your concept breakdown and export your study notes PDF.'
+            : isPausedForQuiz
+            ? hasEvaluationResult && isCorrect
+              ? nextSegment
+                ? `Proceeding will resume video playback into Chapter ${activeSegmentIndex + 2}: "${nextSegment.title}".`
+                : 'Final chapter complete! Personalized revision notes will be compiled.'
+              : 'Answer the active recall question. The tutor will provide instant feedback on understood concepts and misconceptions.'
+            : nextSegment
+            ? `At ${formatSeconds(currentSegment.end_time)}, playback will pause for conceptual checkpoint #${activeSegmentIndex + 1}.`
+            : 'At the end of this final chapter, the active recall evaluation will finalize your session notes.'}
+        </p>
+      </div>
+
+      {/* Chapter Quick Jumps */}
       {segments.length > 1 && onSelectSegment && (
-<<<<<<< HEAD
         <div className="pt-2 border-t border-line-soft/80 flex items-center justify-between gap-2 text-xs">
-=======
-        <div className="pt-2 border-t border-line-soft/60 flex items-center justify-between text-xs">
->>>>>>> b76a893 (Work in progress: contributor changes)
           <button
             type="button"
             disabled={activeSegmentIndex === 0}
             onClick={() => onSelectSegment(activeSegmentIndex - 1)}
             className="px-3 py-2 min-h-[44px] rounded-lg border border-line-soft text-ink-faint hover:text-ink hover:bg-sunken disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer flex items-center justify-center"
           >
-            ← Prev
+            ← Prev Chapter
           </button>
           <span className="text-[11px] text-ink-faint font-mono">
-            Chapter {activeSegmentIndex + 1} / {segments.length}
+            {activeSegmentIndex + 1} of {segments.length}
           </span>
           <button
             type="button"
@@ -304,7 +269,7 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
             onClick={() => onSelectSegment(activeSegmentIndex + 1)}
             className="px-3 py-2 min-h-[44px] rounded-lg border border-line-soft text-ink-faint hover:text-ink hover:bg-sunken disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer flex items-center justify-center"
           >
-            Next →
+            Next Chapter →
           </button>
         </div>
       )}
