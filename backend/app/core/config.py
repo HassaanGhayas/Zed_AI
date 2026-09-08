@@ -18,8 +18,9 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
+        "https://studify-ai-three.vercel.app",
     ]
-    cors_origin_regex: str = r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$"
+    cors_origin_regex: str | None = None
 
     # ── Visual analysis (Gemini vision over extracted video frames) ──
     # Toggled via ENABLE_VISUAL_ANALYSIS env var; degrades gracefully when the
