@@ -1,4 +1,4 @@
-# 🎓 MindFlow AI - Active Recall Socratic Video Tutor
+# 🎓 Studify AI - Active Recall Socratic Video Tutor
 
 An end-to-end interactive learning platform that transforms public YouTube educational lectures into segmented, active-recall study sessions. The player automatically pauses at conceptual topic boundaries, challenges the learner with Socratic questions, diagnoses misconceptions constructively, and synthesizes personalized notes exportable as formatted PDF documents.
 
