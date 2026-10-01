@@ -1,0 +1,14 @@
+Studify capture report - 2026-10-01T22:32:43.791Z - mode: Gemini key
+OK       01_landing_hero.png
+OK       02_landing_features.png
+OK       10_mobile_390.png
+OK       03_workspace_locked.png
+OK       04_paused_quiz.png
+SKIPPED  07_explain_screen.png  -- disabled by default: backend explain-frame fails on Windows (charmap codec) and leaves its overlay open
+OK       05_misconception.png
+OK       06_correct_unlock.png
+OK       08_progress_dashboard.png
+OK       09_notes_modal.png
+OK       notes_sample.pdf
+OK       notes_page1.png/notes_page2.png  -- warning: The `fitz` API is deprecated and will be removed in future. Use `import pymupdf` instead.
+2 pages rasterized of 2
