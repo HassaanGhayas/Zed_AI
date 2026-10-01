@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import type { Segment, QAHistoryItem } from '../types';
 import { getSessionHistory } from '../lib/sessionHistory';
+import { Modal } from './ui/Modal';
+import { Badge } from './ui/Badge';
 
 interface ProgressViewProps {
   isOpen: boolean;
@@ -24,10 +26,12 @@ interface ProgressViewProps {
 
 type OutcomeType = 'first' | 'retry' | 'review';
 
+// Colors resolve via CSS custom properties so the donut/legend/bars stay
+// correct across both themes instead of baking in one theme's hex value.
 const OUTCOME_META: Record<OutcomeType, { label: string; color: string; bg: string }> = {
-  first: { label: 'Passed 1st Try', color: '#10b981', bg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' },
-  retry: { label: 'Passed After Retry', color: '#f97316', bg: 'bg-orange-500/10 text-orange-400 border-orange-500/30' },
-  review: { label: 'Needs Review', color: '#f59e0b', bg: 'bg-amber-500/10 text-amber-400 border-amber-500/30' },
+  first: { label: 'Passed 1st Try', color: 'var(--color-success)', bg: 'bg-success/10 text-success border-success/30' },
+  retry: { label: 'Passed After Retry', color: 'var(--color-accent)', bg: 'bg-ember-500/10 text-ember-300 border-ember-500/25' },
+  review: { label: 'Needs Review', color: 'var(--color-warning)', bg: 'bg-warning/10 text-warning border-warning/30' },
 };
 
 export const ProgressView: React.FC<ProgressViewProps> = ({
@@ -49,9 +53,13 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
 
   // Aggregate per-segment performance metrics
   const segmentPerf = segments.map((seg, idx) => {
-    const isCompleted = completedSegmentIds.has(seg.segment_id);
     const isReview = needsReviewSegmentIds.has(seg.segment_id);
     const qas = qaHistory.filter((q) => q.segment_title === seg.title);
+    // A segment with any recorded answer is never "Unreached" — qaHistory is
+    // the ground truth for whether a checkpoint was actually attempted,
+    // completedSegmentIds is derived from it and can lag or miss a reconcile
+    // (e.g. state restored from an older persisted session).
+    const isCompleted = completedSegmentIds.has(seg.segment_id) || qas.length > 0;
 
     const maxAttempts = qas.length > 0 ? Math.max(...qas.map((q) => q.attempts || 1)) : 0;
     const avgScore =
@@ -87,8 +95,10 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
 
   const attemptedSegments = segmentPerf.filter((s) => s.isCompleted);
   const totalSegments = segments.length;
-  const completedCount = completedSegmentIds.size;
-  const reviewCount = Array.from(completedSegmentIds).filter((id) => needsReviewSegmentIds.has(id)).length;
+  // Same reconciliation as isCompleted above, applied to the header stats so
+  // "Chapters Finished" can't undercount relative to the per-chapter rows.
+  const completedCount = attemptedSegments.length;
+  const reviewCount = attemptedSegments.filter((s) => s.isReview).length;
   const masteredFirstTryCount = attemptedSegments.filter((s) => s.outcome === 'first').length;
   const masteredRetryCount = attemptedSegments.filter((s) => s.outcome === 'retry').length;
 
@@ -140,17 +150,17 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
     .filter((s) => s.count > 0);
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="progress-view-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-3 sm:p-6 overflow-y-auto overflow-x-hidden animate-in fade-in duration-150"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="progress-view-title"
+      className="max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden my-auto"
+      overlayClassName="!bg-black/75 !backdrop-blur-md !p-3 sm:!p-6 overflow-y-auto overflow-x-hidden"
     >
-      <div className="bg-raised border border-line-soft rounded-2xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden my-auto animate-in zoom-in-95 duration-150">
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-line-soft flex items-center justify-between bg-sunken/40">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-ember-600 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-ember-500/25">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-ember-600 to-warning text-white flex items-center justify-center shadow-lg shadow-ember-500/25">
               <PieChart className="w-5 h-5" />
             </div>
             <div>
@@ -181,7 +191,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Close dashboard"
-              className="p-2 rounded-xl text-ink-faint hover:text-ink hover:bg-sunken border border-line-soft transition-all cursor-pointer"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-ink-faint hover:text-ink hover:bg-sunken border border-line-soft transition-all cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -205,7 +215,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
               </div>
               <div className="w-full h-1 bg-cosmos-800 rounded-full overflow-hidden mt-1">
                 <div
-                  className="h-full bg-emerald-500 transition-all duration-300"
+                  className="h-full bg-success transition-all duration-300"
                   style={{ width: `${overallProgressPct}%` }}
                 />
               </div>
@@ -232,7 +242,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
               <div className="mt-2 mb-1 flex items-baseline gap-1">
                 <span
                   className={`text-2xl sm:text-3xl font-bold font-display ${
-                    reviewCount > 0 ? 'text-amber-400' : 'text-ink'
+                    reviewCount > 0 ? 'text-warning' : 'text-ink'
                   }`}
                 >
                   {reviewCount}
@@ -362,9 +372,11 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
               </div>
 
               {segmentPerf.length === 0 ? (
-                <p className="text-xs text-ink-faint py-4 text-center">
-                  No chapters loaded yet.
-                </p>
+                <div className="py-6 flex flex-col items-center gap-1.5 text-center text-ink-faint">
+                  <BookOpen className="w-6 h-6 text-ink-faint/60" />
+                  <p className="text-xs">No chapters loaded yet.</p>
+                  <p className="text-[11px] text-ink-faint/80">Start watching the video to populate chapter mastery scores here.</p>
+                </div>
               ) : (
                 segmentPerf.map((t) => {
                   const isSelected = selectedTopicIdx === t.index;
@@ -444,18 +456,16 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                 Ideas and mechanisms you accurately articulated during recall:
               </p>
               {strongConcepts.length === 0 ? (
-                <p className="text-xs text-ink-faint italic py-2">
-                  Answer conceptual questions correctly to record mastered concepts.
-                </p>
+                <div className="py-4 flex flex-col items-center gap-1.5 text-center text-ink-faint">
+                  <CheckCircle2 className="w-6 h-6 text-ink-faint/60" />
+                  <p className="text-xs italic">Answer conceptual questions correctly to record mastered concepts.</p>
+                </div>
               ) : (
                 <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
                   {strongConcepts.map((c, i) => (
-                    <span
-                      key={i}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-success/15 border border-success/30 text-success flex items-center gap-1"
-                    >
+                    <Badge key={i} tone="success" className="rounded-lg! font-medium! px-2.5! py-1! text-xs!">
                       <CheckCircle2 className="w-3 h-3" /> {c}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               )}
@@ -464,8 +474,8 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
             {/* Concepts Needing Improvement */}
             <div className="p-4 rounded-xl bg-sunken/50 border border-line-soft space-y-2.5">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-400" />
-                <h4 className="text-xs font-bold uppercase tracking-wider text-amber-400">
+                <div className="w-2 h-2 rounded-full bg-warning" />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-warning">
                   Concepts to Revisit ({weakConcepts.length})
                 </h4>
               </div>
@@ -473,18 +483,16 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                 Identified misconceptions or missing details to review before exams:
               </p>
               {weakConcepts.length === 0 ? (
-                <p className="text-xs text-ink-faint italic py-2">
-                  No misconceptions flagged! Great job on your first attempts.
-                </p>
+                <div className="py-4 flex flex-col items-center gap-1.5 text-center text-ink-faint">
+                  <Award className="w-6 h-6 text-ink-faint/60" />
+                  <p className="text-xs italic">No misconceptions flagged! Great job on your first attempts.</p>
+                </div>
               ) : (
                 <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
                   {weakConcepts.map((m, i) => (
-                    <span
-                      key={i}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/15 border border-amber-500/30 text-amber-300 flex items-center gap-1"
-                    >
+                    <Badge key={i} tone="warning" className="rounded-lg! font-medium! px-2.5! py-1! text-xs!">
                       <AlertTriangle className="w-3 h-3" /> {m}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               )}
@@ -536,7 +544,6 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
             Close Dashboard
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };

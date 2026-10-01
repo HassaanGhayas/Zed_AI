@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Navbar } from './components/Navbar';
-import { VideoInput } from './components/VideoInput';
+import { LandingPage } from './components/landing/LandingPage';
 import { VideoPlayer } from './components/VideoPlayer';
 import { SegmentNav } from './components/SegmentNav';
 import { SocraticQuiz } from './components/SocraticQuiz';
@@ -17,6 +17,7 @@ import {
   type PersistedSession,
 } from './lib/persistence';
 import { saveSessionToHistory } from './lib/sessionHistory';
+import { useRetryableAsync } from './hooks/useRetryableAsync';
 
 export const App: React.FC = () => {
   // Restore the last study session (video + chapter + mastery) on reload so a
@@ -29,7 +30,6 @@ export const App: React.FC = () => {
   const [session, setSession] = useState<VideoSession | null>(
     restored?.session ?? null
   );
-  const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState('');
   
   // Progression state
@@ -57,6 +57,8 @@ export const App: React.FC = () => {
   );
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [isProgressOpen, setIsProgressOpen] = useState(false);
+  // Lifted out of Navbar so the landing page's footer can open the same modal.
+  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   // Latch so one boundary crossing can't fire twice (interval tick race), and so
   // revisits via nav/rewatch/proceed re-arm boundary handling for that segment.
   const boundaryLatchRef = useRef<number | null>(null);
@@ -171,8 +173,10 @@ export const App: React.FC = () => {
     qaHistory,
   ]);
 
-  const handleProcessVideo = async (url: string) => {
-    setIsLoading(true);
+  // Wrapped with useRetryableAsync so a failure (network, backend, invalid
+  // video, etc.) is caught and exposed as a retryable error state instead of
+  // silently relying on downstream handling — previously this had no catch.
+  const processVideoAction = useCallback(async (url: string) => {
     setLoadingStep('Fetching video transcript & structure...');
     try {
       const data = await processVideo(url);
@@ -184,10 +188,30 @@ export const App: React.FC = () => {
       setMaxReachedIndex(0);
       setIsPausedForQuiz(false);
       setQaHistory([]);
+      return data;
     } finally {
-      setIsLoading(false);
       setLoadingStep('');
     }
+  }, []);
+
+  const {
+    error: processVideoError,
+    isLoading: isProcessingVideo,
+    run: runProcessVideo,
+    retry: retryProcessVideo,
+  } = useRetryableAsync(processVideoAction);
+
+  const handleProcessVideo = async (url: string) => {
+    try {
+      await runProcessVideo(url);
+    } catch {
+      // Captured by useRetryableAsync and surfaced to VideoInput via
+      // `processVideoError` / `handleRetryProcessVideo`.
+    }
+  };
+
+  const handleRetryProcessVideo = () => {
+    retryProcessVideo()?.catch(() => {});
   };
 
   const handleReset = () => {
@@ -259,6 +283,17 @@ export const App: React.FC = () => {
       });
     }
 
+    // Mark the chapter mastered the moment its last question is actually
+    // evaluated — not only when the student clicks the quiz's own "Proceed"
+    // button. Leaving via chapter nav (sidebar / Prev-Next) after answering
+    // must still count, otherwise analytics shows "Unreached" despite a
+    // recorded, graded answer.
+    if (activeQuestionIndex >= activeSegment.questions.length - 1) {
+      setCompletedSegmentIds((prev) =>
+        prev.has(activeSegment.segment_id) ? prev : new Set(prev).add(activeSegment.segment_id)
+      );
+    }
+
     setQaHistory((prev) => [
       ...prev,
       {
@@ -286,10 +321,8 @@ export const App: React.FC = () => {
       return;
     }
 
-    // Mark current segment completed
-    const updatedCompleted = new Set(completedSegmentIds);
-    updatedCompleted.add(activeSegment.segment_id);
-    setCompletedSegmentIds(updatedCompleted);
+    // Completion is now marked in handleQuestionCompleted, at the moment the
+    // last question is actually graded — this just advances.
 
     // Check if next segment exists
     if (activeSegmentIndex < session.segments.length - 1) {
@@ -326,6 +359,12 @@ export const App: React.FC = () => {
   return (
     <ThemeProvider>
     <div className="min-h-screen bg-surface text-ink flex flex-col selection:bg-ember-500/30 selection:text-ember-100">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-accent focus:text-on-accent"
+      >
+        Skip to content
+      </a>
       <Navbar
         hasActiveSession={!!session}
         onReset={handleReset}
@@ -334,17 +373,26 @@ export const App: React.FC = () => {
         notesCount={qaHistory.length}
         onOpenProgress={() => setIsProgressOpen(true)}
         needsReviewCount={needsReviewSegmentIds.size}
+        isKeyModalOpen={isKeyModalOpen}
+        onOpenKeyModal={() => setIsKeyModalOpen(true)}
+        onCloseKeyModal={() => setIsKeyModalOpen(false)}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col">
+      <main id="main-content" className="flex-1 w-full mx-auto flex flex-col">
+        {/* Full-bleed landing sections manage their own max-w-7xl/padding internally
+            (via the fullBleed utility) since CTA bands need to span the viewport;
+            the active-session view below still gets the standard padded container. */}
         {!session ? (
-          <VideoInput
+          <LandingPage
             onProcess={handleProcessVideo}
-            isLoading={isLoading}
+            isLoading={isProcessingVideo}
             loadingStep={loadingStep}
+            error={processVideoError}
+            onRetry={handleRetryProcessVideo}
+            onOpenKeyModal={() => setIsKeyModalOpen(true)}
           />
         ) : (
-          <div className="flex-1 flex flex-col gap-6">
+          <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
             {/* Top Video Information Bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-line-soft">
               <div className="min-w-0 flex-1">
@@ -357,7 +405,7 @@ export const App: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sunken/60 border border-line-soft text-xs">
+                <div aria-live="polite" className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sunken/60 border border-line-soft text-xs">
                   <span className="w-2 h-2 rounded-full bg-ember-500 animate-pulse" />
                   <span className="text-ink-muted">
                     Chapter <strong className="text-ink">{activeSegmentIndex + 1}</strong> of {session.segments.length}
@@ -369,11 +417,14 @@ export const App: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setIsProgressOpen(true)}
-                  className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-amber-500/15 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/30 dark:border-amber-500/25 hover:bg-amber-500/25 transition-all cursor-pointer flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
+                  className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-colors cursor-pointer flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
                 >
                   <span>Analytics</span>
                   {needsReviewSegmentIds.size > 0 && (
-                    <span className="w-2 h-2 rounded-full bg-amber-600 dark:bg-amber-400" />
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-warning" />
+                      <span className="sr-only">(has topics needing review)</span>
+                    </>
                   )}
                 </button>
                 <button

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { Sparkles, Key, Video, FileText, CheckCircle2, X, PieChart } from 'lucide-react';
+import { Key, Video, FileText, CheckCircle2, X, PieChart } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import { Modal } from './ui/Modal';
+import { Badge } from './ui/Badge';
+import { Logo } from './ui/Logo';
 
 interface NavbarProps {
   hasActiveSession: boolean;
@@ -10,6 +13,10 @@ interface NavbarProps {
   notesCount?: number;
   onOpenProgress?: () => void;
   needsReviewCount?: number;
+  /** Lifted so the landing page's footer can trigger the same modal. */
+  isKeyModalOpen: boolean;
+  onOpenKeyModal: () => void;
+  onCloseKeyModal: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -20,8 +27,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   notesCount = 0,
   onOpenProgress,
   needsReviewCount = 0,
+  isKeyModalOpen,
+  onOpenKeyModal,
+  onCloseKeyModal,
 }) => {
-  const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   const [apiKeyInput, setApiKeyInput] = useState(
     localStorage.getItem('gemini_api_key') || ''
   );
@@ -58,21 +67,9 @@ export const Navbar: React.FC<NavbarProps> = ({
     setSavedSuccess(true);
     setTimeout(() => {
       setSavedSuccess(false);
-      setIsKeyModalOpen(false);
+      onCloseKeyModal();
     }, 900);
   };
-
-  // Close modal on Escape
-  React.useEffect(() => {
-    if (!isKeyModalOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsKeyModalOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isKeyModalOpen]);
 
   return (
     <>
@@ -80,14 +77,14 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-ember-700 to-ember-500 flex items-center justify-center shadow-lg shadow-ember-500/30 flex-shrink-0">
-              <Sparkles className="w-5 h-5 text-ember-50" />
+              <Logo className="w-5 h-5 text-ember-50" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-display font-bold text-base sm:text-lg text-ink tracking-tight truncate">Studify AI</span>
-                <span className="hidden min-[480px]:inline-block px-2 py-0.5 text-xs font-semibold rounded-full bg-ember-500/10 text-ember-300 border border-ember-500/25 flex-shrink-0">
+                <Badge tone="accent" className="hidden! min-[480px]:inline-flex! text-xs! flex-shrink-0">
                   Active Recall
-                </span>
+                </Badge>
               </div>
               <p className="text-xs text-ink-faint hidden sm:block truncate">
                 Socratic Video Tutor & Note Synthesizer
@@ -101,12 +98,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={onOpenProgress}
                 aria-label="View learning dashboard & progress"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-amber-800 dark:text-amber-200 bg-amber-500/10 dark:bg-amber-950/40 border border-amber-500/30 dark:border-amber-800/50 rounded-lg hover:bg-amber-500/20 dark:hover:bg-amber-900/60 transition-all shadow-sm cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-all cursor-pointer"
               >
-                <PieChart className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                <PieChart className="w-4 h-4 text-ink-faint flex-shrink-0" />
                 <span className="hidden sm:inline">Analytics</span>
                 {needsReviewCount > 0 && (
-                  <span className="w-2 h-2 rounded-full bg-amber-400" title="Has topics needing review" />
+                  <span className="w-2 h-2 rounded-full bg-warning" title="Has topics needing review" />
                 )}
               </button>
             )}
@@ -120,9 +117,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <FileText className="w-4 h-4 text-ember-600 dark:text-ember-400 flex-shrink-0" />
                 <span className="hidden sm:inline">Study Notes</span>
                 {notesCount > 0 && (
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-ember-500/20 text-ember-300 border border-ember-500/30">
+                  <Badge tone="accent" className="bg-ember-500/20! border-ember-500/30! font-bold! px-1.5! text-[10px]!">
                     {notesCount}
-                  </span>
+                  </Badge>
                 )}
               </button>
             )}
@@ -139,7 +136,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
 
             <button
-              onClick={() => setIsKeyModalOpen(true)}
+              onClick={() => onOpenKeyModal()}
               aria-label="Manage Gemini API Key"
               className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-all cursor-pointer"
             >
@@ -161,7 +158,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </p>
             <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto sm:ml-0">
               <button
-                onClick={() => setIsKeyModalOpen(true)}
+                onClick={() => onOpenKeyModal()}
                 className="px-3.5 py-2 min-h-[44px] rounded-lg text-xs font-semibold bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-all cursor-pointer"
               >
                 Add key
@@ -179,66 +176,63 @@ export const Navbar: React.FC<NavbarProps> = ({
       )}
 
       {/* API Key Modal */}
-      {isKeyModalOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="api-key-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-150"
-        >
-          <div className="bg-raised border border-line-soft rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2.5 rounded-xl bg-warning/10 text-warning border border-warning/25">
-                <Key className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 id="api-key-modal-title" className="text-lg font-semibold text-ink">Google Gemini API Key</h3>
-                <p className="text-xs text-ink-faint">Optional: overrides default backend key</p>
-              </div>
-            </div>
-
-            <p className="text-sm text-ink-muted mb-4 leading-relaxed">
-              You can provide your own Gemini API key for high-speed custom model inference, or leave blank to use the server default.
-            </p>
-
-            <label htmlFor="gemini-api-key-input" className="sr-only">
-              Google Gemini API Key
-            </label>
-            <input
-              id="gemini-api-key-input"
-              type="password"
-              value={apiKeyInput}
-              onChange={(e) => setApiKeyInput(e.target.value)}
-              placeholder="AIzaSy..."
-              className="w-full px-4 py-3 bg-sunken border border-line rounded-xl text-ink placeholder-ink-faint text-sm focus:outline-none focus:ring-2 focus:ring-ember-500 mb-5"
-            />
-
-            <div className="flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setIsKeyModalOpen(false)}
-                className="px-4 py-2.5 min-h-[44px] text-sm text-ink-faint hover:text-ink-muted rounded-xl cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveKey}
-                className="flex items-center gap-2 px-5 py-2.5 min-h-[44px] text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent rounded-xl shadow-lg shadow-ember-500/25 transition-all cursor-pointer"
-              >
-                {savedSuccess ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 text-on-accent" />
-                    <span>Saved!</span>
-                  </>
-                ) : (
-                  <span>Save Key</span>
-                )}
-              </button>
-            </div>
+      <Modal
+        isOpen={isKeyModalOpen}
+        onClose={() => onCloseKeyModal()}
+        titleId="api-key-modal-title"
+        className="max-w-md w-full p-6"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2.5 rounded-xl bg-warning/10 text-warning border border-warning/25">
+            <Key className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 id="api-key-modal-title" className="text-lg font-semibold text-ink">Google Gemini API Key</h3>
+            <p className="text-xs text-ink-faint">Optional: overrides default backend key</p>
           </div>
         </div>
-      )}
+
+        <p className="text-sm text-ink-muted mb-4 leading-relaxed">
+          You can provide your own Gemini API key for high-speed custom model inference, or leave blank to use the server default.
+        </p>
+
+        <label htmlFor="gemini-api-key-input" className="sr-only">
+          Google Gemini API Key
+        </label>
+        <input
+          id="gemini-api-key-input"
+          type="password"
+          autoComplete="off"
+          value={apiKeyInput}
+          onChange={(e) => setApiKeyInput(e.target.value)}
+          placeholder="AIzaSy..."
+          className="w-full px-4 py-3 bg-sunken border border-line rounded-xl text-ink placeholder-ink-faint text-sm focus:outline-none focus:ring-2 focus:ring-ember-500 mb-5"
+        />
+
+        <div className="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => onCloseKeyModal()}
+            className="px-4 py-2.5 min-h-[44px] text-sm text-ink-faint hover:text-ink-muted rounded-xl cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveKey}
+            className="flex items-center gap-2 px-5 py-2.5 min-h-[44px] text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent rounded-xl shadow-lg shadow-ember-500/25 transition-all cursor-pointer"
+          >
+            {savedSuccess ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-on-accent" />
+                <span>Saved!</span>
+              </>
+            ) : (
+              <span>Save Key</span>
+            )}
+          </button>
+        </div>
+      </Modal>
     </>
   );
 };

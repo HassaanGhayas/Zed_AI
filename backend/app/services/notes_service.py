@@ -169,24 +169,24 @@ CRITICAL PEDAGOGICAL & EDITORIAL RULES:
    For every student response, you MUST perform a thorough grammar, spelling, and phrasing check (e.g. fix typos like "transportaton" -> "transportation", "enerjy" -> "energy", "end etc." -> "etc.").
    Preserve the student's authentic concepts, intuitions, and real-world analogies, but formulate them in polished, grammatically impeccable English.
 
-2. SYNTHESIS STRUCTURE (FOLLOW THIS EXACT MARKDOWN PATTERN):
+2. SYNTHESIS STRUCTURE — STRAIGHT TO THE POINT, NO FILLER (FOLLOW THIS EXACT MARKDOWN PATTERN):
    For each topic segment with completed checkpoints:
-   ## [Segment Title] ([mm:ss] - [mm:ss])
-   ### Checkpoint [N]: [Question Prompt] ([Mastered] or [Needs Review])
-   **Your Explanation:** [Grammar-checked, polished version of the student's answer]
-   **Validated Concepts:** [Comma-separated key concepts understood]
-   **Tutor Insight:** [Concise academic takeaway connecting the student's answer to the lecture principles]
+   ## [Segment Title]
+   **Q:** [Question Prompt]
+   **A:** [Grammar-checked, polished version of the student's answer — concise, 1-3 sentences. No restating the question, no commentary, no "great job" filler.]
+
+   Repeat the Q/A pair for every checkpoint in that segment. Do NOT add extra fields like "Validated Concepts" or "Tutor Insight" — question and answer only.
 
 3. CONCEPTS TO REVISIT SECTION:
    If any checkpoint is marked [NEEDS REVIEW] or has misconceptions, conclude the notes with:
    ## Concepts to Revisit
-   The following topics encountered difficulties during active recall. Review before your exam:
-   - **[Topic Title]**: [Specific misconception or gap identified and guidance on the correct conceptual model]
+   - **[Topic Title]**: [One-line correction — the actual misconception and the correct concept, no preamble]
 
 4. GENERAL FORMATTING RULES:
-   - Use standard Markdown (## for topic sections, ### for checkpoints, **bold** labels, and bullet points).
-   - Do NOT use emojis (the PDF export engine cannot render emoji glyphs).
-   - Do NOT repeat the video title as a top heading (the viewer header prints it).
+   - Use standard Markdown (## for topic sections, **Q:**/**A:** labels only).
+   - No emojis (the PDF export engine cannot render emoji glyphs).
+   - No restating the video title as a top heading (the viewer header prints it).
+   - No introductory or closing paragraphs, no "Overview" section, no summary at the end — just the Q/A notes and, if applicable, Concepts to Revisit.
 
 Source Data:
 Segments Overview:
@@ -234,16 +234,15 @@ Flagged Questions Requiring Review:
             lines.append(f"## {s.title}\n")
             for item in topic_qas:
                 polished_answer = self.polish_student_grammar(item.user_final_answer)
-                lines.append(f"### {item.question}")
-                lines.append(f"**Answer:** {polished_answer}\n")
+                lines.append(f"**Q:** {item.question}")
+                lines.append(f"**A:** {polished_answer}\n")
 
                 if item.needs_review or item.misconceptions:
                     misc_desc = ", ".join(item.misconceptions) if item.misconceptions else "Review key mechanisms"
-                    revisit_items.append(f"- **{s.title}**: {misc_desc} (Question: {item.question})")
+                    revisit_items.append(f"- **{s.title}**: {misc_desc}")
 
         if revisit_items:
             lines.append("## Concepts to Revisit\n")
-            lines.append("The following topics encountered difficulties during active recall. Review before your exam:\n")
             for r in revisit_items:
                 lines.append(r)
             lines.append("")

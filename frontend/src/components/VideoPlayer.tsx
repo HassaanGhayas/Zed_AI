@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Pause, RotateCcw, Maximize, Minimize, ChevronDown, ScanEye, X, Loader2 } from 'lucide-react';
+import { Pause, RotateCcw, Maximize, Minimize, ChevronDown, ScanEye, X } from 'lucide-react';
 import type { Segment, FrameExplanation } from '../types';
 import { explainFrame, visualAvailability, frameUrl } from '../lib/api';
+import { Modal } from './ui/Modal';
+import { SkeletonBlock, SkeletonLine } from './ui/Skeleton';
 
 declare global {
   interface Window {
@@ -145,18 +147,25 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         const d = playerRef.current.getDuration?.();
         if (d) setDuration((prev) => (prev === d ? prev : d));
 
+        // Transcript-derived end_time (from the last caption cue's padded
+        // duration) can overshoot the real video — especially for the final
+        // segment, which would then never reach its boundary since the video
+        // simply stops first. Clamp against the player's own real duration,
+        // the one value YouTube always reports accurately.
+        const effectiveEndTime = d ? Math.min(activeSegment.end_time, d) : activeSegment.end_time;
+
         // Ignore boundary logic while the player settles after a switch/seek
         if (Date.now() < settleUntilRef.current) return;
 
         // Check if playback reached or passed segment boundary
-        if (time >= activeSegment.end_time && !isPausedForQuiz) {
+        if (time >= effectiveEndTime && !isPausedForQuiz) {
           playerRef.current.pauseVideo();
           onBoundaryReached();
         }
 
         // If in quiz mode and user tries to seek past boundary, clamp back
-        if (isPausedForQuiz && time > activeSegment.end_time + 1) {
-          playerRef.current.seekTo(activeSegment.end_time, true);
+        if (isPausedForQuiz && time > effectiveEndTime + 1) {
+          playerRef.current.seekTo(effectiveEndTime, true);
           playerRef.current.pauseVideo();
         }
       } catch (e) {
@@ -210,18 +219,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const closeExplain = useCallback(() => {
     setExplain((s) => ({ ...s, open: false }));
   }, []);
-
-  // Close visual explanation on Escape
-  useEffect(() => {
-    if (!explain.open) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        closeExplain();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [explain.open, closeExplain]);
 
   // Capture the current playback position, pause, and ask Gemini to explain the frame.
   const handleExplainScreen = useCallback(() => {
@@ -294,6 +291,48 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
+  // Shared seek primitive for the scrubber — used by both the click handler and
+  // the keyboard handler so time is always clamped to the valid [0, duration] range.
+  const seekTo = useCallback(
+    (time: number) => {
+      playerRef.current?.seekTo?.(Math.max(0, Math.min(duration, time)), true);
+    },
+    [duration]
+  );
+
+  const handleScrubberKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowUp':
+        e.preventDefault();
+        seekTo(currentTime + 5);
+        break;
+      case 'ArrowLeft':
+      case 'ArrowDown':
+        e.preventDefault();
+        seekTo(currentTime - 5);
+        break;
+      case 'Home':
+        e.preventDefault();
+        seekTo(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        seekTo(duration);
+        break;
+      case 'PageUp':
+        e.preventDefault();
+        seekTo(currentTime + 30);
+        break;
+      case 'PageDown':
+        e.preventDefault();
+        seekTo(currentTime - 30);
+        break;
+      default:
+        break;
+    }
+  };
+
   const progressPercent = Math.min(
     100,
     Math.max(
@@ -326,12 +365,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             per-segment tooltips and click-to-seek. Always visible, incl. fullscreen. */}
         {duration > 0 && (segments ?? []).length > 0 && (
           <div
+            role="slider"
+            tabIndex={0}
+            aria-label="Seek"
+            aria-valuemin={0}
+            aria-valuemax={duration}
+            aria-valuenow={currentTime}
+            aria-valuetext={formatSeconds(currentTime)}
             className="group absolute inset-x-0 bottom-0 z-20 h-3 flex items-end cursor-pointer"
             onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-              playerRef.current?.seekTo?.(pct * duration, true);
+              seekTo(pct * duration);
             }}
+            onKeyDown={handleScrubberKeyDown}
           >
             <div className="relative w-full h-1.5 group-hover:h-2.5 transition-all bg-white/20">
               {/* played fill */}
@@ -436,14 +483,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       {/* Gemini-vision explanation panel — sits above the quiz overlay (z-60) and
           inside the fullscreen shell so it never forces an exit from fullscreen. */}
-      {explain.open && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="visual-explanation-title"
-          className="absolute inset-0 z-[60]"
-        >
-          <div className="no-scrollbar absolute inset-0 overflow-y-auto bg-surface/95 backdrop-blur-md animate-in fade-in duration-200">
+      <Modal
+        isOpen={explain.open}
+        onClose={closeExplain}
+        titleId="visual-explanation-title"
+        overlayClassName="!absolute !z-[60] !bg-transparent !backdrop-blur-none"
+        className="no-scrollbar !bg-surface/95 !border-0 !rounded-none !shadow-none absolute inset-0 overflow-y-auto backdrop-blur-md"
+      >
             <div className="min-h-full flex flex-col gap-4 p-4 sm:p-6 max-w-3xl mx-auto">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs min-w-0">
@@ -464,9 +510,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               </div>
 
               {explain.loading && (
-                <div role="status" aria-live="polite" className="flex items-center justify-center gap-2 text-sm text-ink-muted py-10">
-                  <Loader2 className="w-4 h-4 animate-spin text-ember-400" />
-                  Analyzing the current frame…
+                <div role="status" aria-live="polite" className="flex flex-col gap-4 animate-in fade-in duration-200">
+                  <span className="sr-only">Analyzing the current frame…</span>
+                  {/* Content-shaped placeholder: frame image + explanation text */}
+                  <SkeletonBlock className="w-full h-56 sm:h-72" />
+                  <div className="space-y-2">
+                    <SkeletonLine className="w-full" />
+                    <SkeletonLine className="w-5/6" />
+                    <SkeletonLine className="w-2/3" />
+                  </div>
                 </div>
               )}
 
@@ -526,9 +578,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       {/* Segment Status & Scrubber Bar (hidden in fullscreen so the video owns the screen) */}
       {!isFullscreen && (
@@ -539,7 +589,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               {activeSegment.title}
             </span>
             <span className="px-2 py-0.5 rounded bg-sunken text-ink-muted font-mono text-[11px]">
-              {formatSeconds(activeSegment.start_time)} - {formatSeconds(activeSegment.end_time)}
+              {formatSeconds(activeSegment.start_time)} - {formatSeconds(duration > 0 ? Math.min(activeSegment.end_time, duration) : activeSegment.end_time)}
             </span>
           </div>
           <div className="flex items-center gap-2">

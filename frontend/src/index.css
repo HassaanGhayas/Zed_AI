@@ -1,80 +1,85 @@
 @import "tailwindcss";
 
+/* ── Theme: "Signal & Ivory" — crisp near-white/near-black neutrals (no
+   brown undertone muddying them) and a vivid signal-orange brand, closer
+   to the reference marketing page's palette than the old warm-clay theme.
+   Fraunces (high-contrast display serif) replaces Spectral for headlines
+   to match that reference's editorial feel. ── */
 @theme {
   /* Typography roles */
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Fraunces", ui-serif, Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  /* Primitive ramp: cosmos — warm neutrals derived from Chocolate Cosmos #4F000B */
-  --color-cosmos-50: #faf3f0;
-  --color-cosmos-100: #f1e3de;
-  --color-cosmos-200: #dfc4bd;
-  --color-cosmos-300: #c39c94;
-  --color-cosmos-400: #a2685f;
-  --color-cosmos-500: #7c3a32;
-  --color-cosmos-600: #57201b;
-  --color-cosmos-700: #3d1513;
-  --color-cosmos-800: #2b0d0c;
-  --color-cosmos-900: #1e0808;
-  --color-cosmos-950: #150404;
+  /* Primitive ramp: cosmos — true neutral stone (barely-warm, not brown) */
+  --color-cosmos-50: #fafaf9;
+  --color-cosmos-100: #f0efec;
+  --color-cosmos-200: #e2e0db;
+  --color-cosmos-300: #c9c6bf;
+  --color-cosmos-400: #9b9790;
+  --color-cosmos-500: #716d66;
+  --color-cosmos-600: #4a4742;
+  --color-cosmos-700: #302d29;
+  --color-cosmos-800: #1e1c19;
+  --color-cosmos-900: #141311;
+  --color-cosmos-950: #0b0a09;
 
-  /* Primitive ramp: ember — brand palette (Rufous → Sinopia → Aerospace Orange) */
-  --color-ember-50: #fff2ea;
-  --color-ember-100: #ffdfcc;
-  --color-ember-200: #ffc09e;
-  --color-ember-300: #ff9e6b;
-  --color-ember-400: #ff7a38;
-  --color-ember-500: #ff5100;
-  --color-ember-600: #d33d03;
-  --color-ember-700: #a72906;
-  --color-ember-800: #7b1509;
-  --color-ember-900: #4f000b;
-  --color-ember-950: #2b0007;
+  /* Primitive ramp: ember — brand palette (vivid signal red-orange) */
+  --color-ember-50: #fff1ea;
+  --color-ember-100: #ffdcc9;
+  --color-ember-200: #ffb68c;
+  --color-ember-300: #ff8f55;
+  --color-ember-400: #ff6b35;
+  --color-ember-500: #ff4d1f;
+  --color-ember-600: #e63c12;
+  --color-ember-700: #ba300f;
+  --color-ember-800: #8c250c;
+  --color-ember-900: #5e1808;
+  --color-ember-950: #330c04;
 
   /* Semantic tokens */
   --color-surface: var(--color-cosmos-950);
   --color-raised: var(--color-cosmos-900);
-  --color-sunken: #100202;
+  --color-sunken: #060605;
   --color-line: var(--color-cosmos-700);
   --color-line-soft: var(--color-cosmos-800);
-  --color-ink: #f6ece8;
+  --color-ink: #f7f5f2;
   --color-ink-muted: var(--color-cosmos-300);
-  --color-ink-faint: #a86e65; /* cosmos-400 lightened to clear WCAG AA (4.84:1 on surface) */
+  --color-ink-faint: #aba79f; /* cosmos-400 lightened to clear WCAG AA on surface */
   --color-accent: var(--color-ember-500);
   --color-accent-hover: var(--color-ember-400);
   --color-accent-deep: var(--color-ember-600);
-  --color-on-accent: #1a0503;
-  --color-success: #86b96e;
-  --color-on-success: #10240c;
-  --color-warning: #ffc93d;
-  --color-danger: #f2555a;
+  --color-on-accent: #330c04;
+  --color-success: #4ade80;
+  --color-on-success: #052e12;
+  --color-warning: #ffb020;
+  --color-danger: #ff5c5c;
 }
 
 /* ── Light theme overrides ── */
 [data-theme="light"] {
-  --color-surface: #faf3f0;
+  --color-surface: #faf9f7;
   --color-raised: #ffffff;
-  --color-sunken: #f1e3de;
-  --color-line: #dfc4bd;
-  --color-line-soft: #f1e3de;
-  --color-ink: #1e0808;
-  --color-ink-muted: #57201b;
-  --color-ink-faint: #632a24; /* 6.2:1 on surface — robust WCAG AA */
-  --color-accent: #d33d03;
-  --color-accent-hover: #a72906;
-  --color-accent-deep: #a72906;
-  --color-on-accent: #fff2ea;
-  --color-success: #2b6116; /* >4.8:1 */
-  --color-on-success: #e8f5e0;
-  --color-warning: #6a4300; /* >5.2:1 */
-  --color-danger: #b31b20;  /* >5.1:1 */
+  --color-sunken: #f0eeeb;
+  --color-line: #e5e2dd;
+  --color-line-soft: #efedea;
+  --color-ink: #15130f;
+  --color-ink-muted: #57534a;
+  --color-ink-faint: #7d786d; /* >4.5:1 on surface */
+  --color-accent: #ba300f;
+  --color-accent-hover: #8c250c;
+  --color-accent-deep: #8c250c;
+  --color-on-accent: #fff1ea;
+  --color-success: #15803d; /* >4.8:1 */
+  --color-on-success: #eafbf0;
+  --color-warning: #8a5a00; /* >5:1 */
+  --color-danger: #b42318;  /* >5.3:1 */
 
   /* Light ember ramp with real value-spread: deep readable text stop → vivid brand stop. */
-  --color-ember-200: #8c1e05;
-  --color-ember-300: #9a2c04; /* >5.5:1 contrast for text badges */
-  --color-ember-400: #d94e02;
-  --color-ember-500: #ff5100;
+  --color-ember-200: #8c250c;
+  --color-ember-300: #ba300f; /* >5.5:1 contrast for text badges */
+  --color-ember-400: #e63c12;
+  --color-ember-500: #ff4d1f;
 }
 
 @layer base {
@@ -101,6 +106,130 @@
       scroll-behavior: auto !important;
     }
   }
+}
+
+/* ── Entrance-animation engine ──────────────────────────────────────────
+   `animate-in`/`fade-in`/`zoom-in-95`/`slide-in-from-bottom-*` are used
+   throughout this codebase (Modal.tsx, NotesModal.tsx, the key-hint banner)
+   as if a tailwindcss-animate-style plugin were installed; none is, so
+   those classes were previously inert. This defines them for real using
+   one shared `enter` keyframe driven by CSS custom properties, the same
+   composable pattern that plugin uses, without adding the dependency. ── */
+@keyframes enter {
+  from {
+    opacity: var(--tw-enter-opacity, 1);
+    transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0)
+      scale3d(var(--tw-enter-scale, 1), var(--tw-enter-scale, 1), 1);
+  }
+}
+.animate-in {
+  animation-name: enter;
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+  --tw-enter-opacity: initial;
+  --tw-enter-scale: initial;
+  --tw-enter-translate-x: initial;
+  --tw-enter-translate-y: initial;
+}
+.fade-in {
+  --tw-enter-opacity: 0;
+}
+.zoom-in-95 {
+  --tw-enter-scale: 0.95;
+}
+.slide-in-from-bottom-2 {
+  --tw-enter-translate-y: 0.5rem;
+}
+.slide-in-from-bottom-4 {
+  --tw-enter-translate-y: 1rem;
+}
+
+/* ── Landing-page accent motion: ambient drifting glow, headline shimmer,
+   a blinking brand mark, a breathing CTA ring. All opt-in, all frozen by
+   the prefers-reduced-motion rule above since it targets `*`. ── */
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(3%, -4%) scale(1.08); }
+}
+.animate-drift {
+  animation: drift 16s ease-in-out infinite;
+}
+.animate-drift-slow {
+  animation: drift 22s ease-in-out infinite reverse;
+}
+
+@keyframes headline-shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.animate-headline-shimmer {
+  background-size: 200% auto;
+  animation: headline-shimmer 6s ease-in-out infinite;
+}
+
+@keyframes owl-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.1); }
+}
+.owl-eye {
+  transform-origin: center;
+  animation: owl-blink 5s ease-in-out infinite;
+}
+
+@keyframes cta-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-ember-500) 35%, transparent); }
+  50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-ember-500) 0%, transparent); }
+}
+.animate-cta-breathe {
+  animation: cta-breathe 2.6s ease-out infinite;
+}
+
+/* ── Lets a landing-page section span the full viewport width while sitting
+   inside a max-w-7xl-constrained parent (used by the CTA bands). ── */
+.full-bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+/* ── Landing page: subtle grayscale graph-paper grid behind the marketing
+   sections. Lives on a ::before layer (not the element itself) so the mask/
+   opacity only ever touch the background, never the real page content. ── */
+.landing-grid {
+  position: relative;
+}
+.landing-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--color-cosmos-300) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-cosmos-300) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: center top;
+  /* Clear an oval over the hero copy (grid lines crossing text read as
+     "faded" at small sizes) and fade the whole thing out by mid-page. */
+  mask-image:
+    radial-gradient(ellipse 60% 420px at 50% 230px, transparent 45%, black 85%),
+    linear-gradient(to bottom, black, black 55%, transparent 100%);
+  mask-composite: intersect;
+  -webkit-mask-image:
+    radial-gradient(ellipse 60% 420px at 50% 230px, transparent 45%, black 85%),
+    linear-gradient(to bottom, black, black 55%, transparent 100%);
+  -webkit-mask-composite: source-in;
+}
+[data-theme="light"] .landing-grid::before {
+  opacity: 0.4;
+}
+[data-theme="dark"] .landing-grid::before {
+  opacity: 0.12;
+}
+.landing-grid > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Ember-tinted scrollbars */
@@ -130,9 +259,9 @@
   background: color-mix(in srgb, var(--color-ember-600) 35%, transparent);
 }
 
-/* ── Light theme: CTA = vivid brand orange with a dark label.
-     A vivid fill + dark text stays light/energetic AND clears 4.5:1
-     (white-on-orange can't go this vivid without failing contrast). ── */
+/* ── Light theme: CTA = vivid brand terracotta with a dark label.
+     A vivid fill + dark text stays warm/energetic AND clears 4.5:1
+     (white-on-terracotta can't go this vivid without failing contrast). ── */
 [data-theme="light"] .bg-gradient-to-r.from-ember-500 {
   --tw-gradient-from: var(--color-ember-500);
   --tw-gradient-via: var(--color-ember-500);
@@ -140,7 +269,7 @@
   color: var(--color-ember-950);
 }
 
-/* ── Light theme: logo tile — drop the muddy maroon stop, keep a vivid brand pop ── */
+/* ── Light theme: logo tile — drop the murky dark stop, keep a vivid brand pop ── */
 [data-theme="light"] .bg-gradient-to-tr.from-ember-700 {
   --tw-gradient-from: var(--color-ember-600);
   --tw-gradient-to: var(--color-ember-500);

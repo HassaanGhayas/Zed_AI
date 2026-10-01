@@ -1,11 +1,10 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   Brain,
   CheckCircle2,
   AlertCircle,
   HelpCircle,
   ArrowRight,
-  Loader2,
   Sparkles,
   FileCheck,
   Lightbulb,
@@ -20,6 +19,9 @@ import type { Segment, Question, AnswerEvaluation, AttemptHistoryItem } from '..
 import { evaluateAnswer, transcribeAudio } from '../lib/api';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
+import { Badge } from './ui/Badge';
+import { Button } from './ui/Button';
+import { SkeletonLine } from './ui/Skeleton';
 
 interface SocraticQuizProps {
   videoId: string;
@@ -63,7 +65,11 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
   const [attemptHistory, setAttemptHistory] = useState<AttemptHistoryItem[]>([]);
   const [activeGuidedPrompt, setActiveGuidedPrompt] = useState<string | null>(null);
   const [showHint, setShowHint] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [validationError, setValidationError] = useState('');
+  const [evalError, setEvalError] = useState<string | null>(null);
+  // Last submitted answer, kept so a Retry button can re-attempt evaluation
+  // without requiring the student to retype their explanation.
+  const lastAnswerRef = useRef('');
 
   // Voice: narrate the question aloud (TTS) + dictate the answer (STT)
   const tts = useSpeechSynthesis();
@@ -104,7 +110,8 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
     setAttemptHistory([]);
     setActiveGuidedPrompt(null);
     setShowHint(false);
-    setErrorMessage('');
+    setValidationError('');
+    setEvalError(null);
     stt.stop();
   }, [activeSegment.segment_id, activeQuestionIndex]);
 
@@ -125,16 +132,8 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    stt.stop();
-    tts.cancel();
-    if (!userAnswer.trim()) {
-      setErrorMessage('Please type your explanation before submitting.');
-      return;
-    }
-
-    setErrorMessage('');
+  const submitAnswer = async (answerText: string) => {
+    setEvalError(null);
     setIsEvaluating(true);
 
     try {
@@ -146,7 +145,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
         expected_concept: currentQuestion.expected_concept,
         segment_summary: activeSegment.summary,
         segment_transcript: activeSegment.summary,
-        user_answer: userAnswer.trim(),
+        user_answer: answerText,
         attempt_count: attemptCount,
         attempt_history: attemptHistory,
         current_question_prompt: activeGuidedPrompt || currentQuestion.prompt,
@@ -156,7 +155,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
 
       const newHistoryItem: AttemptHistoryItem = {
         attempt_number: attemptCount,
-        student_answer: userAnswer.trim(),
+        student_answer: answerText,
         verdict: res.status,
         score: res.score,
         feedback: res.feedback,
@@ -168,7 +167,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
 
       if (res.is_correct) {
         onQuestionCompleted(
-          userAnswer.trim(),
+          answerText,
           res.feedback,
           attemptCount,
           false,
@@ -180,7 +179,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
       } else if (res.can_advance || attemptCount >= 3 || res.needs_review) {
         // Strict 3-attempt ceiling: student fails 3 attempts -> marked Needs Review
         onQuestionCompleted(
-          userAnswer.trim(),
+          answerText,
           res.feedback,
           attemptCount,
           true,
@@ -197,10 +196,29 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
         }
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Error communicating with evaluation service.');
+      setEvalError(err.message || 'Error communicating with evaluation service.');
     } finally {
       setIsEvaluating(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    stt.stop();
+    tts.cancel();
+    if (!userAnswer.trim()) {
+      setValidationError('Please type your explanation before submitting.');
+      return;
+    }
+
+    setValidationError('');
+    const answerText = userAnswer.trim();
+    lastAnswerRef.current = answerText;
+    await submitAnswer(answerText);
+  };
+
+  const handleRetryEvaluation = () => {
+    if (lastAnswerRef.current) submitAnswer(lastAnswerRef.current);
   };
 
   const handleNextAction = () => {
@@ -236,23 +254,24 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
 
         <div className="flex items-center gap-2">
           {evaluationResult?.score !== undefined && (
-            <span
-              className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+            <Badge
+              tone={
                 evaluationResult.is_correct
-                  ? 'bg-success/10 text-success border-success/30'
+                  ? 'success'
                   : evaluationResult.score >= 50
-                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                  : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-              }`}
+                  ? 'warning'
+                  : 'danger'
+              }
+              className="text-xs! font-bold! px-2.5!"
             >
               Score: {evaluationResult.score}/100
-            </span>
+            </Badge>
           )}
 
           {isPausedForQuiz && (
-            <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-warning/10 text-warning border border-warning/25 animate-pulse">
+            <Badge tone="warning" className="px-2.5! py-1! text-[11px]! border-warning/25! animate-pulse">
               Video Paused
-            </span>
+            </Badge>
           )}
         </div>
       </div>
@@ -265,9 +284,9 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
               {activeGuidedPrompt ? `Guided Follow-Up (Attempt #${attemptCount})` : 'Conceptual Question'}
             </p>
             {activeGuidedPrompt && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/25">
+              <Badge tone="warning" className="rounded! font-medium! px-1.5! border-warning/25!">
                 Misconception Focus
-              </span>
+              </Badge>
             )}
           </div>
           {tts.supported && (
@@ -318,17 +337,52 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
           <button
             type="button"
             onClick={() => setShowHint(!showHint)}
+            aria-expanded={showHint}
+            aria-controls="socratic-hint-content"
             className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-warning transition-colors"
           >
             <HelpCircle className="w-3.5 h-3.5 text-warning/80" />
             <span>{showHint ? 'Hide Hint' : 'Need a thinking nudge? (Show Hint)'}</span>
           </button>
           {showHint && (
-            <div className="mt-2 p-3 rounded-lg bg-warning/5 border border-warning/20 text-warning/90 text-xs leading-relaxed animate-in fade-in duration-150 flex items-start gap-2">
+            <div id="socratic-hint-content" className="mt-2 p-3 rounded-lg bg-warning/5 border border-warning/20 text-warning/90 text-xs leading-relaxed animate-in fade-in duration-150 flex items-start gap-2">
               <Lightbulb className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
               <span>{currentQuestion.hints.join(' ')}</span>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Evaluation Loading Skeleton — content-shaped placeholder for the
+          incoming feedback card while the answer is being graded */}
+      {isEvaluating && !evaluationResult && (
+        <div className="mb-4 p-4 rounded-xl border border-line-soft bg-sunken/50 space-y-2.5 animate-in fade-in duration-150">
+          <div className="flex items-center gap-2 text-xs font-semibold text-ink-faint">
+            <Sparkles className="w-3.5 h-3.5 text-ember-400 animate-pulse" />
+            <span>Evaluating your explanation…</span>
+          </div>
+          <SkeletonLine className="w-5/6" />
+          <SkeletonLine className="w-2/3" />
+        </div>
+      )}
+
+      {/* Evaluation Error Banner with Retry */}
+      {evalError && !isEvaluating && (
+        <div
+          role="alert"
+          aria-live="polite"
+          className="mb-4 p-4 rounded-xl border border-danger/30 bg-danger/10 text-danger text-xs sm:text-sm flex items-start gap-3"
+        >
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <span className="flex-1 leading-relaxed">{evalError}</span>
+          <Button
+            type="button"
+            variant="danger"
+            onClick={handleRetryEvaluation}
+            className="flex-shrink-0 px-3! py-1.5! min-h-[36px]! text-xs!"
+          >
+            Retry
+          </Button>
         </div>
       )}
 
@@ -342,8 +396,6 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
             className={`p-4 rounded-xl border animate-in fade-in duration-150 ${
               evaluationResult.is_correct
                 ? 'bg-success/10 border-success/30 text-success'
-                : evaluationResult.needs_review
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
                 : 'bg-warning/10 border-warning/30 text-warning'
             }`}
           >
@@ -351,7 +403,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
               {evaluationResult.is_correct ? (
                 <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
               ) : evaluationResult.needs_review ? (
-                <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
               ) : (
                 <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
               )}
@@ -404,17 +456,14 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
             {/* Misconceptions Identified */}
             {evaluationResult.misconceptions?.length > 0 && (
               <div>
-                <span className="text-[11px] font-semibold text-rose-400 block mb-1.5 flex items-center gap-1">
+                <span className="text-[11px] font-semibold text-danger block mb-1.5 flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5" /> Learning Point / Misconception:
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {evaluationResult.misconceptions.map((m, i) => (
-                    <span
-                      key={i}
-                      className="px-2 py-0.5 rounded-md text-xs font-medium bg-rose-500/15 border border-rose-500/30 text-rose-300 flex items-center gap-1"
-                    >
+                    <Badge key={i} tone="danger" className="rounded-md! font-medium!">
                       <span>•</span> {m}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -423,17 +472,14 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
             {/* Missing Concepts */}
             {evaluationResult.missing_concepts?.length > 0 && (
               <div>
-                <span className="text-[11px] font-semibold text-amber-400 block mb-1.5 flex items-center gap-1">
+                <span className="text-[11px] font-semibold text-warning block mb-1.5 flex items-center gap-1">
                   <Flame className="w-3.5 h-3.5" /> Next Detail to Consider:
                 </span>
                 <div className="flex flex-wrap gap-1.5">
                   {evaluationResult.missing_concepts.map((m, i) => (
-                    <span
-                      key={i}
-                      className="px-2 py-0.5 rounded-md text-xs font-medium bg-amber-500/15 border border-amber-500/30 text-amber-300 flex items-center gap-1"
-                    >
+                    <Badge key={i} tone="warning" className="rounded-md! font-medium!">
                       <span>•</span> {m}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
               </div>
@@ -457,7 +503,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
                   disabled={isEvaluating || stt.isTranscribing}
                   aria-pressed={stt.isListening}
                   aria-label={stt.isListening ? 'Stop voice recording' : 'Answer by voice'}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-full text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] min-w-[44px] rounded-full text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                     stt.isListening
                       ? 'bg-danger/10 border-danger/30 text-danger animate-pulse'
                       : 'bg-sunken border-line-soft text-ink-faint hover:text-ink-muted'
@@ -482,7 +528,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
               value={userAnswer}
               onChange={(e) => setUserAnswer(e.target.value)}
               disabled={isEvaluating}
-              aria-describedby={errorMessage ? 'socratic-answer-error' : undefined}
+              aria-describedby={validationError ? 'socratic-answer-error' : undefined}
               placeholder={
                 activeGuidedPrompt
                   ? 'Apply the tutor feedback above and give it another shot...'
@@ -509,36 +555,35 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
             )}
           </div>
 
-          {errorMessage && (
-            <p id="socratic-answer-error" role="alert" className="text-xs text-danger mb-3 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {errorMessage}</p>
+          {validationError && (
+            <p id="socratic-answer-error" role="alert" className="text-xs text-danger mb-3 flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> {validationError}</p>
           )}
 
-          <button
+          <Button
             type="submit"
-            disabled={isEvaluating || !userAnswer.trim()}
-            className="w-full py-3 min-h-[44px] bg-gradient-to-r from-ember-500 to-ember-400 hover:from-ember-400 hover:to-ember-300 text-on-accent font-semibold rounded-xl shadow-lg shadow-ember-500/20 flex items-center justify-center gap-2 text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            variant="primary"
+            loading={isEvaluating}
+            disabled={!userAnswer.trim()}
+            className="w-full py-3! gap-2 shadow-ember-500/20! disabled:opacity-40!"
           >
             {isEvaluating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Evaluating Concept...</span>
-              </>
+              <span>Evaluating Concept...</span>
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
                 <span>{attemptCount > 1 ? `Submit Retry #${attemptCount}` : 'Submit & Validate'}</span>
               </>
             )}
-          </button>
+          </Button>
         </form>
       ) : (
         <div className="mt-auto pt-3">
           <button
             type="button"
             onClick={handleNextAction}
-            className={`w-full py-3.5 font-semibold rounded-xl shadow-lg flex items-center justify-center gap-2 text-sm transition-all cursor-pointer ${
+            className={`w-full py-3.5 font-semibold rounded-xl shadow-lg flex items-center justify-center gap-2 text-sm transition-colors cursor-pointer ${
               evaluationResult?.needs_review
-                ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/25'
+                ? 'bg-warning hover:bg-warning/90 text-on-accent shadow-warning/25'
                 : 'bg-success hover:bg-success/90 text-on-success shadow-success/25'
             }`}
           >

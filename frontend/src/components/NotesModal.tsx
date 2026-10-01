@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Download,
   Copy,
@@ -15,6 +15,10 @@ import {
 } from 'lucide-react';
 import type { QAHistoryItem, Segment } from '../types';
 import { generateNotes, downloadNotesPdf } from '../lib/api';
+import { Modal } from './ui/Modal';
+import { Button } from './ui/Button';
+import { SkeletonLine } from './ui/Skeleton';
+import { useRetryableAsync } from '../hooks/useRetryableAsync';
 
 interface NotesModalProps {
   isOpen: boolean;
@@ -47,40 +51,47 @@ export const NotesModal: React.FC<NotesModalProps> = ({
   segments,
   qaHistory,
 }) => {
-  const [markdownNotes, setMarkdownNotes] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-  const [error, setError] = useState('');
+  const [downloadError, setDownloadError] = useState('');
   const [activeTab, setActiveTab] = useState<'synthesized' | 'raw' | 'markdown'>('synthesized');
+
+  // Wrapped with useRetryableAsync so a notes-generation failure is caught and
+  // exposed as a retryable error state, with a Retry button in the error banner.
+  const generateNotesAction = useCallback(
+    () =>
+      generateNotes({
+        video_title: videoTitle,
+        video_id: videoId,
+        segments,
+        qa_history: qaHistory,
+      }),
+    [videoTitle, videoId, segments, qaHistory]
+  );
+
+  const {
+    data: markdownNotes,
+    error: notesError,
+    isLoading,
+    run: runGenerateNotes,
+    retry: retryGenerateNotes,
+  } = useRetryableAsync(generateNotesAction);
 
   useEffect(() => {
     if (isOpen && !markdownNotes) {
-      loadNotes();
-    }
-  }, [isOpen]);
-
-  const loadNotes = async () => {
-    setIsLoading(true);
-    setError('');
-    try {
-      const notes = await generateNotes({
-        video_title: videoTitle,
-        video_id: videoId,
-        segments: segments,
-        qa_history: qaHistory,
+      runGenerateNotes().catch(() => {
+        // Captured by useRetryableAsync and surfaced via `notesError`/retry.
       });
-      setMarkdownNotes(notes);
-    } catch (err: any) {
-      setError(err.message || 'Failed to generate study notes');
-    } finally {
-      setIsLoading(false);
     }
-  };
+    // Only re-check when the modal opens; `markdownNotes`/`runGenerateNotes`
+    // intentionally excluded so a successful load doesn't re-trigger itself.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleDownloadPdf = async () => {
     if (!markdownNotes) return;
     setIsDownloading(true);
+    setDownloadError('');
     try {
       const keyframes = segments
         .filter((s) => s.keyframe_url || s.visual?.has_visual_content)
@@ -91,13 +102,14 @@ export const NotesModal: React.FC<NotesModalProps> = ({
         }));
       await downloadNotesPdf(videoTitle, markdownNotes, { videoId, keyframes });
     } catch (err: any) {
-      setError(err.message || 'Failed to download PDF');
+      setDownloadError(err.message || 'Failed to download PDF');
     } finally {
       setIsDownloading(false);
     }
   };
 
   const handleCopyMarkdown = () => {
+    if (!markdownNotes) return;
     navigator.clipboard.writeText(markdownNotes);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 1500);
@@ -232,28 +244,14 @@ export const NotesModal: React.FC<NotesModalProps> = ({
     return sections;
   }, [markdownNotes]);
 
-  // Close modal on Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="notes-modal-title"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-6 overflow-x-hidden animate-in fade-in duration-150"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="notes-modal-title"
+      className="sm:rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+      overlayClassName="!bg-black/80 !backdrop-blur-md !p-3 sm:!p-6 overflow-x-hidden"
     >
-      <div className="bg-raised border border-line-soft rounded-2xl sm:rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Modal Header */}
         <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-line-soft flex items-center justify-between gap-2.5 bg-raised/90">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
@@ -287,8 +285,12 @@ export const NotesModal: React.FC<NotesModalProps> = ({
 
         {/* View Mode Navigation Tabs */}
         <div className="px-4 sm:px-6 pt-3 pb-2 border-b border-line-soft bg-sunken/30 flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-sunken/60 p-1 rounded-xl border border-line-soft text-xs font-medium">
+          <div role="tablist" aria-label="Notes view mode" className="flex items-center gap-1.5 bg-sunken/60 p-1 rounded-xl border border-line-soft text-xs font-medium">
             <button
+              id="notes-tab-synthesized"
+              role="tab"
+              aria-selected={activeTab === 'synthesized'}
+              aria-controls="notes-tabpanel"
               onClick={() => setActiveTab('synthesized')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 activeTab === 'synthesized'
@@ -300,6 +302,10 @@ export const NotesModal: React.FC<NotesModalProps> = ({
               <span>Synthesized Notes</span>
             </button>
             <button
+              id="notes-tab-raw"
+              role="tab"
+              aria-selected={activeTab === 'raw'}
+              aria-controls="notes-tabpanel"
               onClick={() => setActiveTab('raw')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 activeTab === 'raw'
@@ -311,6 +317,10 @@ export const NotesModal: React.FC<NotesModalProps> = ({
               <span>Question History</span>
             </button>
             <button
+              id="notes-tab-markdown"
+              role="tab"
+              aria-selected={activeTab === 'markdown'}
+              aria-controls="notes-tabpanel"
               onClick={() => setActiveTab('markdown')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 activeTab === 'markdown'
@@ -335,34 +345,60 @@ export const NotesModal: React.FC<NotesModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 text-left">
+        <div
+          id="notes-tabpanel"
+          role="tabpanel"
+          aria-labelledby={`notes-tab-${activeTab}`}
+          className="flex-1 overflow-y-auto p-4 sm:p-6 text-left"
+        >
           {isLoading ? (
-            <div className="py-16 flex flex-col items-center justify-center text-center space-y-4 animate-in fade-in duration-300">
-              <div className="relative">
-                <div className="w-14 h-14 rounded-2xl bg-ember-500/10 border border-ember-500/25 flex items-center justify-center text-ember-400">
-                  <Sparkles className="w-7 h-7 animate-pulse" />
+            <div className="space-y-6 animate-in fade-in duration-300">
+              <div className="flex items-center gap-3">
+                <div className="relative flex-shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-ember-500/10 border border-ember-500/25 flex items-center justify-center text-ember-400">
+                    <Sparkles className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <Loader2 className="w-4 h-4 text-ember-400 animate-spin absolute -top-1 -right-1" />
                 </div>
-                <Loader2 className="w-5 h-5 text-ember-400 animate-spin absolute -top-1 -right-1" />
+                <div>
+                  <h4 className="text-sm font-bold text-ink">
+                    Auditing Grammar &amp; Synthesizing Notes...
+                  </h4>
+                  <p className="text-xs text-ink-faint leading-relaxed">
+                    Refining your explanations and structuring pedagogical takeaways.
+                  </p>
+                </div>
               </div>
-              <div className="space-y-1.5 max-w-sm">
-                <h4 className="text-base font-bold text-ink">
-                  Auditing Grammar &amp; Synthesizing Notes...
-                </h4>
-                <p className="text-xs text-ink-faint leading-relaxed">
-                  Refining your explanations, checking grammar and spelling typos, and structuring pedagogical takeaways.
-                </p>
-              </div>
+              {/* Document-shaped placeholder: a few paragraph-like rows */}
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="space-y-2.5">
+                  <SkeletonLine className="w-1/3" />
+                  <SkeletonLine className="w-full" />
+                  <SkeletonLine className="w-5/6" />
+                  <SkeletonLine className="w-2/3" />
+                </div>
+              ))}
             </div>
-          ) : error ? (
-            <div className="p-4 rounded-xl bg-danger/10 border border-danger/30 text-danger text-sm flex items-start gap-2">
+          ) : notesError ? (
+            <div className="p-4 rounded-xl bg-danger/10 border border-danger/30 text-danger text-sm flex items-start gap-3">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>{error}</span>
+              <span className="flex-1">{notesError}</span>
+              <Button
+                type="button"
+                variant="danger"
+                onClick={() => retryGenerateNotes()?.catch(() => {})}
+                className="flex-shrink-0 px-3! py-1.5! min-h-[36px]! text-xs!"
+              >
+                Retry
+              </Button>
             </div>
           ) : activeTab === 'synthesized' ? (
             <div className="space-y-6">
               {parsedSections.length === 0 ? (
-                <div className="text-center py-12 text-ink-faint text-sm">
-                  No active recall checkpoints were synthesized for this video.
+                <div className="text-center py-12 flex flex-col items-center gap-2 text-ink-faint">
+                  <ListChecks className="w-8 h-8 text-ink-faint/60" />
+                  <p className="text-sm">No active recall checkpoints were synthesized for this video.</p>
+                  <p className="text-xs text-ink-faint/80">Answer a few checkpoint questions while watching to generate synthesized notes.</p>
                 </div>
               ) : (
                 parsedSections.map((section, sIdx) => {
@@ -370,10 +406,10 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                     return (
                       <div
                         key={`sec-${sIdx}`}
-                        className="rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4 sm:p-5 space-y-3"
+                        className="rounded-2xl border border-warning/40 bg-warning/10 p-4 sm:p-5 space-y-3"
                       >
-                        <div className="flex items-center gap-2 text-amber-300 font-bold text-sm">
-                          <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                        <div className="flex items-center gap-2 text-warning font-bold text-sm">
+                          <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0" />
                           <span>Concepts to Revisit Before Your Exam</span>
                         </div>
                         <p className="text-xs text-ink-muted leading-relaxed">
@@ -382,7 +418,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                         <ul className="space-y-1.5 pl-2">
                           {section.revisitItems?.map((item, rIdx) => (
                             <li key={rIdx} className="text-xs text-ink flex items-start gap-2">
-                              <span className="text-amber-400 font-bold">•</span>
+                              <span className="text-warning font-bold">•</span>
                               <span dangerouslySetInnerHTML={{ __html: item.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') }} />
                             </li>
                           ))}
@@ -472,9 +508,11 @@ export const NotesModal: React.FC<NotesModalProps> = ({
               ))}
 
               {qaHistory.length === 0 && (
-                <p className="text-sm text-ink-faint text-center py-10">
-                  No questions were completed in this session.
-                </p>
+                <div className="text-center py-10 flex flex-col items-center gap-2 text-ink-faint">
+                  <BookOpen className="w-8 h-8 text-ink-faint/60" />
+                  <p className="text-sm">No questions were completed in this session.</p>
+                  <p className="text-xs text-ink-faint/80">Watch the video and answer checkpoint questions to build your question history.</p>
+                </div>
               )}
             </div>
           ) : (
@@ -488,8 +526,14 @@ export const NotesModal: React.FC<NotesModalProps> = ({
 
         {/* Modal Footer */}
         <div className="px-4 sm:px-6 py-3.5 border-t border-line-soft bg-raised/90 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-xs text-ink-faint">
-            {qaHistory.length} question(s) synthesized
+          <div className="text-xs text-ink-faint flex items-center gap-2">
+            <span>{qaHistory.length} question(s) synthesized</span>
+            {downloadError && (
+              <span role="alert" className="text-danger flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                {downloadError}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2 sm:gap-2.5">
@@ -530,7 +574,6 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };

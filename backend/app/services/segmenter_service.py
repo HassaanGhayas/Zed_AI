@@ -40,16 +40,16 @@ Your task is to break the video into 3 to 6 logical pedagogical segments based o
 For EACH segment, you must provide:
 1. segment_id (1-indexed integer)
 2. title (short, clear topic title representing the concept covered)
-3. start_time (start in SECONDS, float, on the same 0..{total_duration:.1f} scale as the transcript timestamps)
-4. end_time (end in SECONDS, float, must align with where the topic naturally concludes)
-5. summary (2-3 concise sentences explaining the scientific/conceptual mechanism explained in this segment. Do NOT include greetings or video filler)
-6. questions: 1 to 2 targeted active-recall conceptual questions. Each question must have:
+3. start_time (start in SECONDS, float — MUST exactly match the [mm:ss] timestamp of one of the transcript lines below, converted to seconds. Never invent a time that isn't one of the given cue timestamps.)
+4. end_time (end in SECONDS, float — MUST exactly match the [mm:ss] timestamp of one of the transcript lines below, the one where this topic's content actually stops. Never invent a time that isn't one of the given cue timestamps.)
+5. summary (2-3 concise sentences explaining the scientific/conceptual mechanism explained ONLY in the transcript lines between this segment's start_time and end_time — not content from an adjacent segment. Do NOT include greetings or video filler)
+6. questions: 1 to 2 targeted active-recall conceptual questions, grounded strictly in what is said between start_time and end_time. Each question must have:
    - id: unique string e.g. "s1_q1"
-   - prompt: specific question asking user to explain the mechanism/reasoning in their own words (e.g. "What causes friction to oppose the motion of objects?", NOT generic "summarize the video")
+   - prompt: specific question asking user to explain the mechanism/reasoning in their own words (e.g. "What causes friction to oppose the motion of objects?", NOT generic "summarize the video"). The concept being asked about must actually be discussed within this segment's own time range, not one covered earlier or later.
    - expected_concept: concise core criteria of the concept (e.g. "force opposing relative motion when surfaces interact")
    - hints: 1-2 helpful nudges
 
-Ensure segments are contiguous and cover from 0.0 to {total_duration:.1f} seconds.
+Ensure segments are contiguous (each segment's start_time equals the previous segment's end_time) and cover from 0.0 to {total_duration:.1f} seconds. Double-check before answering: for each segment, does its summary and questions describe content that falls strictly between its own start_time and end_time? If a boundary was placed too early or too late relative to where the topic is actually discussed, move it to the correct transcript line before responding.
 
 Return ONLY a valid JSON array of segments conforming to this structure:
 [
