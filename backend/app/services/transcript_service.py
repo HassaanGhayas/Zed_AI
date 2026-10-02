@@ -15,14 +15,49 @@ TRANSCRIPT_CACHE_DIR = BACKEND_DIR / ".cache" / "transcripts"
 
 class TranscriptService:
     def __init__(self):
-        self.api = YouTubeTranscriptApi(http_client=self._build_http_client())
+        self.api = YouTubeTranscriptApi(
+            proxy_config=self._build_proxy_config(),
+            http_client=self._build_http_client(),
+        )
+
+    @staticmethod
+    def _build_proxy_config():
+        """Preferred fix for cloud-IP 403s: route requests through a proxy
+        instead of a personal account's cookies. YouTube blocks most cloud
+        provider IP ranges (Vercel, AWS, GCP, ...) much more aggressively
+        than it blocks cookie-less requests from a residential IP, so a
+        rotating residential proxy is the library's own documented solution
+        (see youtube-transcript-api README, "Working around IP bans") and
+        carries none of the account-compromise risk cookies do.
+
+        Set WEBSHARE_PROXY_USERNAME/WEBSHARE_PROXY_PASSWORD (Webshare sells
+        exactly this — a "Residential" package, not "Static Residential" or
+        "Proxy Server") for automatic rotation + built-in retry-when-blocked.
+        Or set YOUTUBE_PROXY=http://user:pass@host:port for any other
+        provider's rotating proxy. No proxy configured -> returns None and
+        falls back to cookies/direct requests, same as before."""
+        ws_user = os.getenv("WEBSHARE_PROXY_USERNAME", "")
+        ws_pass = os.getenv("WEBSHARE_PROXY_PASSWORD", "")
+        if ws_user and ws_pass:
+            from youtube_transcript_api.proxies import WebshareProxyConfig
+            return WebshareProxyConfig(proxy_username=ws_user, proxy_password=ws_pass)
+
+        generic_proxy = os.getenv("YOUTUBE_PROXY", "")
+        if generic_proxy:
+            from youtube_transcript_api.proxies import GenericProxyConfig
+            return GenericProxyConfig(http_url=generic_proxy, https_url=generic_proxy)
+
+        return None
 
     @staticmethod
     def _build_http_client() -> requests.Session:
-        """Browser-like session with optional cookies/proxy to work around
-        YouTube bot detection (see youtube-transcript-api README, "Working
-        around IP bans"). Drop a Netscape cookies.txt at backend/cookies.txt
-        (or set YOUTUBE_COOKIES_TXT) and/or YOUTUBE_PROXY=http://...:port."""
+        """Browser-like session with optional cookies to supplement the proxy
+        config above. Cookies alone (no proxy) still work for low-volume/dev
+        use, but a personal account's cookies carry real account-compromise
+        risk on a shared/public deployment — prefer a proxy there. Drop a
+        Netscape cookies.txt at backend/cookies.txt, set YOUTUBE_COOKIES_TXT
+        to its path, or set YOUTUBE_COOKIES_CONTENT to its contents (for
+        hosts where cookies.txt can't be deployed as a file)."""
         session = requests.Session()
         session.headers.update({
             "User-Agent": (
@@ -38,6 +73,18 @@ class TranscriptService:
                 if candidate.is_file():
                     cookie_path = str(candidate)
                     break
+        # cookies.txt is gitignored (it's a session credential) so it never
+        # reaches a git-deployed host. YOUTUBE_COOKIES_CONTENT lets it be
+        # injected as a platform env var instead — paste the same Netscape
+        # cookies.txt contents into it on Vercel/Render/etc.
+        if not (cookie_path and os.path.isfile(cookie_path)):
+            cookie_content = os.getenv("YOUTUBE_COOKIES_CONTENT", "")
+            if cookie_content:
+                import tempfile
+                tmp = tempfile.NamedTemporaryFile(mode="w", suffix="_cookies.txt", delete=False)
+                tmp.write(cookie_content)
+                tmp.close()
+                cookie_path = tmp.name
         if cookie_path and os.path.isfile(cookie_path):
             try:
                 from http.cookiejar import MozillaCookieJar
@@ -47,9 +94,6 @@ class TranscriptService:
                 print(f"[TranscriptService] Using YouTube cookies from {cookie_path}")
             except Exception as e:
                 print(f"[TranscriptService] Failed to load cookies from {cookie_path}: {e}")
-        proxy = os.getenv("YOUTUBE_PROXY", "")
-        if proxy:
-            session.proxies = {"http": proxy, "https": proxy}
         return session
 
     # ── transcript disk cache: hit YouTube once per video, never again ──
@@ -199,8 +243,10 @@ class TranscriptService:
         if raw_cues is None:
             raise RuntimeError(
                 f"Could not retrieve transcript for video {video_id}: {last_error} "
-                "YouTube may be rate-limiting this IP temporarily — wait a while and retry, "
-                "or place an exported cookies.txt in backend/ (see transcript_service notes). "
+                "YouTube may be rate-limiting this IP temporarily — wait a while and retry. "
+                "Locally, place an exported cookies.txt in backend/; on a deployed host "
+                "(cookies.txt is gitignored and won't be there), set the YOUTUBE_COOKIES_CONTENT "
+                "env var to the same file's contents instead (see transcript_service notes). "
                 "Successful fetches are cached, so this only happens once per video."
             )
 
