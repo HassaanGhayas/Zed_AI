@@ -42,6 +42,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // OLD position for a few ticks. Boundary logic on that stale time would instantly
   // re-fire (flow-through bounce), so boundary checks pause until settled.
   const settleUntilRef = useRef(0);
+  // The YT player is created once per video, so its event handlers need refs
+  // to see the latest quiz state and callback.
+  const isPausedForQuizRef = useRef(isPausedForQuiz);
+  const onBoundaryReachedRef = useRef(onBoundaryReached);
+  useEffect(() => {
+    isPausedForQuizRef.current = isPausedForQuiz;
+    onBoundaryReachedRef.current = onBoundaryReached;
+  }, [isPausedForQuiz, onBoundaryReached]);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [apiLoaded, setApiLoaded] = useState<boolean>(false);
@@ -106,8 +114,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         onReady: () => {
           if (onPlayerReady) onPlayerReady();
         },
-        onStateChange: () => {
-          // YT.PlayerState: 1 = PLAYING, 2 = PAUSED
+        onStateChange: (e: { data: number }) => {
+          // YT.PlayerState: 0 = ENDED, 1 = PLAYING, 2 = PAUSED.
+          // When the final segment's end_time sits at/after the real video end,
+          // the polling loop can miss the boundary (the reported time stalls just
+          // short of duration). ENDED is authoritative: fire the checkpoint.
+          if (e.data === 0 && !isPausedForQuizRef.current) {
+            onBoundaryReachedRef.current();
+          }
         },
       },
     });
@@ -152,7 +166,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         // segment, which would then never reach its boundary since the video
         // simply stops first. Clamp against the player's own real duration,
         // the one value YouTube always reports accurately.
-        const effectiveEndTime = d ? Math.min(activeSegment.end_time, d) : activeSegment.end_time;
+        // Small tolerance at the very end: getCurrentTime() often stalls a few
+        // hundred ms short of getDuration() when the video finishes.
+        const effectiveEndTime = d
+          ? Math.min(activeSegment.end_time, Math.max(0, d - 0.5))
+          : activeSegment.end_time;
 
         // Ignore boundary logic while the player settles after a switch/seek
         if (Date.now() < settleUntilRef.current) return;
