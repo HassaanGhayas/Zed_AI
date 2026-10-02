@@ -15,6 +15,7 @@ from app.core.config import settings
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 MEDIA_DIR = BACKEND_DIR / ".cache" / "media"
 FRAMES_DIR = BACKEND_DIR / ".cache" / "frames"
+VISUAL_CACHE_DIR = BACKEND_DIR / ".cache" / "visual"
 
 # Suffixes yt-dlp uses for in-progress downloads; never treat these as a cache hit.
 _PARTIAL_SUFFIXES = {".part", ".ytdl", ".temp", ".frag"}
@@ -288,7 +289,8 @@ class VisualService:
                     if isinstance(data, dict):
                         return data
                 except Exception as model_err:
-                    print(f"[VisualService] Model {model_name} failed: {model_err}")
+                    tag = "RATE_LIMIT" if ("429" in str(model_err) or "RESOURCE_EXHAUSTED" in str(model_err)) else "ERROR"
+                    print(f"[VisualService:{tag}] Model {model_name} failed: {model_err}")
                     continue
         except Exception as e:
             print(f"[VisualService] All Gemini vision calls failed: {e}")
@@ -406,6 +408,26 @@ Return ONLY valid JSON with this schema:
             "key_concept": str(data.get("key_concept", "")).strip(),
         }
 
+    @staticmethod
+    def _visual_cache_path(video_id: str, ms: int) -> Path:
+        return VISUAL_CACHE_DIR / f"{video_id}_{ms}.json"
+
+    def _load_cached_visual(self, video_id: str, ms: int) -> Optional[Dict[str, Any]]:
+        path = self._visual_cache_path(video_id, ms)
+        if not path.is_file():
+            return None
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return None
+
+    def _save_cached_visual(self, video_id: str, ms: int, result: Dict[str, Any]) -> None:
+        try:
+            VISUAL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            self._visual_cache_path(video_id, ms).write_text(json.dumps(result), encoding="utf-8")
+        except Exception as e:
+            print(f"[VisualService] Could not write visual cache: {e}")
+
     def segment_visual(
         self,
         video_id: str,
@@ -415,16 +437,36 @@ Return ONLY valid JSON with this schema:
         summary: str = "",
         custom_api_key: str = "",
     ) -> Dict[str, Any]:
-        """Analyze a representative keyframe (segment midpoint) for a chapter."""
+        """Analyze a representative keyframe (segment midpoint) for a chapter.
+
+        Deterministic per video_id + keyframe timestamp, so successful results
+        are cached — re-processing the same video (repeat demo/testing) skips
+        the yt-dlp extract + Gemini vision round-trip entirely.
+        """
+        vid = self._validated_id(video_id)
         start = self._validated_time(start_time)
         end = self._validated_time(end_time)
         t = start + max(0.0, (end - start) / 2.0)
-        frame_path = self.extract_frame(video_id, t)
+        ms = int(round(t * 1000))
+
+        cached = self._load_cached_visual(vid, ms)
+        if cached is not None:
+            return cached
+
+        frame_path = self.extract_frame(vid, t)
         image_bytes = frame_path.read_bytes()
         prompt = self._keyframe_prompt(title, summary)
         data = self._call_gemini_json(prompt, image_bytes, custom_api_key)
         visual = self._normalize_visual(data)
-        return {"timestamp": round(t, 3), "visual": visual}
+        result = {"timestamp": round(t, 3), "visual": visual}
+        # Only cache a genuine Gemini response. `data` is `{}` when every
+        # candidate model failed (rate limit, timeout, bad JSON), and
+        # _normalize_visual({}) produces the same shape as a real "no visual
+        # content" result — caching that would freeze a transient failure in
+        # permanently for this video+timestamp.
+        if data:
+            self._save_cached_visual(vid, ms, result)
+        return result
 
     def _normalize_visual(self, data: Dict[str, Any]) -> Dict[str, Any]:
         if not data:

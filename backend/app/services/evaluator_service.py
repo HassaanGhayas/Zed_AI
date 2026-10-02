@@ -1,10 +1,12 @@
 import json
 import re
+import time
 from typing import Any, Dict, List, Optional
 from google import genai
 from google.genai import types
 from app.core.config import settings
 from app.models.schemas import AnswerEvaluationResponse, AttemptHistoryItem, MessageItem
+from app.services._model_race import race_candidates
 
 class EvaluatorService:
     def __init__(self):
@@ -51,11 +53,15 @@ class EvaluatorService:
             )
 
         # 1. Try Gemini evaluation across candidate models
+        eval_start = time.monotonic()
         try:
             client = self._get_client(custom_api_key)
             system_prompt = """You are a master Socratic tutor specializing in active recall, concept extraction, and adaptive feedback.
-Your goal is to evaluate the student's conceptual answer rigorously yet supportively:
+Your goal is to evaluate the student's conceptual answer fairly and generously:
 1. Determine if the student grasped the essential concept (CORRECT) or holds a gap/misconception (MISCONCEPTION / INCORRECT).
+   - Grade the IDEA, not the wording. If the student's explanation shows they understand the core mechanism in their own words — even if informal, imprecise, or missing minor secondary details — that is CORRECT. Note the missing details in missing_concepts, but do not fail the answer over them.
+   - Only mark MISCONCEPTION when the student states something actually wrong (a flawed causal model), and only mark INCORRECT when the answer shows no real engagement with the core mechanism at all (e.g. off-topic, restates the question, pure guess).
+   - When genuinely unsure between CORRECT and MISCONCEPTION, prefer CORRECT — a false negative frustrates a student who actually understood the material; a false positive costs nothing since misconceptions still get recorded in missing_concepts for review.
 2. Assess conceptual mastery and output:
    - status: "CORRECT" | "MISCONCEPTION" | "INCORRECT"
    - is_correct: boolean (true ONLY if essential concept is understood)
@@ -111,46 +117,62 @@ Expected Core Concept: {expected_concept}
 Current Student Attempt #{attempt_count}: {cleaned_answer}
 {history_text}
 """
-            for model_name in settings.gemini_candidate_models:
-                try:
-                    response = client.models.generate_content(
-                        model=model_name,
-                        contents=f"{system_prompt}\n\n{user_payload}",
-                        config=types.GenerateContentConfig(
-                            response_mime_type="application/json"
-                        )
+            # Answer grading runs on every submission (unlike segmentation,
+            # once per video) and the task is simple structured JSON, not
+            # open-ended generation — so try the fastest model first here and
+            # only fall back to the bigger ones if it's unavailable, rather
+            # than reusing segmenter's quality-first order.
+            eval_model_order = sorted(
+                settings.gemini_candidate_models,
+                key=lambda m: 0 if "lite" in m else 1
+            )
+            def _attempt(model_name: str) -> Dict[str, Any]:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=f"{system_prompt}\n\n{user_payload}",
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json"
                     )
-                    raw_text = response.text.strip()
-                    if raw_text.startswith("```"):
-                        raw_text = re.sub(r"^```(?:json)?\n?", "", raw_text)
-                        raw_text = re.sub(r"\n?```$", "", raw_text)
-                    
-                    data = json.loads(raw_text)
-                    is_corr = bool(data.get("is_correct", False))
-                    raw_score = int(data.get("score", 85 if is_corr else 40))
-                    clamped_score = max(0, min(100, raw_score))
+                )
+                raw_text = response.text.strip()
+                if raw_text.startswith("```"):
+                    raw_text = re.sub(r"^```(?:json)?\n?", "", raw_text)
+                    raw_text = re.sub(r"\n?```$", "", raw_text)
+                data = json.loads(raw_text)
+                if not isinstance(data, dict):
+                    raise ValueError("Non-dict JSON response")
+                return data
 
-                    # Strict 3-attempt ceiling enforcement
-                    can_adv = is_corr or is_final_attempt
-                    needs_rev = (not is_corr) and is_final_attempt
-                    retry_q = None if (is_corr or is_final_attempt) else data.get("retry_question")
+            # Race the top 2 (lite + next) concurrently instead of strictly
+            # sequential fallback — hides a slow/rate-limited lite model's
+            # tail latency behind the next candidate instead of paying for
+            # both one after another.
+            data = race_candidates(eval_model_order, _attempt, max_parallel=2)
+            print(f"[EvaluatorService] Gemini evaluation took {time.monotonic() - eval_start:.2f}s")
 
-                    return AnswerEvaluationResponse(
-                        status=data.get("status", "CORRECT" if is_corr else "MISCONCEPTION"),
-                        is_correct=is_corr,
-                        score=clamped_score,
-                        feedback=data.get("feedback", "Good explanation! You captured the essential mechanism."),
-                        understood_concepts=list(data.get("understood_concepts", []) or []),
-                        missing_concepts=list(data.get("missing_concepts", []) or []),
-                        misconceptions=list(data.get("misconceptions", []) or []),
-                        retry_question=retry_q,
-                        can_advance=can_adv,
-                        needs_review=needs_rev,
-                        follow_up_prompt=retry_q
-                    )
-                except Exception as model_err:
-                    print(f"[EvaluatorService] Model {model_name} evaluation failed: {model_err}")
-                    continue
+            if data is not None:
+                is_corr = bool(data.get("is_correct", False))
+                raw_score = int(data.get("score", 85 if is_corr else 40))
+                clamped_score = max(0, min(100, raw_score))
+
+                # Strict 3-attempt ceiling enforcement
+                can_adv = is_corr or is_final_attempt
+                needs_rev = (not is_corr) and is_final_attempt
+                retry_q = None if (is_corr or is_final_attempt) else data.get("retry_question")
+
+                return AnswerEvaluationResponse(
+                    status=data.get("status", "CORRECT" if is_corr else "MISCONCEPTION"),
+                    is_correct=is_corr,
+                    score=clamped_score,
+                    feedback=data.get("feedback", "Good explanation! You captured the essential mechanism."),
+                    understood_concepts=list(data.get("understood_concepts", []) or []),
+                    missing_concepts=list(data.get("missing_concepts", []) or []),
+                    misconceptions=list(data.get("misconceptions", []) or []),
+                    retry_question=retry_q,
+                    can_advance=can_adv,
+                    needs_review=needs_rev,
+                    follow_up_prompt=retry_q
+                )
 
         except Exception as e:
             print(f"[EvaluatorService] All Gemini calls failed ({e}). Falling back to heuristic evaluation.")

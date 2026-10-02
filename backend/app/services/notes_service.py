@@ -210,7 +210,8 @@ Flagged Questions Requiring Review:
                     if response.text and response.text.strip():
                         return response.text.strip()
                 except Exception as model_err:
-                    print(f"[NotesService] Model {model_name} failed: {model_err}")
+                    tag = "RATE_LIMIT" if ("429" in str(model_err) or "RESOURCE_EXHAUSTED" in str(model_err)) else "ERROR"
+                    print(f"[NotesService:{tag}] Model {model_name} failed: {model_err}")
                     continue
         except Exception as e:
             print(f"[NotesService] Gemini call failed ({e}). Falling back to template synthesis.")

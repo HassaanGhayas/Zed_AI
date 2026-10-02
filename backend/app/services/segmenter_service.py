@@ -1,11 +1,13 @@
 import json
 import re
+import time
 from typing import List
 from collections import Counter
 from google import genai
 from google.genai import types
 from app.core.config import settings
 from app.models.schemas import TranscriptCue, Segment, Question
+from app.services._model_race import race_candidates
 
 class SegmenterService:
     def __init__(self):
@@ -32,6 +34,7 @@ class SegmenterService:
         )
         
         # Attempt Gemini segmentation across candidate models
+        seg_start = time.monotonic()
         try:
             client = self._get_client(custom_api_key)
             prompt = f"""You are an elite educational instructional designer.
@@ -73,30 +76,35 @@ Return ONLY a valid JSON array of segments conforming to this structure:
 Transcript:
 {transcript_text[:25000]}
 """
-            for model_name in settings.gemini_candidate_models:
-                try:
-                    response = client.models.generate_content(
-                        model=model_name,
-                        contents=prompt,
-                        config=types.GenerateContentConfig(
-                            response_mime_type="application/json"
-                        )
+            def _attempt(model_name: str) -> List[Segment]:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json"
                     )
-                    raw_text = response.text.strip()
-                    if raw_text.startswith("```"):
-                        raw_text = re.sub(r"^```(?:json)?\n?", "", raw_text)
-                        raw_text = re.sub(r"\n?```$", "", raw_text)
-                    
-                    data = json.loads(raw_text)
-                    segments = [Segment(**item) for item in data]
-                    if segments:
-                        fixed = self._sanitize_segments(segments, total_duration)
-                        if fixed:
-                            return fixed
-                        print(f"[SegmenterService] Model {model_name} returned an unusable timeline; trying next.")
-                except Exception as model_err:
-                    print(f"[SegmenterService] Model {model_name} attempt failed: {model_err}")
-                    continue
+                )
+                raw_text = response.text.strip()
+                if raw_text.startswith("```"):
+                    raw_text = re.sub(r"^```(?:json)?\n?", "", raw_text)
+                    raw_text = re.sub(r"\n?```$", "", raw_text)
+
+                data = json.loads(raw_text)
+                segments = [Segment(**item) for item in data]
+                if not segments:
+                    raise ValueError("Model returned no segments")
+                fixed = self._sanitize_segments(segments, total_duration)
+                if not fixed:
+                    raise ValueError("Model returned an unusable timeline")
+                return fixed
+
+            # Race the top 2 quality-first candidates concurrently so an
+            # occasional failure/slowness on the first model doesn't cost a
+            # full extra round-trip before the next one starts.
+            fixed = race_candidates(settings.gemini_candidate_models, _attempt, max_parallel=2)
+            print(f"[SegmenterService] Gemini segmentation took {time.monotonic() - seg_start:.2f}s")
+            if fixed:
+                return fixed
 
         except Exception as e:
             print(f"[SegmenterService] All Gemini calls failed ({e}). Falling back to heuristic segmenter.")

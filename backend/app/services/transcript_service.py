@@ -228,16 +228,18 @@ class TranscriptService:
             return cached
 
         # YouTube rate-limits bot-like IPs; back off and retry a couple of times
+        fetch_start = time.monotonic()
         raw_cues: Optional[List[Dict[str, Any]]] = None
         last_error: Optional[Exception] = None
         for attempt in range(3):
             try:
                 raw_cues = self._fetch_raw_cues(video_id)
+                print(f"[TranscriptService] YouTube fetch took {time.monotonic() - fetch_start:.2f}s (attempt {attempt + 1})")
                 break
             except Exception as e:
                 last_error = e
                 if attempt < 2:
-                    wait = 3 * (attempt + 1)
+                    wait = 1.5 * (attempt + 1)
                     print(f"[TranscriptService] Fetch attempt {attempt + 1} failed; retrying in {wait}s")
                     time.sleep(wait)
         if raw_cues is None:

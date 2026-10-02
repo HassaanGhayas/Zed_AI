@@ -80,39 +80,51 @@ export const App: React.FC = () => {
       } catch {
         return;
       }
-      for (const seg of segs) {
-        if (!alive) return;
-        if (seg.visual) continue;
-        try {
-          const res = await segmentVisual({
-            video_id: sessionVideoId,
-            start_time: seg.start_time,
-            end_time: seg.end_time,
-            title: seg.title,
-            summary: seg.summary,
-          });
-          if (!alive) return;
-          setSession((prev) => {
-            if (!prev || prev.video_id !== sessionVideoId) return prev;
-            return {
-              ...prev,
-              segments: prev.segments.map((s) =>
-                s.segment_id === seg.segment_id
-                  ? {
-                      ...s,
-                      visual: res.visual,
-                      keyframe_url: frameUrl(sessionVideoId, res.timestamp),
-                      keyframe_time: res.timestamp,
-                    }
-                  : s
-              ),
-            };
-          });
-        } catch {
-          // Per-segment failures are non-fatal; leave that chapter text-only.
-          if (!alive) return;
+      // Enrich segments with bounded concurrency. Firing every segment at once
+      // bursts past the Gemini API key's RPM limit (each call is its own
+      // yt-dlp extract + vision round-trip), which triggers 429s that then
+      // retry through the candidate-model fallback — slower overall than a
+      // small worker pool that stays under the limit.
+      const VISUAL_CONCURRENCY = 2;
+      const queue = segs.filter((seg) => !seg.visual);
+      let nextIndex = 0;
+      const worker = async () => {
+        while (alive) {
+          const seg = queue[nextIndex++];
+          if (!seg) return;
+          try {
+            const res = await segmentVisual({
+              video_id: sessionVideoId,
+              start_time: seg.start_time,
+              end_time: seg.end_time,
+              title: seg.title,
+              summary: seg.summary,
+            });
+            if (!alive) return;
+            setSession((prev) => {
+              if (!prev || prev.video_id !== sessionVideoId) return prev;
+              return {
+                ...prev,
+                segments: prev.segments.map((s) =>
+                  s.segment_id === seg.segment_id
+                    ? {
+                        ...s,
+                        visual: res.visual,
+                        keyframe_url: frameUrl(sessionVideoId, res.timestamp),
+                        keyframe_time: res.timestamp,
+                      }
+                    : s
+                ),
+              };
+            });
+          } catch {
+            // Per-segment failures are non-fatal; leave that chapter text-only.
+          }
         }
-      }
+      };
+      await Promise.allSettled(
+        Array.from({ length: Math.min(VISUAL_CONCURRENCY, queue.length) }, () => worker())
+      );
     })();
 
     return () => {

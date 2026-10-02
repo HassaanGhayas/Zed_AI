@@ -1,4 +1,5 @@
 import asyncio
+import time
 from fastapi import APIRouter, HTTPException, Header, Query
 from fastapi.responses import Response
 from typing import Optional
@@ -26,22 +27,28 @@ async def process_video(
     if not video_id:
         raise HTTPException(status_code=400, detail="Invalid YouTube URL. Please check and try again.")
 
-    # 1. Fetch metadata
-    meta = await transcript_service.get_video_metadata(video_id)
-    
-    # 2. Fetch transcript cues
+    t0 = time.monotonic()
+
+    # 1+2. Metadata (oEmbed) and transcript cues are independent network calls
+    # — fire them concurrently instead of awaiting one then the other.
+    meta_task = asyncio.ensure_future(transcript_service.get_video_metadata(video_id))
+    cues_task = asyncio.ensure_future(asyncio.to_thread(transcript_service.fetch_transcript_cues, video_id))
+
+    meta = await meta_task
     try:
-        cues = await asyncio.to_thread(transcript_service.fetch_transcript_cues, video_id)
+        cues = await cues_task
     except Exception as e:
         raise HTTPException(
             status_code=422,
             detail=f"Could not retrieve transcripts for this video: {str(e)}"
         )
+    print(f"[process_video] metadata+transcript fetch took {time.monotonic() - t0:.2f}s")
 
     # 3. Calculate duration from transcript
     duration = cues[-1].start + cues[-1].duration if cues else 0.0
 
     # 4. Generate segments
+    t1 = time.monotonic()
     segments = await asyncio.to_thread(
         segmenter_service.segment_transcript,
         video_id=video_id,
@@ -49,6 +56,7 @@ async def process_video(
         cues=cues,
         custom_api_key=x_gemini_key or ""
     )
+    print(f"[process_video] segmentation took {time.monotonic() - t1:.2f}s, total {time.monotonic() - t0:.2f}s")
 
     return VideoProcessResponse(
         video_id=video_id,
