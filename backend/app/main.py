@@ -5,6 +5,9 @@ from app.api.routes_video import router as video_router
 from app.api.routes_qa import router as qa_router
 from app.api.routes_notes import router as notes_router
 from app.api.routes_voice import router as voice_router
+from app.api.routes_me import router as me_router
+from app.api.routes_analytics import router as analytics_router
+from app.core.auth import warn_if_unverifiable
 
 app = FastAPI(
     title="Active Recall Video Learning API",
@@ -17,7 +20,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_origin_regex=settings.cors_origin_regex,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -26,15 +29,30 @@ app.include_router(video_router)
 app.include_router(qa_router)
 app.include_router(notes_router)
 app.include_router(voice_router)
+app.include_router(me_router)
+app.include_router(analytics_router)
+warn_if_unverifiable()
 
 @app.get("/api/health")
 async def health_check():
-    return {
+    from app.services._model_race import server_key_known_invalid
+
+    payload = {
         "status": "online",
         "service": "active-recall-video-tutor",
-        "gemini_model": settings.gemini_model
+        "gemini_model": settings.gemini_model,
+        "gemini_key_configured": bool((settings.google_api_key or "").strip()),
     }
+    if server_key_known_invalid():
+        payload["gemini_key_valid"] = False
+    return payload
 
 if __name__ == "__main__":
+    import os
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=os.getenv("UVICORN_RELOAD", "").lower() in ("1", "true", "yes"),
+    )

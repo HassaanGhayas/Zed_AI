@@ -47,13 +47,20 @@ Thumbs.db
 
 # Agent artifacts
 .agent/
+.agents/
 .qoder/
 
 # Browser/QA screenshot artifacts (root-level test captures)
 /*.png
 
 # Transcript cache & exported YouTube cookies
-backend/.cache/
+backend/.cache/*
+!backend/.cache/transcripts/
+backend/.cache/transcripts/*
+# Demo preset transcripts shipped intentionally (commit 00cb202)
+!backend/.cache/transcripts/LPZh9BOjkQs.json
+!backend/.cache/transcripts/O5nskjZ_GoI.json
+!backend/.cache/transcripts/iHzzSao6ypE.json
 *cookies*.txt
 
 # Throwaway verification artifacts

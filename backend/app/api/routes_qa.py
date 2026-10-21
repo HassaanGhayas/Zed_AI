@@ -1,12 +1,13 @@
 import asyncio
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Depends, Header
 from typing import Optional
 from app.models.schemas import AnswerEvaluationRequest, AnswerEvaluationResponse
+from app.core.rate_limit import rate_limit
 from app.services.evaluator_service import evaluator_service
 
 router = APIRouter(prefix="/api/qa", tags=["QA"])
 
-@router.post("/evaluate", response_model=AnswerEvaluationResponse)
+@router.post("/evaluate", response_model=AnswerEvaluationResponse, dependencies=[Depends(rate_limit("qa"))])
 async def evaluate_answer(
     req: AnswerEvaluationRequest,
     x_gemini_key: Optional[str] = Header(None, alias="X-Gemini-Key")

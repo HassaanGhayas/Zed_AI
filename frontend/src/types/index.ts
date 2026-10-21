@@ -19,26 +19,27 @@ export interface Segment {
 
 export interface EquationItem {
   latex: string;
-  description?: string;
+  description: string;
 }
 
 export interface FrameVisual {
   has_visual_content: boolean;
-  on_screen_text?: string;
-  equations?: EquationItem[];
-  diagram_description?: string;
-  key_concept?: string;
-  flashcard?: { front: string; back: string } | null;
+  on_screen_text: string;
+  equations: EquationItem[];
+  diagram_description: string;
+  key_concept: string;
+  // Backend types this as Dict[str, str] (normally front/back keys)
+  flashcard?: Record<string, string> | null;
 }
 
 export interface FrameExplanation {
   timestamp: number;
   frame_url: string;
   explanation: string;
-  on_screen_text?: string;
-  equations?: EquationItem[];
-  diagram_description?: string;
-  key_concept?: string;
+  on_screen_text: string;
+  equations: EquationItem[];
+  diagram_description: string;
+  key_concept: string;
 }
 
 export interface SegmentVisualResult {
@@ -54,6 +55,8 @@ export interface VideoSession {
   thumbnail_url?: string;
   duration: number;
   segments: Segment[];
+  /** Subject-area taxonomy label assigned by the backend (null/absent on older sessions). */
+  domain?: string | null;
 }
 
 export interface AttemptHistoryItem {
@@ -67,8 +70,10 @@ export interface AttemptHistoryItem {
   misconceptions?: string[];
 }
 
+export type AnswerStatus = 'CORRECT' | 'MISCONCEPTION' | 'INCORRECT';
+
 export interface AnswerEvaluation {
-  status: 'CORRECT' | 'MISCONCEPTION' | 'INCORRECT';
+  status: AnswerStatus;
   is_correct: boolean;
   score: number;
   feedback: string;
@@ -92,6 +97,8 @@ export interface QAHistoryItem {
   understood_concepts?: string[];
   missing_concepts?: string[];
   misconceptions?: string[];
+  /** Active time between the question appearing and its final graded answer. */
+  time_spent_ms?: number | null;
 }
 
 export type TutorStage = 'SETUP' | 'WATCHING' | 'ACTIVE_RECALL' | 'REVIEW' | 'COMPLETE';
@@ -109,4 +116,85 @@ export interface SessionHistoryEntry {
   missingConcepts: string[];
   misconceptions: string[];
   lastUpdated: string;
+}
+
+/** A row of the optional Supabase `video_sessions` table (cloud sync). */
+export interface CloudSessionRow {
+  client_session_id: string;
+  video_id: string;
+  lecture_title: string;
+  session: unknown;
+  progress: unknown;
+  status: 'active' | 'complete';
+  updated_at: string;
+}
+
+/** A row of the optional Supabase `qa_attempts` table, as used by the Review view. */
+export interface CloudAttemptRow {
+  client_session_id: string;
+  segment_id: number;
+  segment_title: string;
+  question: string;
+  needs_review: boolean;
+  missing_concepts: string[] | null;
+  misconceptions: string[] | null;
+  created_at: string;
+}
+
+// ── Analytics (backend /api/analytics/*; all require a signed-in user) ──
+
+export interface AnalyticsRecordPayload {
+  client_session_id: string;
+  video_id: string;
+  segment_id: number;
+  segment_title: string;
+  question: string;
+  status: AnswerStatus;
+  score: number;
+  understood_concepts: string[];
+  missing_concepts: string[];
+  misconceptions: string[];
+  time_spent_ms: number | null;
+  source: 'video' | 'review';
+  domain: string | null;
+  /** Review attempts: the backend applies the result to this concept. */
+  concept_key?: string;
+  /** Client-generated uuid; makes /record idempotent (reuse the same id on retry). */
+  attempt_id?: string;
+  /** Lets /due rebuild the review card without a session lookup. */
+  expected_concept?: string;
+  hints?: string[];
+}
+
+export interface AnalyticsConceptUpdate {
+  concept_key: string;
+  label: string;
+  strength: number;
+  next_due: string;
+}
+
+export interface AnalyticsRecordResponse {
+  concepts: AnalyticsConceptUpdate[];
+  /** True when this attempt_id was already applied (nothing applied again). */
+  replayed?: boolean;
+}
+
+export interface DueItem {
+  concept_key: string;
+  label: string;
+  domain: string | null;
+  question: string;
+  expected_concept: string;
+  hints: string[];
+  segment_title: string;
+  video_id: string;
+  /** Original 1-indexed segment id (absent on older backends). */
+  segment_id?: number;
+  next_due: string | null;
+  overdue_days: number;
+}
+
+export interface DueResponse {
+  total_due: number;
+  items: DueItem[];
 }

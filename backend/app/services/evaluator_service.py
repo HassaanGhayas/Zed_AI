@@ -1,3 +1,4 @@
+import logging
 import json
 import re
 import time
@@ -7,6 +8,8 @@ from google.genai import types
 from app.core.config import settings
 from app.models.schemas import AnswerEvaluationResponse, AttemptHistoryItem, MessageItem
 from app.services._model_race import race_candidates
+
+logger = logging.getLogger(__name__)
 
 class EvaluatorService:
     def __init__(self):
@@ -147,8 +150,8 @@ Current Student Attempt #{attempt_count}: {cleaned_answer}
             # sequential fallback — hides a slow/rate-limited lite model's
             # tail latency behind the next candidate instead of paying for
             # both one after another.
-            data = race_candidates(eval_model_order, _attempt, max_parallel=2)
-            print(f"[EvaluatorService] Gemini evaluation took {time.monotonic() - eval_start:.2f}s")
+            data = race_candidates(eval_model_order, _attempt, max_parallel=2, server_key=not (custom_api_key or "").strip())
+            logger.info(f"[EvaluatorService] Gemini evaluation took {time.monotonic() - eval_start:.2f}s")
 
             if data is not None:
                 is_corr = bool(data.get("is_correct", False))
@@ -161,7 +164,11 @@ Current Student Attempt #{attempt_count}: {cleaned_answer}
                 retry_q = None if (is_corr or is_final_attempt) else data.get("retry_question")
 
                 return AnswerEvaluationResponse(
-                    status=data.get("status", "CORRECT" if is_corr else "MISCONCEPTION"),
+                    status=(
+                        data.get("status")
+                        if data.get("status") in ("CORRECT", "MISCONCEPTION", "INCORRECT")
+                        else ("CORRECT" if is_corr else "MISCONCEPTION")
+                    ),
                     is_correct=is_corr,
                     score=clamped_score,
                     feedback=data.get("feedback", "Good explanation! You captured the essential mechanism."),
@@ -175,7 +182,7 @@ Current Student Attempt #{attempt_count}: {cleaned_answer}
                 )
 
         except Exception as e:
-            print(f"[EvaluatorService] All Gemini calls failed ({e}). Falling back to heuristic evaluation.")
+            logger.warning(f"[EvaluatorService] All Gemini calls failed ({e}). Falling back to heuristic evaluation.")
 
         # 2. Intelligent heuristic fallback evaluation
         raw_word_count = len(cleaned_answer.split())

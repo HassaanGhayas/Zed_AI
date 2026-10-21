@@ -1,3 +1,4 @@
+import logging
 import json
 import os
 import re
@@ -8,7 +9,10 @@ import httpx
 import requests
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound, VideoUnavailable
-from app.models.schemas import TranscriptCue
+from app.core.supabase import get_supabase
+from app.models.schemas import Segment, TranscriptCue
+
+logger = logging.getLogger(__name__)
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 TRANSCRIPT_CACHE_DIR = BACKEND_DIR / ".cache" / "transcripts"
@@ -91,9 +95,9 @@ class TranscriptService:
                 jar = MozillaCookieJar(cookie_path)
                 jar.load(ignore_discard=True, ignore_expires=True)
                 session.cookies = jar
-                print(f"[TranscriptService] Using YouTube cookies from {cookie_path}")
+                logger.info(f"[TranscriptService] Using YouTube cookies from {cookie_path}")
             except Exception as e:
-                print(f"[TranscriptService] Failed to load cookies from {cookie_path}: {e}")
+                logger.warning(f"[TranscriptService] Failed to load cookies from {cookie_path}: {e}")
         return session
 
     # ── transcript disk cache: hit YouTube once per video, never again ──
@@ -109,7 +113,7 @@ class TranscriptService:
             data = json.loads(path.read_text(encoding="utf-8"))
             cues = [TranscriptCue(**item) for item in data]
             if cues:
-                print(f"[TranscriptService] Transcript cache hit for {video_id}")
+                logger.info(f"[TranscriptService] Transcript cache hit for {video_id}")
                 return cues
         except Exception:
             pass
@@ -122,7 +126,104 @@ class TranscriptService:
                 json.dumps([c.model_dump() for c in cues]), encoding="utf-8"
             )
         except Exception as e:
-            print(f"[TranscriptService] Could not write transcript cache: {e}")
+            logger.warning(f"[TranscriptService] Could not write transcript cache: {e}")
+
+    # ── optional Supabase tier (shared across instances); every failure is swallowed ──
+
+    def _load_db_cues(self, video_id: str) -> Optional[List[TranscriptCue]]:
+        try:
+            client = get_supabase()
+            if client is None:
+                return None
+            res = client.table("transcript_cache").select("cues").eq("video_id", video_id).limit(1).execute()
+            rows = res.data or []
+            if not rows:
+                return None
+            cues = [TranscriptCue(**item) for item in rows[0]["cues"]]
+            if cues:
+                logger.info(f"[TranscriptService] Supabase transcript cache hit for {video_id}")
+                return cues
+        except Exception as e:
+            logger.warning(f"[TranscriptService] Supabase cache read failed: {e}")
+        return None
+
+    def _save_db_cues(self, video_id: str, cues: List[TranscriptCue]) -> None:
+        try:
+            client = get_supabase()
+            if client is None:
+                return
+            # A fresh transcript invalidates any segments cached for the old one.
+            client.table("transcript_cache").upsert({
+                "video_id": video_id,
+                "cues": [c.model_dump() for c in cues],
+                "segments": None,
+                "segmenter_version": None,
+            }).execute()
+        except Exception as e:
+            logger.warning(f"[TranscriptService] Supabase cache write failed: {e}")
+
+    def load_db_segments(self, video_id: str, version: str) -> Optional[List[Segment]]:
+        """Cached segmentation for this video, only if produced by the same segmenter version."""
+        try:
+            client = get_supabase()
+            if client is None:
+                return None
+            res = (
+                client.table("transcript_cache")
+                .select("segments, segmenter_version")
+                .eq("video_id", video_id)
+                .limit(1)
+                .execute()
+            )
+            rows = res.data or []
+            if not rows or rows[0].get("segmenter_version") != version or not rows[0].get("segments"):
+                return None
+            segments = [Segment(**item) for item in rows[0]["segments"]]
+            return segments or None
+        except Exception as e:
+            logger.warning(f"[TranscriptService] Supabase segments read failed: {e}")
+            return None
+
+    def save_db_segments(
+        self, video_id: str, version: str, cues: List[TranscriptCue], segments: List[Segment]
+    ) -> None:
+        try:
+            client = get_supabase()
+            if client is None:
+                return
+            # Upsert with cues too: the row may not exist yet (e.g. cues came from disk cache).
+            client.table("transcript_cache").upsert({
+                "video_id": video_id,
+                "cues": [c.model_dump() for c in cues],
+                "segments": [s.model_dump() for s in segments],
+                "segmenter_version": version,
+            }).execute()
+        except Exception as e:
+            logger.warning(f"[TranscriptService] Supabase segments write failed: {e}")
+
+    def load_db_domain(self, video_id: str) -> Optional[str]:
+        """Cached domain classification. Separate from the segments read so a missing
+        `domain` column (migration 0003 not applied) never affects segment caching."""
+        try:
+            client = get_supabase()
+            if client is None:
+                return None
+            res = client.table("transcript_cache").select("domain").eq("video_id", video_id).limit(1).execute()
+            rows = res.data or []
+            domain = rows[0].get("domain") if rows else None
+            return domain if isinstance(domain, str) and domain else None
+        except Exception as e:
+            logger.warning(f"[TranscriptService] Supabase domain read failed: {e}")
+            return None
+
+    def save_db_domain(self, video_id: str, domain: str) -> None:
+        try:
+            client = get_supabase()
+            if client is None:
+                return
+            client.table("transcript_cache").update({"domain": domain}).eq("video_id", video_id).execute()
+        except Exception as e:
+            logger.warning(f"[TranscriptService] Supabase domain write failed: {e}")
 
     @staticmethod
     def extract_video_id(url: str) -> Optional[str]:
@@ -227,6 +328,11 @@ class TranscriptService:
         if cached is not None:
             return cached
 
+        db_cached = self._load_db_cues(video_id)
+        if db_cached is not None:
+            self._save_cached_cues(video_id, db_cached)
+            return db_cached
+
         # YouTube rate-limits bot-like IPs; back off and retry a couple of times
         fetch_start = time.monotonic()
         raw_cues: Optional[List[Dict[str, Any]]] = None
@@ -234,13 +340,13 @@ class TranscriptService:
         for attempt in range(3):
             try:
                 raw_cues = self._fetch_raw_cues(video_id)
-                print(f"[TranscriptService] YouTube fetch took {time.monotonic() - fetch_start:.2f}s (attempt {attempt + 1})")
+                logger.info(f"[TranscriptService] YouTube fetch took {time.monotonic() - fetch_start:.2f}s (attempt {attempt + 1})")
                 break
             except Exception as e:
                 last_error = e
                 if attempt < 2:
                     wait = 1.5 * (attempt + 1)
-                    print(f"[TranscriptService] Fetch attempt {attempt + 1} failed; retrying in {wait}s")
+                    logger.warning(f"[TranscriptService] Fetch attempt {attempt + 1} failed; retrying in {wait}s")
                     time.sleep(wait)
         if raw_cues is None:
             raise RuntimeError(
@@ -267,6 +373,7 @@ class TranscriptService:
             raise RuntimeError("Retrieved transcript is empty.")
 
         self._save_cached_cues(video_id, cues)
+        self._save_db_cues(video_id, cues)
         return cues
 
 transcript_service = TranscriptService()

@@ -19,6 +19,7 @@ import type { Segment, Question, AnswerEvaluation, AttemptHistoryItem } from '..
 import { evaluateAnswer, transcribeAudio } from '../lib/api';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '../hooks/useSpeechSynthesis';
+import { useActiveStopwatch } from '../hooks/useActiveStopwatch';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
 import { SkeletonLine } from './ui/Skeleton';
@@ -38,7 +39,9 @@ interface SocraticQuizProps {
     score?: number,
     understood?: string[],
     missing?: string[],
-    misconceptions?: string[]
+    misconceptions?: string[],
+    /** Visible time between the question appearing and this graded answer (additive; ms). */
+    timeSpentMs?: number | null
   ) => void;
   onProceedToNextTopic: () => void;
   onOpenNotes: () => void;
@@ -101,6 +104,13 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
     if (!stt.isListening) tts.cancel();
     stt.toggle();
   };
+
+  // Time-on-question for analytics: restarts whenever a new question is shown.
+  const stopwatch = useActiveStopwatch();
+  React.useEffect(() => {
+    stopwatch.restart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSegment.segment_id, activeQuestionIndex]);
 
   // Reset state when question changes
   React.useEffect(() => {
@@ -174,7 +184,8 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
           res.score,
           res.understood_concepts,
           res.missing_concepts,
-          res.misconceptions
+          res.misconceptions,
+          stopwatch.elapsedMs()
         );
       } else if (res.can_advance || attemptCount >= 3 || res.needs_review) {
         // Strict 3-attempt ceiling: student fails 3 attempts -> marked Needs Review
@@ -186,7 +197,8 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
           res.score,
           res.understood_concepts,
           res.missing_concepts,
-          res.misconceptions
+          res.misconceptions,
+          stopwatch.elapsedMs()
         );
       } else {
         // Increment attempt and configure dynamic retry question

@@ -1,14 +1,15 @@
 import asyncio
 import re
-from fastapi import APIRouter, Header, Response
+from fastapi import APIRouter, Depends, Header, Response
 from typing import Optional
 from app.models.schemas import GenerateNotesRequest, GenerateNotesResponse, DownloadPdfRequest
+from app.core.rate_limit import rate_limit
 from app.services.notes_service import notes_service
 from app.services.pdf_service import pdf_service
 
 router = APIRouter(prefix="/api/notes", tags=["Notes"])
 
-@router.post("/generate", response_model=GenerateNotesResponse)
+@router.post("/generate", response_model=GenerateNotesResponse, dependencies=[Depends(rate_limit("notes"))])
 async def generate_notes(
     req: GenerateNotesRequest,
     x_gemini_key: Optional[str] = Header(None, alias="X-Gemini-Key")
@@ -23,7 +24,7 @@ async def generate_notes(
     )
     return GenerateNotesResponse(markdown_notes=notes)
 
-@router.post("/download-pdf")
+@router.post("/download-pdf", dependencies=[Depends(rate_limit("notes"))])
 async def download_pdf(req: DownloadPdfRequest):
     pdf_bytes = await asyncio.to_thread(
         pdf_service.markdown_to_pdf,

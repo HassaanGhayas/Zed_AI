@@ -8,6 +8,7 @@ import { SocraticQuiz } from './components/SocraticQuiz';
 import { NotesModal } from './components/NotesModal';
 import { AiTutorPanel } from './components/AiTutorPanel';
 import { ProgressView } from './components/ProgressView';
+import { ReviewQueue } from './components/ReviewQueue';
 import type { VideoSession, QAHistoryItem } from './types';
 import { processVideo, segmentVisual, visualAvailability, frameUrl } from './lib/api';
 import {
@@ -17,6 +18,8 @@ import {
   type PersistedSession,
 } from './lib/persistence';
 import { saveSessionToHistory } from './lib/sessionHistory';
+import { scheduleSessionSync, recordQaAttempt, onLocalDataForeign } from './lib/cloudSync';
+import { CloudLibrary } from './components/CloudLibrary';
 import { useRetryableAsync } from './hooks/useRetryableAsync';
 
 export const App: React.FC = () => {
@@ -64,7 +67,7 @@ export const App: React.FC = () => {
   const boundaryLatchRef = useRef<number | null>(null);
 
   // Lazily enrich each chapter with a Gemini-vision keyframe (thumbnail + visual
-  // insight) once a session loads. Fully opt-in: skipped when the backend reports
+  // description) once a session loads. Fully opt-in: skipped when the backend reports
   // the media toolchain is unavailable, and cancellable so a reset/new video stops it.
   const sessionVideoId = session?.video_id;
   useEffect(() => {
@@ -138,7 +141,7 @@ export const App: React.FC = () => {
   // Persist progress on every change so a refresh resumes the same session.
   useEffect(() => {
     if (!session) return;
-    savePersistedSession({
+    const persisted: PersistedSession = {
       session,
       activeSegmentIndex,
       activeQuestionIndex,
@@ -146,7 +149,10 @@ export const App: React.FC = () => {
       needsReviewSegmentIds: Array.from(needsReviewSegmentIds),
       maxReachedIndex,
       qaHistory,
-    });
+    };
+    savePersistedSession(persisted);
+    // Debounced best-effort cloud upsert; no-op when signed out / Supabase unset.
+    scheduleSessionSync(persisted);
   }, [
     session,
     activeSegmentIndex,
@@ -241,6 +247,40 @@ export const App: React.FC = () => {
     setIsProgressOpen(false);
   };
 
+  // Shared device: if a different account signs in, the in-memory session
+  // belongs to the previous owner. Drop it from memory (local storage stays
+  // untouched) so it can never autosave into the new account.
+  useEffect(
+    () =>
+      onLocalDataForeign(() => {
+        boundaryLatchRef.current = null;
+        setSession(null);
+        setActiveSegmentIndex(0);
+        setActiveQuestionIndex(0);
+        setCompletedSegmentIds(new Set());
+        setNeedsReviewSegmentIds(new Set());
+        setMaxReachedIndex(0);
+        setIsPausedForQuiz(false);
+        setQaHistory([]);
+        setIsNotesModalOpen(false);
+        setIsProgressOpen(false);
+      }),
+    []
+  );
+
+  // Resume a session pulled from the cloud (e.g. started on another device).
+  const handleResumeCloud = (p: PersistedSession) => {
+    boundaryLatchRef.current = null;
+    setSession(p.session);
+    setActiveSegmentIndex(p.activeSegmentIndex);
+    setActiveQuestionIndex(p.activeQuestionIndex);
+    setCompletedSegmentIds(new Set(p.completedSegmentIds));
+    setNeedsReviewSegmentIds(new Set(p.needsReviewSegmentIds ?? []));
+    setMaxReachedIndex(p.maxReachedIndex);
+    setIsPausedForQuiz(false);
+    setQaHistory(p.qaHistory);
+  };
+
   const handleBoundaryReached = () => {
     if (!session || !activeSegment) return;
     if (boundaryLatchRef.current === activeSegment.segment_id) return;
@@ -281,7 +321,8 @@ export const App: React.FC = () => {
     score?: number,
     understood?: string[],
     missing?: string[],
-    misconceptions?: string[]
+    misconceptions?: string[],
+    timeSpentMs?: number | null
   ) => {
     if (!activeSegment) return;
     const currentQ = activeSegment.questions[activeQuestionIndex];
@@ -306,21 +347,24 @@ export const App: React.FC = () => {
       );
     }
 
-    setQaHistory((prev) => [
-      ...prev,
-      {
-        segment_title: activeSegment.title,
-        question: currentQ.prompt,
-        user_final_answer: userAnswer,
-        ai_feedback: aiFeedback,
-        attempts,
-        needs_review: Boolean(needsReview),
-        score: score ?? (needsReview ? 40 : 85),
-        understood_concepts: understood || [],
-        missing_concepts: missing || [],
-        misconceptions: misconceptions || [],
-      },
-    ]);
+    const historyItem: QAHistoryItem = {
+      segment_title: activeSegment.title,
+      question: currentQ.prompt,
+      user_final_answer: userAnswer,
+      ai_feedback: aiFeedback,
+      attempts,
+      needs_review: Boolean(needsReview),
+      score: score ?? (needsReview ? 40 : 85),
+      understood_concepts: understood || [],
+      missing_concepts: missing || [],
+      misconceptions: misconceptions || [],
+      ...(timeSpentMs != null ? { time_spent_ms: Math.max(0, Math.round(timeSpentMs)) } : {}),
+    };
+    setQaHistory((prev) => [...prev, historyItem]);
+    void recordQaAttempt(session.video_id, activeSegment.segment_id, historyItem, session.domain ?? null, {
+      expected_concept: currentQ.expected_concept,
+      hints: currentQ.hints,
+    });
   };
 
   const handleProceedToNextTopic = () => {
@@ -394,6 +438,8 @@ export const App: React.FC = () => {
         {/* Full-bleed landing sections manage their own max-w-7xl/padding internally
             (via the fullBleed utility) since CTA bands need to span the viewport;
             the active-session view below still gets the standard padded container. */}
+        {!session && <CloudLibrary onResume={handleResumeCloud} />}
+        {!session && <ReviewQueue variant="landing" />}
         {!session ? (
           <LandingPage
             onProcess={handleProcessVideo}
@@ -464,6 +510,7 @@ export const App: React.FC = () => {
                     activeSegment={activeSegment}
                     segments={session.segments}
                     isPausedForQuiz={isPausedForQuiz}
+                    isSegmentResolved={completedSegmentIds.has(activeSegment.segment_id)}
                     onBoundaryReached={handleBoundaryReached}
                     seekTime={seekTime}
                     onRewatchSegment={handleRewatchSegment}

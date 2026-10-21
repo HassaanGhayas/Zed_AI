@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   X,
   PieChart,
@@ -7,8 +7,10 @@ import {
   Award,
   BookOpen,
 } from 'lucide-react';
-import type { Segment, QAHistoryItem } from '../types';
+import type { Segment, QAHistoryItem, SessionHistoryEntry } from '../types';
 import { getSessionHistory } from '../lib/sessionHistory';
+import { fetchCloudHistory, mergeHistory } from '../lib/cloudSync';
+import { useAuth } from '../contexts/AuthContext';
 import { Modal } from './ui/Modal';
 import { Badge } from './ui/Badge';
 
@@ -46,10 +48,25 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
 }) => {
   const [activeSlice, setActiveSlice] = useState<OutcomeType | null>(null);
   const [selectedTopicIdx, setSelectedTopicIdx] = useState<number | null>(null);
+  const { user } = useAuth();
+  const userId = user?.id;
+  const [cloudHistory, setCloudHistory] = useState<SessionHistoryEntry[]>([]);
+
+  // Signed-in users also see sessions synced from other devices.
+  useEffect(() => {
+    if (!isOpen || !userId) return;
+    let alive = true;
+    fetchCloudHistory().then((h) => {
+      if (alive) setCloudHistory(h);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [isOpen, userId]);
 
   if (!isOpen) return null;
 
-  const pastSessions = getSessionHistory();
+  const pastSessions = userId ? mergeHistory(getSessionHistory(), cloudHistory) : getSessionHistory();
 
   // Aggregate per-segment performance metrics
   const segmentPerf = segments.map((seg, idx) => {

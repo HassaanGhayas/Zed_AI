@@ -1,7 +1,10 @@
+import logging
 from typing import List, Dict, Any
 from google import genai
 from app.core.config import settings
 from app.models.schemas import Segment, QAHistoryItem
+
+logger = logging.getLogger(__name__)
 
 class NotesService:
     def __init__(self):
@@ -211,10 +214,10 @@ Flagged Questions Requiring Review:
                         return response.text.strip()
                 except Exception as model_err:
                     tag = "RATE_LIMIT" if ("429" in str(model_err) or "RESOURCE_EXHAUSTED" in str(model_err)) else "ERROR"
-                    print(f"[NotesService:{tag}] Model {model_name} failed: {model_err}")
+                    logger.warning(f"[NotesService:{tag}] Model {model_name} failed: {model_err}")
                     continue
         except Exception as e:
-            print(f"[NotesService] Gemini call failed ({e}). Falling back to template synthesis.")
+            logger.warning(f"[NotesService] Gemini call failed ({e}). Falling back to template synthesis.")
 
         # Fallback template notes generator — clean, grammar-refined synthesis without emojis.
         lines = [

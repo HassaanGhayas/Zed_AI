@@ -11,7 +11,29 @@ export function getSessionHistory(): SessionHistoryEntry[] {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    const count = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.floor(v)) : 0);
+    const strs = (v: unknown): string[] =>
+      Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
+    const entries: SessionHistoryEntry[] = [];
+    for (const e of parsed) {
+      if (!e || typeof e !== 'object' || typeof e.sessionId !== 'string' || !e.sessionId) continue;
+      entries.push({
+        sessionId: e.sessionId,
+        lectureTitle: typeof e.lectureTitle === 'string' ? e.lectureTitle : 'Untitled Lecture',
+        videoId: typeof e.videoId === 'string' ? e.videoId : '',
+        totalTopics: count(e.totalTopics),
+        completedTopics: Math.min(count(e.completedTopics), count(e.totalTopics)),
+        currentTopicIndex: count(e.currentTopicIndex),
+        status: e.status === 'complete' ? 'complete' : 'active',
+        needsReviewCount: count(e.needsReviewCount),
+        understoodConcepts: strs(e.understoodConcepts),
+        missingConcepts: strs(e.missingConcepts),
+        misconceptions: strs(e.misconceptions),
+        lastUpdated: typeof e.lastUpdated === 'string' ? e.lastUpdated : new Date(0).toISOString(),
+      });
+    }
+    return entries;
   } catch {
     return [];
   }
@@ -35,7 +57,7 @@ export function saveSessionToHistory(sessionData: Partial<SessionHistoryEntry> &
       understoodConcepts: Array.from(new Set(sessionData.understoodConcepts || [])),
       missingConcepts: Array.from(new Set(sessionData.missingConcepts || [])),
       misconceptions: Array.from(new Set(sessionData.misconceptions || [])),
-      lastUpdated: new Date().toISOString(),
+      lastUpdated: sessionData.lastUpdated || new Date().toISOString(),
     };
 
     if (existingIndex >= 0) {
