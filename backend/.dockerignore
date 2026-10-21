@@ -1,0 +1,17 @@
+.env
+.cache/*
+!.cache/transcripts/
+.cache/transcripts/*
+!.cache/transcripts/LPZh9BOjkQs.json
+!.cache/transcripts/O5nskjZ_GoI.json
+!.cache/transcripts/iHzzSao6ypE.json
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+test_backend.py
+*cookies*.txt
+_tmp_*
+*.png
+*.wav
+.venv/

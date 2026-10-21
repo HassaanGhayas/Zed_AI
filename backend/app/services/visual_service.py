@@ -1,3 +1,4 @@
+import logging
 import json
 import os
 import re
@@ -11,6 +12,8 @@ from google import genai
 from google.genai import types
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 MEDIA_DIR = BACKEND_DIR / ".cache" / "media"
@@ -67,7 +70,7 @@ class VisualService:
         try:
             ffmpeg = self._ffmpeg_exe()
         except Exception as e:
-            print(f"[VisualService] ffmpeg unavailable: {e}")
+            logger.warning(f"[VisualService] ffmpeg unavailable: {e}")
             ffmpeg = None
         return {"has_yt_dlp": has_ydl, "ffmpeg": ffmpeg, "ready": bool(has_ydl and ffmpeg)}
 
@@ -166,7 +169,7 @@ class VisualService:
                 try:
                     if path.is_file() and path.stat().st_mtime < cutoff:
                         path.unlink()
-                        print(f"[VisualService] Pruned stale media cache: {path.name}")
+                        logger.info(f"[VisualService] Pruned stale media cache: {path.name}")
                 except Exception:
                     pass
         except Exception:
@@ -207,7 +210,7 @@ class VisualService:
             opts["cookiefile"] = cookies
 
         url = f"https://www.youtube.com/watch?v={vid}"
-        print(f"[VisualService] Downloading {vid} (≤{height}p) for frame extraction…")
+        logger.info(f"[VisualService] Downloading {vid} (≤{height}p) for frame extraction…")
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
                 ydl.download([url])
@@ -290,10 +293,10 @@ class VisualService:
                         return data
                 except Exception as model_err:
                     tag = "RATE_LIMIT" if ("429" in str(model_err) or "RESOURCE_EXHAUSTED" in str(model_err)) else "ERROR"
-                    print(f"[VisualService:{tag}] Model {model_name} failed: {model_err}")
+                    logger.warning(f"[VisualService:{tag}] Model {model_name} failed: {model_err}")
                     continue
         except Exception as e:
-            print(f"[VisualService] All Gemini vision calls failed: {e}")
+            logger.warning(f"[VisualService] All Gemini vision calls failed: {e}")
         return {}
 
     @staticmethod
@@ -426,7 +429,7 @@ Return ONLY valid JSON with this schema:
             VISUAL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
             self._visual_cache_path(video_id, ms).write_text(json.dumps(result), encoding="utf-8")
         except Exception as e:
-            print(f"[VisualService] Could not write visual cache: {e}")
+            logger.warning(f"[VisualService] Could not write visual cache: {e}")
 
     def segment_visual(
         self,

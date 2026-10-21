@@ -1,13 +1,19 @@
+import logging
 import json
 import re
 import time
-from typing import List
+from typing import List, Tuple
 from collections import Counter
 from google import genai
 from google.genai import types
 from app.core.config import settings
 from app.models.schemas import TranscriptCue, Segment, Question
 from app.services._model_race import race_candidates
+
+logger = logging.getLogger(__name__)
+
+# Bump when the prompt or segment schema changes so shared cached segments are not reused.
+SEGMENTER_VERSION = "v1"
 
 class SegmenterService:
     def __init__(self):
@@ -25,6 +31,16 @@ class SegmenterService:
         custom_api_key: str = ""
     ) -> List[Segment]:
         """Divide the transcript cues into pedagogical segments with active recall questions."""
+        return self.segment_transcript_with_source(video_id, video_title, cues, custom_api_key)[0]
+
+    def segment_transcript_with_source(
+        self,
+        video_id: str,
+        video_title: str,
+        cues: List[TranscriptCue],
+        custom_api_key: str = ""
+    ) -> Tuple[List[Segment], str]:
+        """Like segment_transcript, also reporting the source: "gemini" or "heuristic"."""
         total_duration = cues[-1].start + cues[-1].duration if cues else 0.0
         
         # Build timestamped transcript text
@@ -101,16 +117,16 @@ Transcript:
             # Race the top 2 quality-first candidates concurrently so an
             # occasional failure/slowness on the first model doesn't cost a
             # full extra round-trip before the next one starts.
-            fixed = race_candidates(settings.gemini_candidate_models, _attempt, max_parallel=2)
-            print(f"[SegmenterService] Gemini segmentation took {time.monotonic() - seg_start:.2f}s")
+            fixed = race_candidates(settings.gemini_candidate_models, _attempt, max_parallel=2, server_key=not (custom_api_key or "").strip())
+            logger.info(f"[SegmenterService] Gemini segmentation took {time.monotonic() - seg_start:.2f}s")
             if fixed:
-                return fixed
+                return fixed, "gemini"
 
         except Exception as e:
-            print(f"[SegmenterService] All Gemini calls failed ({e}). Falling back to heuristic segmenter.")
+            logger.warning(f"[SegmenterService] All Gemini calls failed ({e}). Falling back to heuristic segmenter.")
 
         # Fallback heuristic segmenter:
-        return self._heuristic_segmentation(video_title, cues, total_duration)
+        return self._heuristic_segmentation(video_title, cues, total_duration), "heuristic"
 
     def _sanitize_segments(
         self,

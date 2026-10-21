@@ -1,7 +1,12 @@
+import asyncio
+import logging
 from typing import Optional
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from google import genai
 from app.core.config import settings
+from app.core.rate_limit import rate_limit
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/voice", tags=["Voice"])
 
@@ -11,7 +16,7 @@ TRANSCRIBE_PROMPT = (
 )
 
 
-@router.post("/transcribe")
+@router.post("/transcribe", dependencies=[Depends(rate_limit("voice"))])
 async def transcribe_audio(
     request: Request,
     x_gemini_key: Optional[str] = Header(None, alias="X-Gemini-Key"),
@@ -21,7 +26,20 @@ async def transcribe_audio(
     Used as the voice-input fallback for browsers without the Web Speech API
     (Firefox/Safari). Raw-body upload avoids the python-multipart dependency.
     """
-    data = await request.body()
+    max_bytes = settings.max_audio_bytes
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > max_bytes:
+        raise HTTPException(status_code=413, detail="Audio payload too large.")
+
+    # Stream the body so oversize uploads (or a lying Content-Length) abort early.
+    chunks = []
+    size = 0
+    async for chunk in request.stream():
+        size += len(chunk)
+        if size > max_bytes:
+            raise HTTPException(status_code=413, detail="Audio payload too large.")
+        chunks.append(chunk)
+    data = b"".join(chunks)
     if not data:
         raise HTTPException(status_code=400, detail="Empty audio payload.")
 
@@ -37,7 +55,8 @@ async def transcribe_audio(
     last_error: Optional[Exception] = None
     for model_name in settings.gemini_candidate_models:
         try:
-            response = client.models.generate_content(
+            response = await asyncio.to_thread(
+                client.models.generate_content,
                 model=model_name,
                 contents=[
                     TRANSCRIBE_PROMPT,
@@ -49,7 +68,9 @@ async def transcribe_audio(
                 return {"text": text}
         except Exception as e:
             last_error = e
-            print(f"[Voice] Model {model_name} failed: {e}")
+            logger.warning("[Voice] Model %s failed: %s", model_name, e)
             continue
 
-    raise HTTPException(status_code=502, detail=f"Transcription failed: {last_error}")
+    if last_error is not None:
+        logger.error("[Voice] All models failed; last error: %s", last_error)
+    raise HTTPException(status_code=502, detail="Transcription failed.")

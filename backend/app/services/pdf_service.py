@@ -1,3 +1,4 @@
+import logging
 import io
 import re
 from datetime import date
@@ -11,6 +12,8 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib.utils import ImageReader
+
+logger = logging.getLogger(__name__)
 
 # ── Light-theme palette (mirrors frontend [data-theme="light"]) ──
 SURFACE = colors.HexColor("#faf3f0")   # page background
@@ -434,7 +437,7 @@ class PdfService:
             story.append(Paragraph(self._format_inline_markdown(cap_text), cap_style))
             story.append(Spacer(1, 8))
         except Exception as e:
-            print(f"[PdfService] Keyframe embed skipped: {e}")
+            logger.warning(f"[PdfService] Keyframe embed skipped: {e}")
 
     def _clean_text(self, text: str) -> str:
         """Escape basic XML entities for ReportLab Paragraphs."""
@@ -519,6 +522,30 @@ class PdfService:
         # Match single $...$ but skip $$...$$ (display math)
         return re.sub(r'(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)', _repl, text)
 
+    def plain_text_pdf(self, title: str, text: str) -> bytes:
+        """Minimal, markup-free PDF used as a fallback when rich rendering fails."""
+        from reportlab.pdfgen import canvas
+        from reportlab.lib.utils import simpleSplit
+
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=letter)
+        c.setTitle(str(title)[:200])
+        y = PAGE_H - 60
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(MARGIN_X, y, str(title)[:100])
+        y -= 28
+        c.setFont("Helvetica", 10)
+        for raw in str(text).splitlines() or [""]:
+            for line in simpleSplit(raw, "Helvetica", 10, AVAIL_W) or [""]:
+                if y < 50:
+                    c.showPage()
+                    c.setFont("Helvetica", 10)
+                    y = PAGE_H - 50
+                c.drawString(MARGIN_X, y, line)
+                y -= 14
+        c.save()
+        return buf.getvalue()
+
     def _format_inline_markdown(self, text: str) -> str:
         """Convert markdown bold/italic/code/links/LaTeX to ReportLab tags."""
         # 1. Escape XML entities
@@ -526,7 +553,7 @@ class PdfService:
         # 2. Convert LaTeX math expressions
         t = self._replace_latex_dollars(t)
         # 3. Links: [text](url) -> clickable anchor
-        t = re.sub(r'\[([^\]]+)\]\((https?://[^)\s]+)\)',
+        t = re.sub(r'\[([^\]]+)\]\((https?://[^)\s"]+)\)',
                    r'<a href="\2" color="#c2410c">\1</a>', t)
         # 4. Bold: **word** -> <b>word</b>
         t = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', t)
@@ -534,7 +561,30 @@ class PdfService:
         t = re.sub(r'(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)', r'<i>\1</i>', t)
         # 6. Inline code: `code`
         t = re.sub(r'`(.*?)`', r'<font name="Courier" color="#a72906">\1</font>', t)
-        return t
+        return self._ensure_wellformed(t)
+
+    _TAG_RE = re.compile(r'<(/?)(b|i|font|a)\b[^>]*>')
+
+    def _is_wellformed(self, t: str) -> bool:
+        """True when ReportLab inline tags are properly nested and closed."""
+        stack: list[str] = []
+        for m in self._TAG_RE.finditer(t):
+            if m.group(1):
+                if not stack or stack.pop() != m.group(2):
+                    return False
+            else:
+                stack.append(m.group(2))
+        return not stack
+
+    def _ensure_wellformed(self, t: str) -> str:
+        """Mis-nested markdown (e.g. '**a *b** c*') would make Paragraph raise;
+        degrade to less formatting instead of failing the whole export."""
+        if self._is_wellformed(t):
+            return t
+        no_emphasis = re.sub(r'</?(?:b|i)>', '', t)
+        if self._is_wellformed(no_emphasis):
+            return no_emphasis
+        return self._TAG_RE.sub('', no_emphasis)
 
 
 pdf_service = PdfService()
