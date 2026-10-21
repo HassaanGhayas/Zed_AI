@@ -145,9 +145,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-display font-bold text-base sm:text-lg text-ink truncate">Studify AI</span>
-                <Badge tone="accent" className="hidden min-[480px]:inline-flex flex-shrink-0">
-                  Active Recall
-                </Badge>
+                <span className="hidden min-[480px]:inline-flex flex-shrink-0">
+                  <Badge tone="accent">Active Recall</Badge>
+                </span>
               </div>
               <p className="text-xs text-ink-faint hidden sm:block truncate">
                 Socratic Video Tutor & Note Synthesizer
@@ -226,16 +226,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               </Button>
             )}
 
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onOpenKeyModal()}
-              aria-label="Manage Gemini API Key"
-              className="hidden sm:inline-flex"
-            >
-              <Key className="w-4 h-4 text-ink-faint flex-shrink-0" />
-              <span className="hidden sm:inline">API Key</span>
-            </Button>
+            <div className="hidden sm:block">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => onOpenKeyModal()}
+                aria-label="Manage Gemini API Key"
+              >
+                <Key className="w-4 h-4 text-ink-faint flex-shrink-0" />
+                <span className="hidden sm:inline">API Key</span>
+              </Button>
+            </div>
 
             {(
               <div className={`relative flex-shrink-0 ${authEnabled && user ? '' : 'sm:hidden'}`} ref={menuRef}>
@@ -266,9 +267,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                         role="menuitem"
                         type="button"
                         variant="ghost"
-                        size="sm"
+                        size="row"
                         onClick={() => { toggleTheme(); setMenuOpen(false); }}
-                        className="w-full justify-start text-left"
                       >
                         {theme === 'dark' ? <Sun className="w-4 h-4 text-ink-faint" /> : <Moon className="w-4 h-4 text-ink-faint" />}
                         {theme === 'dark' ? 'Light mode' : 'Dark mode'}
@@ -277,9 +277,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                         role="menuitem"
                         type="button"
                         variant="ghost"
-                        size="sm"
+                        size="row"
                         onClick={() => { setMenuOpen(false); onOpenKeyModal(); }}
-                        className="w-full justify-start text-left"
                       >
                         <Key className="w-4 h-4 text-ink-faint" /> API Key
                       </Button>
@@ -293,9 +292,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                       role="menuitem"
                       type="button"
                       variant="ghost"
-                      size="sm"
+                      size="row"
                       onClick={() => { setMenuOpen(false); setIsReviewOpen(true); }}
-                      className="w-full justify-start text-left"
                     >
                       <BookOpen className="w-4 h-4 text-ink-faint" /> Review weak spots
                     </Button>
@@ -303,19 +301,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                       role="menuitem"
                       type="button"
                       variant="ghost"
-                      size="sm"
+                      size="row"
                       onClick={() => { setMenuOpen(false); void signOut(); }}
-                      className="w-full justify-start text-left"
                     >
                       <LogOut className="w-4 h-4 text-ink-faint" /> Sign out
                     </Button>
                     <Button
                       role="menuitem"
                       type="button"
-                      variant="danger"
-                      size="sm"
+                      variant="dangerText"
+                      size="row"
                       onClick={() => { setMenuOpen(false); setDeleteResult(null); setIsDeleteOpen(true); }}
-                      className="w-full justify-start text-left"
                     >
                       <Trash2 className="w-4 h-4" /> Delete my cloud data
                     </Button>
