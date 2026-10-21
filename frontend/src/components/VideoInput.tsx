@@ -61,7 +61,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
 
   return (
     <div id="hero" className="relative max-w-3xl mx-auto py-8 sm:py-12 px-0 sm:px-4 text-center">
-      {/* Hero Badge — the owl mark gets a subtle radar-ping halo */}
+      {/* Hero Badge — the logo mark gets a subtle radar-ping halo */}
       <div
         className="animate-in fade-in slide-in-from-bottom-2 relative inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/30 text-accent text-xs font-medium mb-6"
         style={{ animationDuration: '400ms' }}
