@@ -2,6 +2,7 @@ import React from 'react';
 import { CheckCircle2, Lock, PlayCircle, Clock, AlertTriangle } from 'lucide-react';
 import type { Segment } from '../types';
 import { Badge } from './ui/Badge';
+import { ProgressBar } from './ui/ProgressBar';
 
 interface SegmentNavProps {
   segments: Segment[];
@@ -32,29 +33,26 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
   const progressPct = Math.round((completedCount / Math.max(1, segments.length)) * 100);
 
   return (
-    <nav aria-label="Topic chapters" className="bg-raised border border-line-soft rounded-2xl p-4 flex flex-col h-full shadow-lg">
+    <nav aria-label="Topic chapters" className="bg-raised border border-line-soft shadow-card rounded-lg p-4 flex flex-col h-full">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-bold text-ink uppercase tracking-wider">
           Topic Chapters
         </h2>
         <div className="flex items-center gap-1.5">
-          <Badge tone="accent" className="text-xs!">
+          <Badge tone="accent">
             {masteredCount}/{segments.length} Mastered ({progressPct}%)
           </Badge>
           {reviewCount > 0 && (
-            <Badge tone="warning" className="text-xs! border-warning/25!">
+            <Badge tone="warning">
               {reviewCount} Review
             </Badge>
           )}
         </div>
       </div>
 
-      {/* Progress Bar — ember trail */}
-      <div className="w-full h-1.5 bg-line rounded-full overflow-hidden mb-4">
-        <div
-          className="h-full bg-gradient-to-r from-ember-700 via-ember-600 to-ember-500 shadow-[0_0_10px_rgba(255,81,0,0.45)] transition-[width] duration-300"
-          style={{ width: `${progressPct}%` }}
-        />
+      {/* Progress Bar */}
+      <div className="mb-4">
+        <ProgressBar value={progressPct} label="Chapters completed" />
       </div>
 
       {/* Segment Cards List */}
@@ -74,9 +72,9 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
               disabled={isLocked}
               aria-current={isActive ? 'step' : undefined}
               onClick={() => onSelectSegment(idx)}
-              className={`w-full text-left p-3 min-h-[56px] rounded-xl border transition-colors flex items-start gap-3 cursor-pointer ${
+              className={`w-full text-left p-3 min-h-[56px] rounded-lg border transition-colors flex items-start gap-3 cursor-pointer ${
                 isActive
-                  ? 'bg-ember-600/15 border-ember-500/50 shadow-md shadow-ember-500/10'
+                  ? 'bg-accent/10 border-accent/50'
                   : needsReview
                   ? 'bg-warning/5 border-warning/30 hover:border-warning/50 hover:bg-warning/10'
                   : isCompleted
@@ -91,9 +89,9 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
                 ) : isCompleted ? (
                   <CheckCircle2 className="w-4 h-4 text-success" />
                 ) : isActive ? (
-                  <PlayCircle className="w-4 h-4 text-ember-400" />
+                  <PlayCircle className="w-4 h-4 text-accent" />
                 ) : (
-                  <Lock className="w-4 h-4 text-cosmos-600" />
+                  <Lock className="w-4 h-4 text-ink-faint" />
                 )}
               </div>
 
@@ -103,7 +101,7 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
                   src={seg.keyframe_url}
                   alt=""
                   loading="lazy"
-                  className="w-14 h-9 rounded-md object-cover border border-line-soft bg-black flex-shrink-0"
+                  className="w-14 h-9 rounded-md object-cover border border-line-soft bg-sunken flex-shrink-0"
                 />
               )}
 
@@ -113,7 +111,7 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
                   <span
                     className={`text-xs font-semibold truncate ${
                       isActive
-                        ? 'text-ember-200'
+                        ? 'text-ink'
                         : needsReview
                         ? 'text-warning'
                         : isCompleted
@@ -125,12 +123,12 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
                   </span>
 
                   {needsReview && (
-                    <Badge tone="warning" className="rounded! px-1.5! py-0.2! text-[10px]! flex-shrink-0">
+                    <Badge tone="warning" className="flex-shrink-0">
                       Review
                     </Badge>
                   )}
                   {isCompleted && !needsReview && (
-                    <Badge tone="success" className="rounded! px-1.5! py-0.2! text-[10px]! flex-shrink-0">
+                    <Badge tone="success" className="flex-shrink-0">
                       Mastered
                     </Badge>
                   )}

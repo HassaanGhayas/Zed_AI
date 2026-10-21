@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from
 import { Pause, RotateCcw, Maximize, Minimize, ChevronDown, ScanEye, X } from 'lucide-react';
 import type { Segment, FrameExplanation } from '../types';
 import { explainFrame, visualAvailability, frameUrl } from '../lib/api';
+import { Badge } from './ui/Badge';
+import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
 import { SkeletonBlock, SkeletonLine } from './ui/Skeleton';
 import { evaluateBoundary } from '../lib/playerBoundary';
@@ -454,10 +456,10 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
   const playedFraction = duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
 
   return (
-    // `isolate` creates a stacking context so the quiz panel's z-50 stays inside the player and cannot paint above page overlays (e.g. Insights).
-    <div ref={shellRef} id="player-shell" className={`group flex flex-col bg-raised border border-line-soft overflow-hidden shadow-2xl ${pseudoFullscreen ? 'fixed inset-0 z-[100] rounded-none h-dvh' : 'relative isolate rounded-2xl'}`}>
+    // `isolate` creates a stacking context so the quiz panel's z-50 stays inside the player and cannot paint above page overlays (e.g. the analytics page).
+    <div ref={shellRef} id="player-shell" className={`group flex flex-col bg-raised border border-line-soft overflow-hidden shadow-card ${pseudoFullscreen ? 'fixed inset-0 z-[100] rounded-none h-dvh' : 'relative isolate rounded-lg'}`}>
       {/* Video Viewport */}
-      <div className={`relative w-full bg-black ${isFullscreen ? 'flex-1 min-h-0' : 'aspect-video'}`}>
+      <div className={`relative w-full bg-sunken ${isFullscreen ? 'flex-1 min-h-0' : 'aspect-video'}`}>
         <div ref={containerRef} className="yt-embed w-full h-full" />
         {/* Hover-revealed exit fullscreen button — mid-right edge, the one zone
             YouTube's own hover bars (top title row, bottom controls) never occupy. */}
@@ -466,7 +468,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
             onClick={toggleFullscreen}
             title="Exit full screen"
             aria-label="Exit full screen"
-            className="absolute top-1/2 -translate-y-1/2 right-3 z-30 p-2 rounded-lg bg-black/60 text-white/90 hover:bg-black/80 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-70 transition-opacity cursor-pointer"
+            className="absolute top-1/2 -translate-y-1/2 right-3 z-30 p-2 rounded-md bg-surface/80 text-ink hover:bg-surface/90 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-70 transition-opacity cursor-pointer"
           >
             <Minimize className="w-4 h-4" />
           </button>
@@ -492,12 +494,12 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
             }}
             onKeyDown={handleScrubberKeyDown}
           >
-            <div className="relative w-full h-1.5 group-hover:h-2.5 transition-[height] bg-white/20">
+            <div className="relative w-full h-1.5 group-hover:h-2.5 transition-[height] bg-surface/60">
               {/* played fill */}
               {/* scaleX keeps the 1s linear glide on the compositor between the
                   once-per-second currentTime updates */}
               <div
-                className="absolute inset-0 origin-left bg-gradient-to-r from-ember-600 to-ember-400 pointer-events-none transition-transform duration-1000 ease-linear"
+                className="absolute inset-0 origin-left bg-accent pointer-events-none transition-transform duration-1000 ease-linear"
                 style={{ transform: `scaleX(${playedFraction})` }}
               />
               {/* segment boundary notches */}
@@ -506,7 +508,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
                 .map((s) => (
                   <div
                     key={s.segment_id}
-                    className="absolute inset-y-0 w-[2px] bg-black/70 pointer-events-none"
+                    className="absolute inset-y-0 w-[2px] bg-surface pointer-events-none"
                     style={{ left: `${(s.start_time / duration) * 100}%` }}
                   />
                 ))}
@@ -517,7 +519,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
                 className="absolute inset-0 pointer-events-none transition-transform duration-1000 ease-linear"
                 style={{ transform: `translateX(${playedFraction * 100}%)` }}
               >
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-ember-300 shadow-[0_0_6px_rgba(255,81,0,0.8)]" />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-accent ring-2 ring-surface" />
               </div>
               {/* per-segment hover tooltips */}
               {(segments ?? []).map((s) => (
@@ -548,36 +550,36 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
             <div ref={overlayContentRef} className="min-h-full flex flex-col gap-3 p-4 sm:p-6 pb-16 max-w-3xl mx-auto">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-xs min-w-0">
-                <Pause className="w-4 h-4 text-ember-400 flex-shrink-0" />
+                <Pause className="w-4 h-4 text-accent flex-shrink-0" />
                 <span className="font-semibold text-ink flex-shrink-0">Paused for Active Recall</span>
                 <span className="hidden sm:inline text-ink-faint truncate">• {activeSegment.title}</span>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 {visualEnabled && (
-                  <button
+                  <Button
+                    variant="secondary"
                     onClick={handleExplainScreen}
                     aria-label="Explain what is on screen"
-                    className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] text-xs font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-colors cursor-pointer"
                   >
                     <ScanEye className="w-4 h-4" />
                     <span>Explain screen</span>
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
+                  variant="secondary"
                   onClick={handleReplaySegment}
                   aria-label="Re-watch this segment"
-                  className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] text-xs font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-colors cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
                   <span>Re-watch Segment</span>
-                </button>
+                </Button>
                 {/* Two-way fullscreen toggle — re-entering from the question works
                     because this click supplies the gesture requestFullscreen() needs. */}
                 <button
                   onClick={toggleFullscreen}
                   title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
                   aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
-                  className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-colors cursor-pointer"
+                  className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-colors cursor-pointer"
                 >
                   {isFullscreen ? (
                     <Minimize className="w-4 h-4" />
@@ -605,13 +607,13 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
         isOpen={explain.open}
         onClose={closeExplain}
         titleId="visual-explanation-title"
-        overlayClassName="!absolute !z-[60] !bg-transparent"
-        className="no-scrollbar !bg-surface/95 !border-0 !rounded-none !shadow-none absolute inset-0 overflow-y-auto"
+        embedded
+        className="no-scrollbar overflow-y-auto"
       >
             <div className="min-h-full flex flex-col gap-4 p-4 sm:p-6 max-w-3xl mx-auto">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs min-w-0">
-                  <ScanEye className="w-4 h-4 text-ember-400 flex-shrink-0" />
+                  <ScanEye className="w-4 h-4 text-accent flex-shrink-0" />
                   <span id="visual-explanation-title" className="font-semibold text-ink flex-shrink-0">Visual Explanation</span>
                   <span className="hidden sm:inline text-ink-faint font-mono">
                     @ {formatSeconds(explain.timestamp)}
@@ -621,7 +623,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
                   onClick={closeExplain}
                   title="Close visual explanation"
                   aria-label="Close visual explanation"
-                  className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-colors cursor-pointer flex-shrink-0"
+                  className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-colors cursor-pointer flex-shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -641,7 +643,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
               )}
 
               {!explain.loading && explain.error && (
-                <div className="text-sm text-ink-muted bg-sunken border border-line rounded-xl p-4">
+                <div className="text-sm text-ink-muted bg-sunken border border-line rounded-lg p-4">
                   {explain.error}
                 </div>
               )}
@@ -651,7 +653,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
                   <img
                     src={frameUrl(videoId, explain.timestamp)}
                     alt={`Video frame at ${formatSeconds(explain.timestamp)}`}
-                    className="w-full max-h-72 object-contain rounded-xl border border-line-soft bg-black"
+                    className="w-full max-h-72 object-contain rounded-lg border border-line-soft bg-sunken"
                   />
                   <p className="text-sm leading-relaxed text-ink">{explain.data.explanation}</p>
 
@@ -706,28 +708,28 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
             <span className="font-semibold text-ink truncate max-w-xs sm:max-w-md">
               {activeSegment.title}
             </span>
-            <span className="px-2 py-0.5 rounded bg-sunken text-ink-muted font-mono text-[11px]">
+            <Badge className="font-mono">
               {formatSeconds(activeSegment.start_time)} - {formatSeconds(duration > 0 ? Math.min(activeSegment.end_time, duration) : activeSegment.end_time)}
-            </span>
+            </Badge>
           </div>
           <div className="flex items-center gap-2">
             <span className="font-mono">{formatSeconds(currentTime)}</span>
             {visualEnabled && (
-              <button
+              <Button
+                variant="ghost"
                 onClick={handleExplainScreen}
                 title="Explain what's on screen"
                 aria-label="Explain what's on screen"
-                className="flex items-center gap-1 px-3 py-2 min-h-[44px] rounded-lg hover:bg-sunken text-ink-faint hover:text-ink transition-colors cursor-pointer"
               >
                 <ScanEye className="w-4 h-4" />
-                <span className="hidden sm:inline text-[11px] font-semibold">Explain screen</span>
-              </button>
+                <span className="hidden sm:inline text-xs font-semibold">Explain screen</span>
+              </Button>
             )}
             <button
               onClick={handleReplaySegment}
               title="Rewind to start of segment"
               aria-label="Rewind to start of segment"
-              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:text-ink rounded-lg hover:bg-sunken transition-colors cursor-pointer"
+              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:text-ink rounded-md hover:bg-sunken transition-colors cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -735,7 +737,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
               onClick={toggleFullscreen}
               title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
               aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
-              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:text-ink rounded-lg hover:bg-sunken transition-colors cursor-pointer"
+              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center hover:text-ink rounded-md hover:bg-sunken transition-colors cursor-pointer"
             >
               <Maximize className="w-4 h-4" />
             </button>
@@ -748,7 +750,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
             className={`h-full w-full origin-left transition-transform duration-1000 ease-linear ${
               isPausedForQuiz
                 ? 'bg-warning'
-                : 'bg-gradient-to-r from-ember-600 to-ember-500 shadow-[0_0_10px_rgba(255,81,0,0.45)]'
+                : 'bg-accent'
             }`}
             style={{ transform: `scaleX(${progressPercent / 100})` }}
           />

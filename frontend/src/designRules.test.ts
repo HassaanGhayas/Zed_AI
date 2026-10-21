@@ -76,4 +76,40 @@ describe('design rules', () => {
       expect(offenders(/[\s"'`:]!-?[a-z]+-|[\w\]/)]!(?=[\s"'`]|$)/, outsideUi)).toEqual([]);
     });
   });
+
+  describe('quiz and player (Task 8 scope)', () => {
+    const scope = [
+      'components/SocraticQuiz.tsx',
+      'components/VideoPlayer.tsx',
+      'components/SegmentNav.tsx',
+      'components/AiTutorPanel.tsx',
+    ];
+    const outsideScope = (rel: string) => !scope.includes(rel);
+
+    it('no text-[10px] / text-[11px]', () => {
+      expect(offenders(/text-\[1[01]px\]/, outsideScope)).toEqual([]);
+    });
+
+    it('no rounded-xl/2xl/3xl', () => {
+      expect(offenders(/\brounded-(xl|2xl|3xl)\b/, outsideScope)).toEqual([]);
+    });
+
+    it('no bare rounded', () => {
+      expect(offenders(/\brounded\b(?![-\w])/, outsideScope)).toEqual([]);
+    });
+
+    it('no raw bg-white / bg-black / text-red- classes', () => {
+      expect(offenders(/\bbg-(white|black)\b|\btext-red-/, outsideScope)).toEqual([]);
+    });
+
+    it('no rgba(', () => {
+      expect(offenders(/rgba\(/, outsideScope)).toEqual([]);
+    });
+
+    it('no important (!) Tailwind modifiers', () => {
+      // Leading `!bg-x` or trailing `px-2.5!`; the trailing form requires a hyphenated
+      // utility so prose such as "Finished!" is not a false positive.
+      expect(offenders(/[\s"'`:]!-?[a-z]+-|-[\w.\]/%)]+!(?=[\s"'`]|$)/, outsideScope)).toEqual([]);
+    });
+  });
 });

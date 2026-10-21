@@ -8,6 +8,8 @@ interface ModalProps {
   children: React.ReactNode;
   className?: string;
   overlayClassName?: string;
+  /** Fill the nearest positioned ancestor (no scrim, flat panel) instead of the viewport. */
+  embedded?: boolean;
 }
 
 /**
@@ -23,6 +25,7 @@ export function Modal({
   children,
   className = '',
   overlayClassName = '',
+  embedded = false,
 }: ModalProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   useFocusTrap(containerRef, isOpen);
@@ -40,7 +43,11 @@ export function Modal({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-surface/80 p-4 animate-in fade-in duration-150 ${overlayClassName}`}
+      className={`${
+        embedded
+          ? 'absolute inset-0 z-[60]'
+          : 'fixed inset-0 z-50 flex items-center justify-center bg-surface/80 p-4'
+      } animate-in fade-in duration-150 ${overlayClassName}`}
     >
       <div
         ref={containerRef}
@@ -48,7 +55,11 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`bg-raised border border-line rounded-lg shadow-pop animate-in zoom-in-95 duration-150 ${className}`}
+        className={`${
+          embedded
+            ? 'absolute inset-0 bg-surface/95'
+            : 'bg-raised border border-line rounded-lg shadow-pop animate-in zoom-in-95'
+        } duration-150 ${className}`}
       >
         {children}
       </div>

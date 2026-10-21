@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { Segment, TutorStage } from '../types';
 import { Badge } from './ui/Badge';
+import { Button } from './ui/Button';
 import { SkeletonLine } from './ui/Skeleton';
 
 interface AiTutorPanelProps {
@@ -79,25 +80,25 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
   };
 
   return (
-    <aside className="bg-raised border border-line-soft rounded-2xl p-4 sm:p-5 flex flex-col gap-4 shadow-lg">
+    <aside className="bg-raised border border-line-soft shadow-card rounded-lg p-4 sm:p-5 flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-line-soft">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-ember-600 to-warning text-white flex items-center justify-center shadow-md shadow-ember-500/20">
+          <div className="w-8 h-8 rounded-lg bg-accent text-on-accent flex items-center justify-center">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
             <h2 className="text-sm font-bold text-ink">AI Tutor Guidance</h2>
-            <p className="text-[11px] text-ink-faint">Adaptive Learning Assistant</p>
+            <p className="text-xs text-ink-faint">Adaptive Learning Assistant</p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <Badge tone="accent" className="text-xs!">
+          <Badge tone="accent">
             {completedCount} / {totalSegments} Done
           </Badge>
           {reviewCount > 0 && (
-            <Badge tone="warning" className="text-xs!">
+            <Badge tone="warning">
               {reviewCount} Review
             </Badge>
           )}
@@ -105,8 +106,8 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
       </div>
 
       {/* Stage Stepper Pipeline */}
-      <div className="p-2.5 rounded-xl bg-sunken/60 border border-line-soft/80">
-        <div className="flex items-center justify-between text-[11px] font-semibold">
+      <div className="p-2.5 rounded-lg bg-sunken/60 border border-line-soft/80">
+        <div className="flex items-center justify-between text-xs font-semibold">
           {STAGES.map((s, idx) => {
             const isCurrent = stage === s.id;
             const isPassed =
@@ -117,16 +118,17 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
             return (
               <React.Fragment key={s.id}>
                 <div
+                  aria-current={isCurrent ? 'step' : undefined}
                   className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
                     isCurrent
-                      ? 'bg-ember-500/20 text-ember-800 dark:text-ember-300 border border-ember-500/40 shadow-sm'
+                      ? 'bg-accent/15 text-ink border border-accent/40'
                       : isPassed
                       ? 'text-success/90 font-medium'
                       : 'text-ink-faint'
                   }`}
                 >
                   {s.icon}
-                  <span className="hidden sm:inline">{s.label}</span>
+                  <span className={isCurrent ? undefined : 'hidden sm:inline'}>{s.label}</span>
                 </div>
                 {idx < STAGES.length - 1 && (
                   <ArrowRight className="w-3 h-3 text-ink-faint/40 flex-shrink-0" />
@@ -141,9 +143,9 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
       <div
         role="status"
         aria-live="polite"
-        className={`p-3.5 rounded-xl border flex items-start gap-2.5 transition-colors ${
+        className={`p-3.5 rounded-lg border flex items-start gap-2.5 transition-colors ${
           stage === 'ACTIVE_RECALL'
-            ? 'bg-ember-500/10 border-ember-500/30 text-ember-900 dark:text-ember-200'
+            ? 'bg-accent/10 border-accent/30 text-ink'
             : stage === 'REVIEW'
             ? 'bg-warning/10 border-warning/30 text-warning'
             : stage === 'COMPLETE'
@@ -160,14 +162,15 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
         ) : (
         <>
         <span
+          aria-hidden="true"
           className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${
             stage === 'ACTIVE_RECALL'
-              ? 'bg-ember-400'
+              ? 'bg-accent'
               : stage === 'REVIEW'
               ? 'bg-warning'
               : stage === 'COMPLETE'
               ? 'bg-success'
-              : 'bg-cosmos-500'
+              : 'bg-ink-faint'
           }`}
         />
         <div className="text-xs leading-relaxed flex-1">
@@ -186,7 +189,7 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
               </span>
             ) : (
               <span>
-                <strong className="text-ember-300 font-semibold">Active Checkpoint Active:</strong> The video has paused. Explain the underlying mechanism in your own words to proceed.
+                <strong className="text-accent font-semibold">Active Checkpoint Active:</strong> The video has paused. Explain the underlying mechanism in your own words to proceed.
               </span>
             )
           ) : stage === 'REVIEW' ? (
@@ -205,12 +208,12 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
 
       {/* Active Chapter Overview */}
       {currentSegment && (
-        <div className="p-3.5 rounded-xl bg-sunken/50 border border-line-soft">
+        <div className="p-3.5 rounded-lg bg-sunken/50 border border-line-soft">
           <div className="flex items-center justify-between gap-1 mb-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-ember-400 flex items-center gap-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-accent flex items-center gap-1">
               <BookOpen className="w-3 h-3" /> Chapter {activeSegmentIndex + 1} of {totalSegments}
             </span>
-            <div className="flex items-center gap-1 text-[11px] text-ink-faint font-mono">
+            <div className="flex items-center gap-1 text-xs text-ink-faint font-mono">
               <Clock className="w-3 h-3" />
               <span>{formatSeconds(currentSegment.start_time)} - {formatSeconds(currentSegment.end_time)}</span>
             </div>
@@ -225,14 +228,14 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
           </p>
 
           {currentSegment.questions && currentSegment.questions.length > 0 && (
-            <div className="pt-2 border-t border-line-soft/60 flex items-center justify-between text-[11px] text-ink-muted">
+            <div className="pt-2 border-t border-line-soft/60 flex items-center justify-between text-xs text-ink-muted">
               <span>Checkpoint Question {activeQuestionIndex + 1} of {totalQuestionsInSegment}</span>
               {needsReviewSegmentIds.has(currentSegment.segment_id) ? (
-                <Badge tone="warning" className="rounded! px-1.5! text-[10px]!">
+                <Badge tone="warning">
                   Needs Review
                 </Badge>
               ) : completedSegmentIds.has(currentSegment.segment_id) ? (
-                <Badge tone="success" className="rounded! px-1.5! text-[10px]!">
+                <Badge tone="success">
                   Mastered
                 </Badge>
               ) : (
@@ -244,9 +247,9 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
       )}
 
       {/* What Happens Next Guidance Card */}
-      <div className="p-3.5 rounded-xl bg-cosmos-900/30 border border-ember-500/20 text-xs">
-        <div className="flex items-center gap-1.5 font-bold text-ember-300 mb-1">
-          <Compass className="w-3.5 h-3.5 text-ember-400" />
+      <div className="p-3.5 rounded-lg bg-sunken/50 border border-accent/20 text-xs">
+        <div className="flex items-center gap-1.5 font-bold text-accent mb-1">
+          <Compass className="w-3.5 h-3.5 text-accent" />
           <span>What Happens Next</span>
         </div>
         {isPanelLoading ? (
@@ -255,7 +258,7 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
             <SkeletonLine className="w-2/3" />
           </div>
         ) : (
-        <p className="text-ink-muted text-[11px] leading-relaxed">
+        <p className="text-ink-muted text-xs leading-relaxed">
           {stage === 'COMPLETE'
             ? 'Open "Study Notes" or the "Learning Dashboard" to review your concept breakdown and export your study notes PDF.'
             : isPausedForQuiz
@@ -274,25 +277,25 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
       {/* Chapter Quick Jumps */}
       {segments.length > 1 && onSelectSegment && (
         <div className="pt-2 border-t border-line-soft/80 flex items-center justify-between gap-2 text-xs">
-          <button
+          <Button
             type="button"
+            variant="secondary"
             disabled={activeSegmentIndex === 0}
             onClick={() => onSelectSegment(activeSegmentIndex - 1)}
-            className="px-3 py-2 min-h-[44px] rounded-lg border border-line-soft text-ink-faint hover:text-ink hover:bg-sunken disabled:opacity-30 disabled:pointer-events-none transition-[color,background-color,border-color,opacity] cursor-pointer flex items-center justify-center"
           >
             ← Prev Chapter
-          </button>
-          <span className="text-[11px] text-ink-faint font-mono">
+          </Button>
+          <span className="text-xs text-ink-faint font-mono">
             {activeSegmentIndex + 1} of {segments.length}
           </span>
-          <button
+          <Button
             type="button"
+            variant="secondary"
             disabled={activeSegmentIndex >= segments.length - 1}
             onClick={() => onSelectSegment(activeSegmentIndex + 1)}
-            className="px-3 py-2 min-h-[44px] rounded-lg border border-line-soft text-ink-faint hover:text-ink hover:bg-sunken disabled:opacity-30 disabled:pointer-events-none transition-[color,background-color,border-color,opacity] cursor-pointer flex items-center justify-center"
           >
             Next Chapter →
-          </button>
+          </Button>
         </div>
       )}
     </aside>
