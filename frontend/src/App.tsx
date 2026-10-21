@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { LandingPage } from './components/landing/LandingPage';
@@ -8,6 +8,11 @@ import { SocraticQuiz } from './components/SocraticQuiz';
 import { NotesModal } from './components/NotesModal';
 import { AiTutorPanel } from './components/AiTutorPanel';
 import { ProgressView } from './components/ProgressView';
+const AnalyticsView = lazy(() => import('./components/AnalyticsView').then((m) => ({ default: m.AnalyticsView })));
+import { SkeletonLine, SkeletonBlock } from './components/ui/Skeleton';
+import { ReviewQueue } from './components/ReviewQueue';
+import { useAuth } from './contexts/AuthContext';
+import { noteStudyActivity, setStudyActivity, startStudyTimeTracking } from './lib/studyTime';
 import type { VideoSession, QAHistoryItem } from './types';
 import { processVideo, segmentVisual, visualAvailability, frameUrl } from './lib/api';
 import {
@@ -17,7 +22,32 @@ import {
   type PersistedSession,
 } from './lib/persistence';
 import { saveSessionToHistory } from './lib/sessionHistory';
+import { scheduleSessionSync, recordQaAttempt, onLocalDataForeign } from './lib/cloudSync';
+import { CloudLibrary } from './components/CloudLibrary';
 import { useRetryableAsync } from './hooks/useRetryableAsync';
+
+/** Lightweight placeholder while the lazy AnalyticsView chunk loads. */
+const AnalyticsFallback: React.FC = () => (
+  <div className="fixed inset-x-0 bottom-0 top-16 z-30 overflow-y-auto bg-surface" role="status" aria-busy="true">
+    <span className="sr-only">Loading analytics</span>
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6">
+      <div>
+        <h1 className="font-display text-xl sm:text-2xl font-bold text-ink tracking-tight">Learning Analytics</h1>
+        <p className="text-xs text-ink-faint">Retention, pace and weak spots across all your sessions</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="rounded-2xl border border-line-soft bg-raised p-5 space-y-3">
+            <SkeletonLine className="w-1/3" />
+            <SkeletonLine className="w-1/2 h-8" />
+            <SkeletonLine className="w-2/3" />
+          </div>
+        ))}
+      </div>
+      <SkeletonBlock className="w-full h-56" />
+    </div>
+  </div>
+);
 
 export const App: React.FC = () => {
   // Restore the last study session (video + chapter + mastery) on reload so a
@@ -57,6 +87,8 @@ export const App: React.FC = () => {
   );
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [isProgressOpen, setIsProgressOpen] = useState(false);
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
+  const { enabled: authEnabled } = useAuth();
   // Lifted out of Navbar so the landing page's footer can open the same modal.
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   // Latch so one boundary crossing can't fire twice (interval tick race), and so
@@ -135,10 +167,19 @@ export const App: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionVideoId]);
 
+  // Active study-time tracking (no-op unless Supabase is configured and the user is signed in).
+  useEffect(() => startStudyTimeTracking(), []);
+  useEffect(() => {
+    setStudyActivity('quiz', Boolean(session) && isPausedForQuiz);
+    return () => setStudyActivity('quiz', false);
+  }, [session, isPausedForQuiz]);
+  const handlePlayingChange = useCallback((playing: boolean) => setStudyActivity('video', playing), []);
+  const handleVideoProgress = useCallback(() => noteStudyActivity(), []);
+
   // Persist progress on every change so a refresh resumes the same session.
   useEffect(() => {
     if (!session) return;
-    savePersistedSession({
+    const persisted: PersistedSession = {
       session,
       activeSegmentIndex,
       activeQuestionIndex,
@@ -146,7 +187,10 @@ export const App: React.FC = () => {
       needsReviewSegmentIds: Array.from(needsReviewSegmentIds),
       maxReachedIndex,
       qaHistory,
-    });
+    };
+    savePersistedSession(persisted);
+    // Debounced best-effort cloud upsert; no-op when signed out / Supabase unset.
+    scheduleSessionSync(persisted);
   }, [
     session,
     activeSegmentIndex,
@@ -241,6 +285,40 @@ export const App: React.FC = () => {
     setIsProgressOpen(false);
   };
 
+  // Shared device: if a different account signs in, the in-memory session
+  // belongs to the previous owner. Drop it from memory (local storage stays
+  // untouched) so it can never autosave into the new account.
+  useEffect(
+    () =>
+      onLocalDataForeign(() => {
+        boundaryLatchRef.current = null;
+        setSession(null);
+        setActiveSegmentIndex(0);
+        setActiveQuestionIndex(0);
+        setCompletedSegmentIds(new Set());
+        setNeedsReviewSegmentIds(new Set());
+        setMaxReachedIndex(0);
+        setIsPausedForQuiz(false);
+        setQaHistory([]);
+        setIsNotesModalOpen(false);
+        setIsProgressOpen(false);
+      }),
+    []
+  );
+
+  // Resume a session pulled from the cloud (e.g. started on another device).
+  const handleResumeCloud = (p: PersistedSession) => {
+    boundaryLatchRef.current = null;
+    setSession(p.session);
+    setActiveSegmentIndex(p.activeSegmentIndex);
+    setActiveQuestionIndex(p.activeQuestionIndex);
+    setCompletedSegmentIds(new Set(p.completedSegmentIds));
+    setNeedsReviewSegmentIds(new Set(p.needsReviewSegmentIds ?? []));
+    setMaxReachedIndex(p.maxReachedIndex);
+    setIsPausedForQuiz(false);
+    setQaHistory(p.qaHistory);
+  };
+
   const handleBoundaryReached = () => {
     if (!session || !activeSegment) return;
     if (boundaryLatchRef.current === activeSegment.segment_id) return;
@@ -281,7 +359,8 @@ export const App: React.FC = () => {
     score?: number,
     understood?: string[],
     missing?: string[],
-    misconceptions?: string[]
+    misconceptions?: string[],
+    timeSpentMs?: number | null
   ) => {
     if (!activeSegment) return;
     const currentQ = activeSegment.questions[activeQuestionIndex];
@@ -306,21 +385,24 @@ export const App: React.FC = () => {
       );
     }
 
-    setQaHistory((prev) => [
-      ...prev,
-      {
-        segment_title: activeSegment.title,
-        question: currentQ.prompt,
-        user_final_answer: userAnswer,
-        ai_feedback: aiFeedback,
-        attempts,
-        needs_review: Boolean(needsReview),
-        score: score ?? (needsReview ? 40 : 85),
-        understood_concepts: understood || [],
-        missing_concepts: missing || [],
-        misconceptions: misconceptions || [],
-      },
-    ]);
+    const historyItem: QAHistoryItem = {
+      segment_title: activeSegment.title,
+      question: currentQ.prompt,
+      user_final_answer: userAnswer,
+      ai_feedback: aiFeedback,
+      attempts,
+      needs_review: Boolean(needsReview),
+      score: score ?? (needsReview ? 40 : 85),
+      understood_concepts: understood || [],
+      missing_concepts: missing || [],
+      misconceptions: misconceptions || [],
+      ...(timeSpentMs != null ? { time_spent_ms: Math.max(0, Math.round(timeSpentMs)) } : {}),
+    };
+    setQaHistory((prev) => [...prev, historyItem]);
+    void recordQaAttempt(session.video_id, activeSegment.segment_id, historyItem, session.domain ?? null, {
+      expected_concept: currentQ.expected_concept,
+      hints: currentQ.hints,
+    });
   };
 
   const handleProceedToNextTopic = () => {
@@ -384,16 +466,20 @@ export const App: React.FC = () => {
         canViewNotes={qaHistory.length > 0}
         notesCount={qaHistory.length}
         onOpenProgress={() => setIsProgressOpen(true)}
+        onOpenAnalytics={authEnabled ? () => setIsAnalyticsOpen(true) : undefined}
         needsReviewCount={needsReviewSegmentIds.size}
         isKeyModalOpen={isKeyModalOpen}
         onOpenKeyModal={() => setIsKeyModalOpen(true)}
         onCloseKeyModal={() => setIsKeyModalOpen(false)}
       />
 
-      <main id="main-content" className="flex-1 w-full mx-auto flex flex-col">
+      <main id="main-content" inert={isAnalyticsOpen} className="flex-1 w-full mx-auto flex flex-col">
         {/* Full-bleed landing sections manage their own max-w-7xl/padding internally
             (via the fullBleed utility) since CTA bands need to span the viewport;
             the active-session view below still gets the standard padded container. */}
+        {!session && <CloudLibrary onResume={handleResumeCloud} />}
+        {/* Not while the analytics overlay is open: it hosts its own queue and two instances would clobber the 'review' study source. */}
+        {!session && !isAnalyticsOpen && <ReviewQueue variant="landing" />}
         {!session ? (
           <LandingPage
             onProcess={handleProcessVideo}
@@ -464,9 +550,12 @@ export const App: React.FC = () => {
                     activeSegment={activeSegment}
                     segments={session.segments}
                     isPausedForQuiz={isPausedForQuiz}
+                    isSegmentResolved={completedSegmentIds.has(activeSegment.segment_id)}
                     onBoundaryReached={handleBoundaryReached}
                     seekTime={seekTime}
                     onRewatchSegment={handleRewatchSegment}
+                    onPlayingChange={handlePlayingChange}
+                    onProgress={handleVideoProgress}
                     quizOverlay={
                       <SocraticQuiz
                         videoId={session.video_id}
@@ -510,6 +599,13 @@ export const App: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Learning analytics dashboard (signed-in; overlays the page, session stays intact underneath) */}
+      {authEnabled && isAnalyticsOpen && (
+        <Suspense fallback={<AnalyticsFallback />}>
+          <AnalyticsView onClose={() => setIsAnalyticsOpen(false)} />
+        </Suspense>
+      )}
 
       {/* Synthesized Notes & PDF Export Modal */}
       {session && (

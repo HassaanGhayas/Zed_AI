@@ -17,11 +17,17 @@ interface VideoPlayerProps {
   activeSegment: Segment;
   segments?: Segment[];
   isPausedForQuiz: boolean;
+  /** True once this segment's checkpoint is resolved; only then may playback pass end_time. */
+  isSegmentResolved?: boolean;
   onBoundaryReached: () => void;
   onPlayerReady?: () => void;
   seekTime?: number | null;
   onRewatchSegment?: () => void;
   quizOverlay?: React.ReactNode;
+  /** Additive: true while the YouTube player is in the PLAYING state (study-time tracking). */
+  onPlayingChange?: (playing: boolean) => void;
+  /** Additive: fires when the reported playhead moved since the last poll (study-time idle detection only). */
+  onProgress?: () => void;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -29,11 +35,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   activeSegment,
   segments,
   isPausedForQuiz,
+  isSegmentResolved = false,
   onBoundaryReached,
   onPlayerReady,
   seekTime,
   onRewatchSegment,
   quizOverlay,
+  onPlayingChange,
+  onProgress,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -50,10 +59,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     isPausedForQuizRef.current = isPausedForQuiz;
     onBoundaryReachedRef.current = onBoundaryReached;
   }, [isPausedForQuiz, onBoundaryReached]);
+  const onPlayingChangeRef = useRef(onPlayingChange);
+  useEffect(() => {
+    onPlayingChangeRef.current = onPlayingChange;
+  }, [onPlayingChange]);
+  const onProgressRef = useRef(onProgress);
+  const lastProgressTimeRef = useRef<number | null>(null);
+  useEffect(() => {
+    onProgressRef.current = onProgress;
+  }, [onProgress]);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [apiLoaded, setApiLoaded] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [pseudoFullscreen, setPseudoFullscreen] = useState<boolean>(false);
+  const pseudoFsRef = useRef<boolean>(false);
   // Gemini-vision "Explain this screen" — only shown when the backend reports the
   // media toolchain is available, so the UI hides cleanly where it's unsupported.
   const [visualEnabled, setVisualEnabled] = useState<boolean>(false);
@@ -106,6 +126,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       playerVars: {
         autoplay: 1,
         modestbranding: 1,
+        disablekb: 1, // keyboard seeking would bypass the checkpoint lock
         rel: 0,
         fs: 0, // disable YT native fullscreen — our shell is the fullscreen element
         start: Math.floor(activeSegment.start_time),
@@ -122,11 +143,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           if (e.data === 0 && !isPausedForQuizRef.current) {
             onBoundaryReachedRef.current();
           }
+          onPlayingChangeRef.current?.(e.data === 1);
         },
       },
     });
 
     return () => {
+      onPlayingChangeRef.current?.(false);
       if (playerRef.current) {
         try {
           playerRef.current.destroy();
@@ -145,7 +168,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   // Re-arm the settle window on every segment switch or external seek
   useEffect(() => {
-    settleUntilRef.current = Date.now() + 750;
+    settleUntilRef.current = Date.now() + 500;
   }, [activeSegment.segment_id, seekTime]);
 
   // Enforce auto-pause boundary check loop
@@ -156,6 +179,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       try {
         const time = playerRef.current.getCurrentTime();
         setCurrentTime(time);
+        if (Number.isFinite(time) && time !== lastProgressTimeRef.current) {
+          lastProgressTimeRef.current = time;
+          onProgressRef.current?.();
+        }
 
         // Track total duration so segment markers can be positioned by percentage
         const d = playerRef.current.getDuration?.();
@@ -175,24 +202,47 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         // Ignore boundary logic while the player settles after a switch/seek
         if (Date.now() < settleUntilRef.current) return;
 
+        // Fail closed: an unreadable clock while locked must not let playback run on.
+        if (!Number.isFinite(time)) {
+          if (!isSegmentResolved) playerRef.current.pauseVideo?.();
+          return;
+        }
+
         // Check if playback reached or passed segment boundary
         if (time >= effectiveEndTime && !isPausedForQuiz) {
           playerRef.current.pauseVideo();
+          // Locked segment: a native-control seek may have jumped past the end,
+          // so pull the playhead back to the boundary.
+          if (!isSegmentResolved && time > effectiveEndTime + 0.5) {
+            playerRef.current.seekTo(effectiveEndTime, true);
+          }
           onBoundaryReached();
         }
 
         // If in quiz mode and user tries to seek past boundary, clamp back
-        if (isPausedForQuiz && time > effectiveEndTime + 1) {
+        if (isPausedForQuiz && time > effectiveEndTime + 0.5) {
           playerRef.current.seekTo(effectiveEndTime, true);
           playerRef.current.pauseVideo();
         }
-      } catch (e) {
-        // player might not be fully initialized
+        // Quiz is open: the video must stay paused.
+        if (isPausedForQuiz && playerRef.current.getPlayerState?.() === 1) {
+          playerRef.current.pauseVideo();
+        }
+      } catch {
+        // Fail closed while locked: if the player errors, stop playback rather
+        // than letting it run past the checkpoint unobserved.
+        if (!isSegmentResolved) {
+          try {
+            playerRef.current?.pauseVideo?.();
+          } catch {
+            // player not initialized yet; nothing is playing
+          }
+        }
       }
     }, 250);
 
     return () => clearInterval(interval);
-  }, [activeSegment, isPausedForQuiz, onBoundaryReached]);
+  }, [activeSegment, isPausedForQuiz, isSegmentResolved, onBoundaryReached]);
 
   const handleReplaySegment = () => {
     if (onRewatchSegment) {
@@ -206,16 +256,52 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   // Track fullscreen state on our shell so we can adapt layout
   useEffect(() => {
-    const onChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const onChange = () => {
+      if (document.fullscreenElement) setIsFullscreen(true);
+      else if (!pseudoFsRef.current) setIsFullscreen(false);
+    };
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
 
-  const toggleFullscreen = () => {
+  const setPseudoFs = (on: boolean) => {
+    pseudoFsRef.current = on;
+    setPseudoFullscreen(on);
+    setIsFullscreen(on);
+  };
+
+  // Esc leaves the CSS fallback (the native API handles Esc itself)
+  useEffect(() => {
+    if (!pseudoFullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPseudoFs(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [pseudoFullscreen]);
+
+  // Native Fullscreen API where it works; fixed-position CSS fallback where it is
+  // missing or blocked (iOS Safari, embedded webviews, restrictive permissions policy).
+  const toggleFullscreen = async () => {
     if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      shellRef.current?.requestFullscreen?.();
+      await document.exitFullscreen().catch(() => {});
+      return;
+    }
+    if (pseudoFsRef.current) {
+      setPseudoFs(false);
+      return;
+    }
+    const shell = shellRef.current;
+    try {
+      if (!shell?.requestFullscreen) throw new Error('unsupported');
+      // some webviews never settle the promise or resolve without entering fullscreen
+      await Promise.race([
+        shell.requestFullscreen(),
+        new Promise<void>((resolve) => setTimeout(resolve, 400)),
+      ]);
+      if (!document.fullscreenElement) setPseudoFs(true);
+    } catch {
+      setPseudoFs(true);
     }
   };
 
@@ -313,9 +399,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // the keyboard handler so time is always clamped to the valid [0, duration] range.
   const seekTo = useCallback(
     (time: number) => {
-      playerRef.current?.seekTo?.(Math.max(0, Math.min(duration, time)), true);
+      if (!Number.isFinite(time)) return;
+      // While the checkpoint is unresolved, the scrubber cannot go past the
+      // active segment's end (also bounded by the real video duration).
+      const limit = isSegmentResolved
+        ? duration
+        : Math.min(duration, activeSegment.end_time);
+      playerRef.current?.seekTo?.(Math.max(0, Math.min(limit, time)), true);
     },
-    [duration]
+    [duration, isSegmentResolved, activeSegment.end_time]
   );
 
   const handleScrubberKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -362,7 +454,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   );
 
   return (
-    <div ref={shellRef} id="player-shell" className="group relative flex flex-col bg-raised border border-line-soft rounded-2xl overflow-hidden shadow-2xl">
+    // `isolate` creates a stacking context so the quiz panel's z-50 stays inside the player and cannot paint above page overlays (e.g. Insights).
+    <div ref={shellRef} id="player-shell" className={`group flex flex-col bg-raised border border-line-soft overflow-hidden shadow-2xl ${pseudoFullscreen ? 'fixed inset-0 z-[100] rounded-none h-dvh' : 'relative isolate rounded-2xl'}`}>
       {/* Video Viewport */}
       <div className={`relative w-full bg-black ${isFullscreen ? 'flex-1 min-h-0' : 'aspect-video'}`}>
         <div ref={containerRef} className="yt-embed w-full h-full" />
@@ -372,7 +465,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           <button
             onClick={toggleFullscreen}
             title="Exit full screen"
-            className="absolute top-1/2 -translate-y-1/2 right-3 z-30 p-2 rounded-lg bg-black/60 text-white/90 hover:bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+            aria-label="Exit full screen"
+            className="absolute top-1/2 -translate-y-1/2 right-3 z-30 p-2 rounded-lg bg-black/60 text-white/90 hover:bg-black/80 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-70 transition-opacity cursor-pointer"
           >
             <Minimize className="w-4 h-4" />
           </button>
