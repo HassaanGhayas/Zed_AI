@@ -12,7 +12,7 @@ interface ProgressBarProps {
  * Accessible progress bar. The fill is full width and scaled with `scaleX`
  * (compositor-only), so animating it never triggers layout.
  */
-export function ProgressBar({ value, label, fillClassName = 'bg-gradient-to-r from-ember-500 to-ember-300' }: ProgressBarProps) {
+export function ProgressBar({ value, label, fillClassName = 'bg-accent' }: ProgressBarProps) {
   const pct = Math.min(100, Math.max(0, value));
   return (
     <div

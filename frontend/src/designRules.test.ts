@@ -48,4 +48,32 @@ describe('design rules', () => {
     });
     expect(hits).toEqual([]);
   });
+
+  describe('ui primitives (src/components/ui)', () => {
+    const outsideUi = (rel: string) => !rel.startsWith('components/ui/');
+
+    it('no rounded-xl/2xl/3xl', () => {
+      expect(offenders(/\brounded-(xl|2xl|3xl)\b/, outsideUi)).toEqual([]);
+    });
+
+    it('no bare rounded', () => {
+      expect(offenders(/\brounded\b(?![-\w])/, outsideUi)).toEqual([]);
+    });
+
+    it('no arbitrary text sizes', () => {
+      expect(offenders(/text-\[/, outsideUi)).toEqual([]);
+    });
+
+    it('no shadow-lg/xl/2xl', () => {
+      expect(offenders(/\bshadow-(lg|xl|2xl)\b/, outsideUi)).toEqual([]);
+    });
+
+    it('no bg-gradient', () => {
+      expect(offenders(/bg-gradient/, outsideUi)).toEqual([]);
+    });
+
+    it('no important (!) Tailwind modifiers', () => {
+      expect(offenders(/[\s"'`:]!-?[a-z]+-|[\w\]/)]!(?=[\s"'`]|$)/, outsideUi)).toEqual([]);
+    });
+  });
 });

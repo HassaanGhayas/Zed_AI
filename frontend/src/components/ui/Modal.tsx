@@ -40,7 +40,7 @@ export function Modal({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 animate-in fade-in duration-150 ${overlayClassName}`}
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-surface/80 p-4 animate-in fade-in duration-150 ${overlayClassName}`}
     >
       <div
         ref={containerRef}
@@ -48,7 +48,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`bg-raised border border-line-soft rounded-2xl shadow-2xl animate-in zoom-in-95 duration-150 ${className}`}
+        className={`bg-raised border border-line rounded-lg shadow-pop animate-in zoom-in-95 duration-150 ${className}`}
       >
         {children}
       </div>

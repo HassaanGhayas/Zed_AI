@@ -7,7 +7,7 @@ export function SkeletonLine({ className = '' }: SkeletonProps) {
 }
 
 export function SkeletonBlock({ className = '' }: SkeletonProps) {
-  return <div className={`rounded-xl bg-line-soft animate-pulse ${className}`} aria-hidden="true" />;
+  return <div className={`rounded-lg bg-line-soft animate-pulse ${className}`} aria-hidden="true" />;
 }
 
 export function SkeletonCircle({ className = '' }: SkeletonProps) {
