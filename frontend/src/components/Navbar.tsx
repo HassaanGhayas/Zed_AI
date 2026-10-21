@@ -138,8 +138,8 @@ export const Navbar: React.FC<NavbarProps> = ({
       <header className="border-b border-line-soft bg-raised/90 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-ember-700 to-ember-500 flex items-center justify-center shadow-lg shadow-ember-500/30 flex-shrink-0">
-              <Logo className="w-5 h-5 text-ember-50" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent flex items-center justify-center shadow-lg shadow-accent/30 flex-shrink-0">
+              <Logo className="w-5 h-5 text-on-accent" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">

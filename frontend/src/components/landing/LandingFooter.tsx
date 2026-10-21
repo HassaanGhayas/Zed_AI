@@ -15,8 +15,8 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ onOpenKeyModal }) 
     <footer className="border-t border-line-soft bg-raised/40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-ember-700 to-ember-500 flex items-center justify-center flex-shrink-0">
-            <Logo className="w-4 h-4 text-ember-50" />
+          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+            <Logo className="w-4 h-4 text-on-accent" />
           </div>
           <div>
             <p className="font-display font-bold text-sm text-ink">Studify AI</p>

@@ -743,7 +743,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
         </div>
 
         {/* Progress Bar for Segment */}
-        <div className="w-full h-1.5 bg-cosmos-800 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-line rounded-full overflow-hidden">
           <div
             className={`h-full w-full origin-left transition-transform duration-1000 ease-linear ${
               isPausedForQuiz

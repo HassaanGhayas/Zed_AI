@@ -422,7 +422,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                             </span>
                           </div>
 
-                          <div className="w-full h-1.5 bg-cosmos-800 rounded-full overflow-hidden">
+                          <div className="w-full h-1.5 bg-line rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full transition-[width] duration-300"
                               style={{

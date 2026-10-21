@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
@@ -34,5 +35,8 @@ export default defineConfig(({ mode }) => {
   const supabaseUrl = (env.VITE_SUPABASE_URL || '').replace(/\/+$/, '')
   return {
     plugins: [react(), tailwindcss(), cspPlugin(apiBase, supabaseUrl)],
+    // Vitest blanks every CSS module by default; let `?raw` CSS imports through so
+    // source-scan tests (designRules, contrast) read the real index.css text.
+    test: { css: { include: [/\.css\?raw$/] } },
   }
 })

@@ -452,7 +452,7 @@ export const App: React.FC = () => {
 
   return (
     <ThemeProvider>
-    <div className="min-h-screen bg-surface text-ink flex flex-col selection:bg-ember-500/30 selection:text-ember-100">
+    <div className="min-h-screen bg-surface text-ink flex flex-col selection:bg-accent/30 selection:text-ink">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-accent focus:text-on-accent"

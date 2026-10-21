@@ -1,10 +1,9 @@
 @import "tailwindcss";
 
-/* ── Theme: "Signal & Ivory" — crisp near-white/near-black neutrals (no
-   brown undertone muddying them) and a vivid signal-orange brand, closer
-   to the reference marketing page's palette than the old warm-clay theme.
-   Fraunces (high-contrast display serif) replaces Spectral for headlines
-   to match that reference's editorial feel. ── */
+/* ── Theme: "Muted Ember" — warm low-chroma neutrals with one restrained
+   ember accent. Dark is the default (`@theme`); `[data-theme="light"]`
+   overrides the semantic tokens. Contrast bars are pinned by
+   src/lib/contrast.test.ts. ── */
 @theme {
   /* Typography roles */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -24,75 +23,102 @@
   --color-cosmos-900: #141311;
   --color-cosmos-950: #0b0a09;
 
-  /* Primitive ramp: ember — brand palette (vivid signal red-orange) */
-  --color-ember-50: #fff1ea;
-  --color-ember-100: #ffdcc9;
-  --color-ember-200: #ffb68c;
-  --color-ember-300: #ff8f55;
-  --color-ember-400: #ff6b35;
-  --color-ember-500: #ff4d1f;
-  --color-ember-600: #e63c12;
-  --color-ember-700: #ba300f;
-  --color-ember-800: #8c250c;
-  --color-ember-900: #5e1808;
-  --color-ember-950: #330c04;
+  /* Primitive ramp: ember — muted brand ramp centred on the dark accent
+     (500 = #e0663f). Kept so legacy ember-* utilities compile; components
+     migrate to the semantic tokens below in later tasks. */
+  --color-ember-50: #fbefe9;
+  --color-ember-100: #f6dccf;
+  --color-ember-200: #efbea6;
+  --color-ember-300: #e9a07e;
+  --color-ember-400: #e5835e;
+  --color-ember-500: #e0663f;
+  --color-ember-600: #c4532f;
+  --color-ember-700: #9e4427;
+  --color-ember-800: #77341f;
+  --color-ember-900: #4f2416;
+  --color-ember-950: #2c150d;
 
-  /* Semantic tokens */
-  --color-surface: var(--color-cosmos-950);
-  --color-raised: var(--color-cosmos-900);
-  --color-sunken: #060605;
-  --color-line: var(--color-cosmos-700);
-  --color-line-soft: var(--color-cosmos-800);
-  --color-ink: #f7f5f2;
-  --color-ink-muted: var(--color-cosmos-300);
-  --color-ink-faint: #aba79f; /* cosmos-400 lightened to clear WCAG AA on surface */
-  --color-accent: var(--color-ember-500);
-  --color-accent-hover: var(--color-ember-400);
-  --color-accent-deep: var(--color-ember-600);
-  --color-on-accent: #330c04;
-  --color-success: #4ade80;
-  --color-on-success: #052e12;
-  --color-warning: #ffb020;
-  --color-danger: #ff5c5c;
+  /* Semantic tokens (dark) */
+  --color-surface: #1a1816;
+  --color-raised: #232019;
+  --color-sunken: #141210;
+  --color-line: #34302a;
+  --color-line-soft: #2a2621;
+  --color-ink: #e8e3dc;          /* 13.87:1 on surface */
+  --color-ink-muted: #c9c1b5;    /*  9.93:1 */
+  --color-ink-faint: #a39b8f;    /*  6.44:1 */
+  --color-accent: #e0663f;       /*  5.18:1 */
+  --color-accent-hover: #e87a55;
+  --color-accent-deep: #c4532f;
+  --color-on-accent: #1a1816;    /*  5.18:1 on accent */
+  --color-success: #7fb08a;      /*  7.15:1 */
+  --color-on-success: #1a1816;
+  --color-warning: #d9a85a;      /*  8.18:1 */
+  --color-danger: #e07a72;       /*  6.07:1 */
+
+  /* Type scale (line-heights paired via Tailwind's --text-*--line-height) */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1rem;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.625rem;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.875rem;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 2.25rem;
+  --text-display: clamp(2rem, 5vw, 3rem);
+  --text-display--line-height: 1.1;
+
+  /* Radius */
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+
+  /* Elevation: subtle two-layer, warm-tinted (one set works in both themes) */
+  --shadow-card: 0 1px 2px rgb(40 26 14 / 0.08), 0 2px 8px rgb(40 26 14 / 0.06);
+  --shadow-pop: 0 4px 12px rgb(40 26 14 / 0.12), 0 16px 40px rgb(40 26 14 / 0.18);
 }
 
 /* ── Light theme overrides ── */
 [data-theme="light"] {
-  --color-surface: #faf9f7;
-  --color-raised: #ffffff;
-  --color-sunken: #f0eeeb;
-  --color-line: #e5e2dd;
-  --color-line-soft: #efedea;
-  --color-ink: #15130f;
-  --color-ink-muted: #57534a;
-  --color-ink-faint: #7d786d; /* >4.5:1 on surface */
-  --color-accent: #ba300f;
-  --color-accent-hover: #8c250c;
-  --color-accent-deep: #8c250c;
-  --color-on-accent: #fff1ea;
-  --color-success: #15803d; /* >4.8:1 */
-  --color-on-success: #eafbf0;
-  --color-warning: #8a5a00; /* >5:1 */
-  --color-danger: #b42318;  /* >5.3:1 */
+  --color-surface: #f4f0e8;
+  --color-raised: #fbf8f2;
+  --color-sunken: #ece6db;
+  --color-line: #ddd5c6;
+  --color-line-soft: #e8e1d4;
+  --color-ink: #2a2622;          /* 13.21:1 on surface */
+  --color-ink-muted: #4a433b;    /*  8.56:1 */
+  --color-ink-faint: #6e655a;    /*  5.03:1 */
+  --color-accent: #b2502d;       /*  4.53:1 (nudged from #b8532f, 4.28) */
+  --color-accent-hover: #9c4424;
+  --color-accent-deep: #9c4424;
+  --color-on-accent: #ffffff;    /*  5.15:1 on accent */
+  --color-success: #3f7952;      /*  4.54:1 (nudged from #3f7a52, 4.49) */
+  --color-on-success: #ffffff;
+  --color-warning: #8a5a14;      /*  5.20:1 */
+  --color-danger: #b0382f;       /*  5.35:1 */
 
-  /* Light ember ramp with real value-spread: deep readable text stop → vivid brand stop. */
-  --color-ember-200: #8c250c;
-  --color-ember-300: #ba300f; /* >5.5:1 contrast for text badges */
-  --color-ember-400: #e63c12;
-  --color-ember-500: #ff4d1f;
+  /* Legacy ember text stops stay readable on light surfaces until components
+     move to semantic tokens: 200/300/400 become deep text stops. */
+  --color-ember-200: #7f3820;    /* 7.42:1 */
+  --color-ember-300: #9c4426;    /* 5.65:1 */
+  --color-ember-400: #b2502d;    /* 4.53:1 */
+  --color-ember-500: #c4582f;
 }
 
 @layer base {
   body {
-    @apply bg-surface text-ink min-h-screen antialiased selection:bg-ember-500/30 selection:text-ember-100;
+    @apply bg-surface text-ink min-h-screen antialiased selection:bg-accent/30 selection:text-ink;
     font-family: var(--font-sans);
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-feature-settings: "kern" 1, "liga" 1;
     transition: background-color 200ms ease, color 200ms ease;
   }
 
   /* Visible keyboard focus on every interactive element */
   :focus-visible {
-    outline: 2px solid var(--color-ember-400);
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
 
@@ -203,42 +229,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--color-ember-500) 25%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 25%, transparent);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--color-ember-500) 45%, transparent);
-}
-
-[data-theme="light"] ::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--color-ember-600) 20%, transparent);
-}
-
-[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--color-ember-600) 35%, transparent);
-}
-
-/* ── Light theme: CTA = vivid brand terracotta with a dark label.
-     A vivid fill + dark text stays warm/energetic AND clears 4.5:1
-     (white-on-terracotta can't go this vivid without failing contrast). ── */
-[data-theme="light"] .bg-gradient-to-r.from-ember-500 {
-  --tw-gradient-from: var(--color-ember-500);
-  --tw-gradient-via: var(--color-ember-500);
-  --tw-gradient-to: var(--color-ember-400);
-  color: var(--color-ember-950);
-}
-
-/* ── Light theme: logo tile — drop the murky dark stop, keep a vivid brand pop ── */
-[data-theme="light"] .bg-gradient-to-tr.from-ember-700 {
-  --tw-gradient-from: var(--color-ember-600);
-  --tw-gradient-to: var(--color-ember-500);
-}
-
-/* ── Light theme: text selection must stay readable (pale-peach-on-peach was invisible) ── */
-[data-theme="light"] ::selection {
-  background: color-mix(in srgb, var(--color-ember-500) 30%, transparent);
-  color: var(--color-ember-900);
+  background: color-mix(in srgb, var(--color-accent) 45%, transparent);
 }
 
 /* ── Force the YouTube iframe to fill its container. The IFrame API bakes in the
@@ -257,9 +253,4 @@
 }
 .no-scrollbar::-webkit-scrollbar {
   display: none;
-}
-
-/* ── Light theme: progress bar tracks (cosmos-800 is near-black) ── */
-[data-theme="light"] .h-1\.5.bg-cosmos-800 {
-  background-color: var(--color-line);
 }
