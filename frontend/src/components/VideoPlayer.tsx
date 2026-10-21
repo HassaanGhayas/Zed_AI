@@ -554,7 +554,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
                 <span className="font-semibold text-ink flex-shrink-0">Paused for Active Recall</span>
                 <span className="hidden sm:inline text-ink-faint truncate">• {activeSegment.title}</span>
               </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
                 {visualEnabled && (
                   <Button
                     variant="secondary"

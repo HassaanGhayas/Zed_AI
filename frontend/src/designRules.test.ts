@@ -106,10 +106,22 @@ describe('design rules', () => {
       expect(offenders(/rgba\(/, outsideScope)).toEqual([]);
     });
 
+    // Important modifier in a class string: `!bg-x`, `px-2.5!`, plus bare utilities
+    // (`!absolute`, `flex!`) from a word list so JS (`!x`, `!==`) and prose ("Finished!") pass.
+    const IMPORTANT_CLASS =
+      /[\s"'`:]!-?[a-z]+-|-[\w.\]/%)]+!(?=[\s"'`]|$)|(?:^|[\s"'`:])(?:!(?:absolute|relative|fixed|sticky|static|hidden|block|inline|flex|grid|contents|border|rounded|shadow|truncate|italic|underline|uppercase|visible|invisible|grow|shrink|transition)|(?:absolute|relative|fixed|sticky|static|hidden|block|inline|flex|grid|contents|border|rounded|shadow|truncate|italic|underline|uppercase|visible|invisible|grow|shrink|transition)!)(?=[\s"'`]|$)/;
+
+    it('important-modifier regex flags class strings and ignores JS/prose', () => {
+      for (const bad of ['className="!absolute z-10"', 'className="p-2 !hidden"', 'className="flex! gap-2"', 'cn("px-2.5! py-1")', '`a ${x} !bg-red`', 'x disabled:opacity-40!"', 'className="!border-0"']) {
+        expect(IMPORTANT_CLASS.test(bad), bad).toBe(true);
+      }
+      for (const ok of ['if (!x) return', 'a !== b', 'cond && !foo && bar', 'All Topics Finished! View Notes', "'Excellent Understanding!'", 'const f = !isOpen;']) {
+        expect(IMPORTANT_CLASS.test(ok), ok).toBe(false);
+      }
+    });
+
     it('no important (!) Tailwind modifiers', () => {
-      // Leading `!bg-x` or trailing `px-2.5!`; the trailing form requires a hyphenated
-      // utility so prose such as "Finished!" is not a false positive.
-      expect(offenders(/[\s"'`:]!-?[a-z]+-|-[\w.\]/%)]+!(?=[\s"'`]|$)/, outsideScope)).toEqual([]);
+      expect(offenders(IMPORTANT_CLASS, outsideScope)).toEqual([]);
     });
   });
 });

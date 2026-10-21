@@ -2,7 +2,6 @@ import React from 'react';
 import { CheckCircle2, Lock, PlayCircle, Clock, AlertTriangle } from 'lucide-react';
 import type { Segment } from '../types';
 import { Badge } from './ui/Badge';
-import { ProgressBar } from './ui/ProgressBar';
 
 interface SegmentNavProps {
   segments: Segment[];
@@ -31,6 +30,7 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
   const reviewCount = Array.from(completedSegmentIds).filter((id) => needsReviewSegmentIds.has(id)).length;
   const masteredCount = completedCount - reviewCount;
   const progressPct = Math.round((completedCount / Math.max(1, segments.length)) * 100);
+  const safePct = Number.isFinite(progressPct) ? Math.min(100, Math.max(0, progressPct)) : 0;
 
   return (
     <nav aria-label="Topic chapters" className="bg-raised border border-line-soft shadow-card rounded-lg p-4 flex flex-col h-full">
@@ -51,8 +51,18 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
       </div>
 
       {/* Progress Bar */}
-      <div className="mb-4">
-        <ProgressBar value={progressPct} label="Chapters completed" />
+      <div
+        role="progressbar"
+        aria-label="Chapters completed"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={safePct}
+        className="mb-4 h-2 rounded-full bg-line overflow-hidden"
+      >
+        <div
+          className="h-full w-full origin-left rounded-full bg-accent transition-transform duration-500 ease-out"
+          style={{ transform: `scaleX(${safePct / 100})` }}
+        />
       </div>
 
       {/* Segment Cards List */}
