@@ -200,7 +200,6 @@ def db():
             patch("app.api.routes_analytics.get_supabase", return_value=fake), \
             patch("app.api.routes_analytics._now", return_value=NOW):
         reset_rate_limits()
-        ra.reset_insight_cache()
         yield fake
         reset_rate_limits()
 
@@ -318,7 +317,6 @@ ROUTES = [
     ("post", "/api/analytics/study-time", {"seconds": 10}),
     ("get", "/api/analytics/summary", None),
     ("get", "/api/analytics/due", None),
-    ("post", "/api/analytics/insight", {"days": 30}),
     ("get", "/api/analytics/export", None),
 ]
 
@@ -610,52 +608,6 @@ class TestDue:
 
     def test_empty(self, db):
         assert client.get("/api/analytics/due", headers=_h()).json() == {"total_due": 0, "items": []}
-
-
-# ───────────────────────────── insight ─────────────────────────────
-
-class TestInsight:
-    def test_heuristic_when_no_data(self, db):
-        r = client.post("/api/analytics/insight", json={"days": 30}, headers=_h())
-        assert r.status_code == 200
-        assert "No study activity" in r.json()["insight"] and r.json()["generated_at"]
-
-    def test_fallback_when_gemini_fails(self, db):
-        db.tables["qa_attempts"] = [_attempt(USER, 1, 80)]
-        with patch("app.api.routes_analytics._gemini_insight", side_effect=RuntimeError("down")):
-            r = client.post("/api/analytics/insight", json={"days": 30}, headers=_h())
-        assert r.status_code == 200 and "80%" in r.json()["insight"]
-
-    def test_gemini_text_cached_per_user_per_day(self, db):
-        db.tables["qa_attempts"] = [_attempt(USER, 1, 80)]
-        with patch("app.api.routes_analytics._gemini_insight", return_value="Great work.") as g:
-            h = {**_h(), "X-Gemini-Key": "k"}
-            a = client.post("/api/analytics/insight", json={"days": 30}, headers=h).json()
-            b = client.post("/api/analytics/insight", json={"days": 30}, headers=h).json()
-            assert a == b and a["insight"] == "Great work." and g.call_count == 1
-            assert g.call_args.args[1] == "k"
-            db.tables["qa_attempts"].append(_attempt(OTHER, 1, 50))
-            client.post("/api/analytics/insight", json={"days": 30}, headers={**_h(OTHER), "X-Gemini-Key": "k"})
-            assert g.call_count == 2    # other user has their own cache entry
-
-    def test_prompt_contains_only_summary(self, db):
-        db.tables["qa_attempts"] = [_attempt(USER, 1, 80)]
-        sent = {}
-
-        def fake(summary, key):
-            sent["s"] = str(summary)
-            return "ok"
-
-        with patch("app.api.routes_analytics._gemini_insight", side_effect=fake):
-            client.post("/api/analytics/insight", json={"days": 30}, headers=_h())
-        assert "TOP-SECRET" not in sent["s"]
-
-    def test_cache_is_bounded(self, db):
-        for i in range(ra._INSIGHT_CACHE_MAX + 5):
-            ra._insight_cache[(str(i), "d", 30)] = {"insight": "x", "generated_at": "t"}
-            while len(ra._insight_cache) > ra._INSIGHT_CACHE_MAX:
-                ra._insight_cache.popitem(last=False)
-        assert len(ra._insight_cache) == ra._INSIGHT_CACHE_MAX
 
 
 # ───────────────────────────── export ─────────────────────────────

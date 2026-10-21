@@ -293,33 +293,12 @@ class TestDueFixes:
         assert client.get("/api/analytics/due", headers=_h()).json()["total_due"] == 1
 
 
-# ───────────────────────────── 11: insight cache ─────────────────────────────
+# ───────────────────────────── delete my data ─────────────────────────────
 
-class TestInsightCache:
-    def test_new_attempt_invalidates_cache(self, db):
-        db.tables["qa_attempts"] = [_attempt(USER, 1, 80, id="1")]
-        with patch("app.api.routes_analytics._gemini_insight", return_value="Nice.") as g:
-            client.post("/api/analytics/insight", json={"days": 30}, headers=_h())
-            client.post("/api/analytics/insight", json={"days": 30}, headers=_h())
-            assert g.call_count == 1
-            db.tables["qa_attempts"].append(_attempt(USER, 0, 90, id="2"))
-            client.post("/api/analytics/insight", json={"days": 30}, headers=_h())
-            assert g.call_count == 2
-
-    def test_new_review_event_invalidates_cache(self, db):
-        db.tables["qa_attempts"] = [_attempt(USER, 1, 80, id="1")]
-        with patch("app.api.routes_analytics._gemini_insight", return_value="Nice.") as g:
-            client.post("/api/analytics/insight", json={"days": 30}, headers=_h())
-            db.tables["review_events"] = [{"user_id": USER, "concept_key": "a", "reviewed_at": _iso(NOW)}]
-            client.post("/api/analytics/insight", json={"days": 30}, headers=_h())
-            assert g.call_count == 2
-
-    def test_delete_my_data_evicts_user_entries(self, db):
-        ra._insight_cache[(USER, "d", 30, (1, None))] = {"insight": "x", "generated_at": "t"}
-        ra._insight_cache[(OTHER, "d", 30, (1, None))] = {"insight": "y", "generated_at": "t"}
+class TestDeleteMyData:
+    def test_delete_my_data(self, db):
         with patch("app.api.routes_me.get_supabase", return_value=db):
             assert client.delete("/api/me/data", headers=_h()).status_code == 200
-        assert [k[0] for k in ra._insight_cache] == [OTHER]
 
 
 # ───────────────────────────── 19: anonymous tokens ─────────────────────────────
@@ -328,7 +307,6 @@ class TestAnonymous:
     @pytest.mark.parametrize("method,path,body", [
         ("post", "/api/analytics/record", _record_body()),
         ("post", "/api/analytics/study-time", {"seconds": 10}),
-        ("post", "/api/analytics/insight", {"days": 30}),
     ])
     def test_writes_rejected(self, db, method, path, body):
         r = client.request(method, path, json=body, headers=_anon_headers())

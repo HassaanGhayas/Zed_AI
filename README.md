@@ -160,7 +160,6 @@ Learning analytics (needs Supabase and migrations `0001`-`0003` applied manually
 | `POST /api/analytics/study-time` | Add study seconds to a day (atomic RPC `add_study_seconds`, capped at 24h) |
 | `GET /api/analytics/summary?days=30` | Retention, velocity, consistency, decay, projected curve, domain mastery |
 | `GET /api/analytics/due?limit=20` | Concepts due for review with their original question |
-| `POST /api/analytics/insight` | 2-3 sentence AI insight from the summary only (honours `X-Gemini-Key`; cached per day) |
 | `GET /api/analytics/export?format=csv\|pdf&days=30` | Progress export (no answers included) |
 
 `DELETE /api/me/data` also erases concepts, review events, study days and settings.

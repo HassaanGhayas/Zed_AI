@@ -182,6 +182,3 @@ class RecordRequest(BaseModel):
 class StudyTimeRequest(BaseModel):
     seconds: int = Field(ge=1, le=3600)
     day: Optional[date] = None
-
-class InsightRequest(BaseModel):
-    days: int = Field(default=30, ge=1, le=365)

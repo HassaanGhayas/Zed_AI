@@ -237,8 +237,3 @@ export interface DueResponse {
   total_due: number;
   items: DueItem[];
 }
-
-export interface InsightResponse {
-  insight: string;
-  generated_at: string;
-}

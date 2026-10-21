@@ -1,26 +1,20 @@
 import asyncio
 import csv
 import io
-import json
 import logging
 import re
 import statistics
-from collections import OrderedDict
 from datetime import date, datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
-from google import genai
-from google.genai import types
 
 from app.core.auth import get_registered_user, get_required_user
-from app.core.config import settings
 from app.core.rate_limit import rate_limit
 from app.core.supabase import get_supabase
-from app.models.schemas import InsightRequest, RecordRequest, StudyTimeRequest
+from app.models.schemas import RecordRequest, StudyTimeRequest
 from app.services import scheduler_service as sched
-from app.services._model_race import race_candidates
 from app.services.concept_service import dedupe_concepts
 from app.services.domain_service import DOMAINS, match_domain
 from app.services.pdf_service import pdf_service
@@ -726,115 +720,6 @@ async def get_due(limit: int = Query(20, ge=1, le=50), user_id: str = Depends(ge
     except Exception:
         logger.exception("Analytics due failed")
         raise HTTPException(status_code=500, detail="Could not load review items.")
-
-
-# ───────────────────────────── /insight ─────────────────────────────
-
-_INSIGHT_CACHE_MAX = 1000
-_insight_cache: "OrderedDict[tuple, Dict[str, str]]" = OrderedDict()
-
-
-def reset_insight_cache() -> None:
-    _insight_cache.clear()
-
-
-def evict_user_insights(user_id: str) -> None:
-    for k in [k for k in _insight_cache if k and k[0] == user_id]:
-        _insight_cache.pop(k, None)
-
-
-def _insight_stamp(client, user_id: str) -> Tuple[int, Optional[str]]:
-    """Cheap data-version stamp: total attempts + newest review event time."""
-    res = client.table("qa_attempts").select("id", count="exact").eq("user_id", user_id).limit(1).execute()
-    count = getattr(res, "count", None)
-    ev = _rows(
-        client.table("review_events").select("reviewed_at").eq("user_id", user_id)
-        .order("reviewed_at", desc=True).limit(1).execute()
-    )
-    return (int(count) if isinstance(count, int) else 0, str(ev[0].get("reviewed_at")) if ev else None)
-
-
-def heuristic_insight(summary: Dict[str, Any]) -> str:
-    if not summary["totals"]["attempts"] and not summary["totals"]["concepts"]:
-        return "No study activity yet in this period. Finish a few checkpoints and your retention insights will appear here."
-    parts = []
-    ret = summary["retention"]
-    if ret["value"] is not None:
-        sentence = f"Your average checkpoint score is {ret['value']:.0f}%"
-        if ret["delta"] is not None:
-            sentence += f" ({ret['delta']:+.0f} points versus the previous period)"
-        parts.append(sentence + ".")
-    decay = summary["decay"]
-    if decay["at_risk_count"]:
-        top = decay["top_at_risk"][0]["label"] if decay["top_at_risk"] else None
-        text = f"{decay['at_risk_count']} concept{'s' if decay['at_risk_count'] != 1 else ''} are at risk of fading"
-        parts.append(text + (f", starting with {top}." if top else "."))
-    else:
-        parts.append("None of your tracked concepts are at risk of fading right now.")
-    c = summary["consistency"]
-    parts.append(f"You studied {c['hours']:.1f} of {c['target_hours']:.1f} target hours ({c['pct']:.0f}%).")
-    return " ".join(parts[:3])
-
-
-def _gemini_insight(summary: Dict[str, Any], api_key: str) -> Optional[str]:
-    key = api_key.strip() if api_key else settings.google_api_key
-    if not key:
-        return None
-    client = genai.Client(api_key=key)
-    prompt = (
-        "You are a study coach. Using ONLY this JSON summary of a student's recent learning analytics, "
-        "write 2-3 plain sentences of specific, encouraging insight with one concrete next step. "
-        "No markdown, no lists.\n\n" + json.dumps(summary, default=str)
-    )
-    order = sorted(settings.gemini_candidate_models, key=lambda m: 0 if "lite" in m else 1)
-
-    def _attempt(model_name: str) -> str:
-        response = client.models.generate_content(
-            model=model_name, contents=prompt, config=types.GenerateContentConfig(temperature=0.4)
-        )
-        text = re.sub(r"\s+", " ", (response.text or "")).strip()
-        if not text:
-            raise ValueError("Empty response")
-        return text[:1000]
-
-    return race_candidates(order, _attempt, max_parallel=2, server_key=not (api_key or "").strip())
-
-
-@router.post("/insight", dependencies=[Depends(rate_limit("insight"))])
-async def get_insight(
-    req: InsightRequest,
-    user_id: str = Depends(get_registered_user),
-    x_gemini_key: Optional[str] = Header(None, alias="X-Gemini-Key"),
-):
-    client = _require_client()
-    now = _now()
-    try:
-        stamp = await asyncio.to_thread(_insight_stamp, client, user_id)
-    except Exception:
-        logger.warning("Insight stamp failed; skipping cache")
-        stamp = None
-    cache_key = (user_id, now.date().isoformat(), req.days, stamp)
-    cached = _insight_cache.get(cache_key) if stamp is not None else None
-    if cached:
-        return cached
-    try:
-        summary = await asyncio.to_thread(_fetch_summary, client, user_id, req.days, now)
-    except Exception:
-        logger.exception("Analytics insight summary failed")
-        raise HTTPException(status_code=500, detail="Could not load analytics.")
-
-    text = None
-    if summary["totals"]["attempts"] or summary["totals"]["concepts"]:
-        try:
-            text = await asyncio.to_thread(_gemini_insight, summary, x_gemini_key or "")
-        except Exception as e:
-            logger.warning(f"[Insight] Gemini failed ({type(e).__name__}); using heuristic text")
-    out = {"insight": text or heuristic_insight(summary), "generated_at": _iso(now)}
-    if text and stamp is not None:  # never pin the fallback for the whole day
-        _insight_cache[cache_key] = out
-        while len(_insight_cache) > _INSIGHT_CACHE_MAX:
-            _insight_cache.popitem(last=False)
-    return out
 
 
 # ───────────────────────────── /export ─────────────────────────────

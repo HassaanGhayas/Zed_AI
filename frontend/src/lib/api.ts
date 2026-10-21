@@ -10,7 +10,6 @@ import type {
   AnalyticsRecordResponse,
   AnalyticsSummary,
   DueResponse,
-  InsightResponse,
   StudyTimeResponse,
 } from '../types';
 
@@ -390,9 +389,9 @@ export async function segmentVisual(
   return res.json();
 }
 
-// ── Analytics (signed-in only; bearer token, never the Gemini key except /insight) ──
+// ── Analytics (signed-in only; bearer token) ──
 
-/** Bearer-only headers: analytics calls must not carry the Gemini key (only /insight does). */
+/** Bearer-only headers: analytics calls must not carry the Gemini key. */
 function authOnlyHeaders(): Record<string, string> {
   if (!authToken) throw new Error('Sign in to use analytics.');
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` };
@@ -446,20 +445,6 @@ export async function fetchDueQueue(limit = 20): Promise<DueResponse> {
     })
   );
   if (!res.ok) throw await errorFrom(res, 'Could not load your review queue');
-  return res.json();
-}
-
-/** Asks the AI tutor for an insight; the only analytics call that forwards the Gemini key. */
-export async function requestInsight(days: number, apiKey?: string): Promise<InsightResponse> {
-  if (!authToken) throw new Error('Sign in to use analytics.');
-  const res = await requestWithAuthRetry(() =>
-    request(`${API_BASE}/api/analytics/insight`, {
-      method: 'POST',
-      headers: getHeaders(apiKey),
-      body: JSON.stringify({ days }),
-    }, LONG_TIMEOUT_MS)
-  );
-  if (!res.ok) throw await errorFrom(res, 'Could not generate an insight');
   return res.json();
 }
 

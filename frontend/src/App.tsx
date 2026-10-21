@@ -96,7 +96,7 @@ export const App: React.FC = () => {
   const boundaryLatchRef = useRef<number | null>(null);
 
   // Lazily enrich each chapter with a Gemini-vision keyframe (thumbnail + visual
-  // insight) once a session loads. Fully opt-in: skipped when the backend reports
+  // description) once a session loads. Fully opt-in: skipped when the backend reports
   // the media toolchain is unavailable, and cancellable so a reset/new video stops it.
   const sessionVideoId = session?.video_id;
   useEffect(() => {

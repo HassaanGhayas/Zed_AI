@@ -7,7 +7,6 @@ import {
   Download,
   LogIn,
   RefreshCw,
-  Sparkles,
   TrendingDown,
   TrendingUp,
   Minus,
@@ -25,14 +24,13 @@ import {
   YAxis,
 } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
-import { exportAnalytics, fetchAnalyticsSummary, isForbiddenError, requestInsight } from '../lib/api';
+import { exportAnalytics, fetchAnalyticsSummary } from '../lib/api';
 import { fetchMonthlyTarget, saveMonthlyTarget } from '../lib/cloudSync';
 import {
   DASH,
   buildCurveData,
   consistencyPct,
   domainTone,
-  formatDueDate,
   formatHours,
   formatPercent,
   formatSignedDelta,
@@ -45,7 +43,7 @@ import {
   velocityTrend,
   type Trend,
 } from '../lib/analyticsFormat';
-import type { AnalyticsSummary, InsightResponse } from '../types';
+import type { AnalyticsSummary } from '../types';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -344,11 +342,10 @@ const Dashboard: React.FC<{ summary: AnalyticsSummary; days: Range; onRefresh: (
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-        <InsightCard key={days} days={days} disabled={empty} />
-        <div className="space-y-6 min-w-0">
-          <Card radius="lg" className="p-5">
-            <ReviewQueue variant="panel" onReviewed={onRefresh} />
-          </Card>
+        <Card radius="lg" className="p-5 min-w-0">
+          <ReviewQueue variant="panel" onReviewed={onRefresh} />
+        </Card>
+        <div className="min-w-0">
           <TargetSetting onSaved={onRefresh} />
         </div>
       </div>
@@ -620,63 +617,6 @@ const DomainMastery: React.FC<{ domains: AnalyticsSummary['domains'] }> = ({ dom
     )}
   </Card>
 );
-
-const InsightCard: React.FC<{ days: number; disabled: boolean }> = ({ days, disabled }) => {
-  const [state, setState] = useState<
-    { kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'unavailable' } | { kind: 'ready'; data: InsightResponse }
-  >({ kind: 'idle' });
-
-  // (Re-keyed by range in the parent, so a new range starts from a clean state.)
-  const ask = async () => {
-    setState({ kind: 'loading' });
-    try {
-      setState({ kind: 'ready', data: await requestInsight(days) });
-    } catch (err) {
-      setState(
-        isForbiddenError(err)
-          ? { kind: 'unavailable' }
-          : { kind: 'error', message: err instanceof Error ? err.message : 'Could not generate an insight.' }
-      );
-    }
-  };
-
-  return (
-    <Card radius="lg" className="p-5 space-y-3 bg-gradient-to-br from-ember-500/5 to-transparent">
-      <div className="flex items-center gap-2">
-        <Sparkles className="w-4 h-4 text-ember-400" aria-hidden="true" />
-        <h2 className="text-sm font-bold text-ink">AI tutor insight</h2>
-      </div>
-      <div aria-live="polite" className="text-sm text-ink-muted leading-relaxed">
-        {state.kind === 'idle' && (
-          <p>{disabled ? 'Answer a few checkpoints first, then ask for a personalised read-out.' : 'Get a short, personalised read-out of your last ' + days + ' days.'}</p>
-        )}
-        {state.kind === 'loading' && (
-          <div className="space-y-2" role="status" aria-busy="true">
-            <span className="sr-only">Generating insight</span>
-            <SkeletonLine className="w-full" />
-            <SkeletonLine className="w-5/6" />
-          </div>
-        )}
-        {state.kind === 'error' && <p role="alert" className="text-danger">{state.message}</p>}
-        {state.kind === 'unavailable' && (
-          <p role="status" className="text-ink-faint">AI insights are not available for guest sessions. Sign in with Google to use them.</p>
-        )}
-        {state.kind === 'ready' && (
-          <>
-            <p className="whitespace-pre-line text-ink">{state.data.insight}</p>
-            <p className="text-[11px] text-ink-faint mt-2">
-              Generated {formatDueDate(state.data.generated_at)}
-            </p>
-          </>
-        )}
-      </div>
-      <Button type="button" onClick={() => void ask()} loading={state.kind === 'loading'} disabled={disabled}>
-        <Sparkles className="w-4 h-4" aria-hidden="true" />
-        {state.kind === 'ready' ? 'Refresh insight' : 'Ask AI Tutor Insight'}
-      </Button>
-    </Card>
-  );
-};
 
 const TargetSetting: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
   const [value, setValue] = useState('');
