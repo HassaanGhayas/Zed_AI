@@ -319,7 +319,9 @@ export const App: React.FC = () => {
     setQaHistory(p.qaHistory);
   };
 
-  const handleBoundaryReached = () => {
+  const activeSegment = session?.segments[activeSegmentIndex];
+
+  const handleBoundaryReached = useCallback(() => {
     if (!session || !activeSegment) return;
     if (boundaryLatchRef.current === activeSegment.segment_id) return;
     boundaryLatchRef.current = activeSegment.segment_id;
@@ -335,21 +337,19 @@ export const App: React.FC = () => {
       return;
     }
     setIsPausedForQuiz(true);
-  };
+  }, [session, activeSegment, activeSegmentIndex, completedSegmentIds]);
 
   const handleTriggerQuiz = () => {
     setIsPausedForQuiz(true);
   };
 
-  const handleRewatchSegment = () => {
+  const handleRewatchSegment = useCallback(() => {
     boundaryLatchRef.current = null;
     setIsPausedForQuiz(false);
     if (activeSegment) {
       setSeekTime(activeSegment.start_time);
     }
-  };
-
-  const activeSegment = session?.segments[activeSegmentIndex];
+  }, [activeSegment]);
 
   const handleQuestionCompleted = (
     userAnswer: string,

@@ -32,7 +32,7 @@ interface VideoPlayerProps {
   onProgress?: () => void;
 }
 
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({
+const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
   videoId,
   activeSegment,
   segments,
@@ -745,12 +745,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         {/* Progress Bar for Segment */}
         <div className="w-full h-1.5 bg-cosmos-800 rounded-full overflow-hidden">
           <div
-            className={`h-full transition-all duration-200 ${
+            className={`h-full w-full origin-left transition-transform duration-1000 ease-linear ${
               isPausedForQuiz
                 ? 'bg-warning'
                 : 'bg-gradient-to-r from-ember-600 to-ember-500 shadow-[0_0_10px_rgba(255,81,0,0.45)]'
             }`}
-            style={{ width: `${progressPercent}%` }}
+            style={{ transform: `scaleX(${progressPercent / 100})` }}
           />
         </div>
       </div>
@@ -758,3 +758,5 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     </div>
   );
 };
+
+export const VideoPlayer = React.memo(VideoPlayerImpl);
