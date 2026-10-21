@@ -26,6 +26,7 @@ Requires `GOOGLE_API_KEY` (Gemini) via `backend/.env` or environment — or a pe
 npm run dev       # Vite dev server, http://localhost:5173
 npm run build     # tsc -b && vite build
 npm run lint      # oxlint
+npm test          # vitest
 npm run preview
 ```
 `VITE_API_URL` env var points the frontend at the backend (defaults to `http://localhost:8000`).
@@ -53,6 +54,16 @@ Gemini model selection falls back through `settings.gemini_candidate_models` (`a
 `App.tsx` owns the whole session state machine (video → segments → active segment → Q&A attempts → notes); components under `src/components/` are mostly presentational, driven by props/callbacks from `App.tsx`. `src/lib/api.ts` is the sole fetch boundary to the backend — every call reads `API_BASE` from `VITE_API_URL`. `src/lib/persistence.ts` / `sessionHistory.ts` handle local session resume; `src/contexts/ThemeContext.tsx` drives the light/dark token system in `index.css` (Tailwind v4).
 
 The video player (`VideoPlayer.tsx`) auto-pauses the embedded YouTube IFrame player at each segment's `end_time` and won't let the student skip ahead until the active-recall checkpoint (`SocraticQuiz.tsx`) is resolved — this lock/unlock state is the core UX invariant; changes to segment timing or Q&A flow must preserve it.
+
+### Supabase (optional) and analytics
+Supabase is opt-in: with its env vars unset, every route and screen behaves as before. Google OAuth only; the frontend talks to Supabase directly (RLS, own rows) for `video_sessions` and `qa_attempts`, and to the backend for everything shared or computed.
+- **Schema** lives in `supabase/migrations/0001`–`0003` and is applied by hand in the Supabase SQL Editor (no migration runner). All files are idempotent. Never put the service role key in the frontend.
+- **Backend** (`app/core/supabase.py`, `auth.py`): lazy service-role client (`None` when unset); `get_required_user` / `get_optional_user` verify the Supabase JWT (JWKS for asymmetric tokens, `SUPABASE_JWT_SECRET` for HS256) and are the only source of the user id. Anonymous Supabase tokens are rejected on write endpoints. Rate limiting keys by IP first, then user.
+- **Shared cache**: `transcript_service` reads disk → Supabase `transcript_cache` → YouTube; `routes_video` also caches Gemini segments keyed by `video_id` + `SEGMENTER_VERSION` (bump it when the segmenter prompt/schema changes). Heuristic results are never cached.
+- **Analytics** (`routes_analytics.py`, prefix `/api/analytics`): `record`, `study-time`, `summary`, `due`, `insight`, `export`. Spaced repetition lives in `scheduler_service` (recall `0.7 ** (elapsed / stability)`, so recall is exactly 0.70 at `next_due`; first review seeds strength from the score). Concepts are normalised in `concept_service`; the video domain comes from `domain_service` (fixed taxonomy, falls back to "Other").
+- **Frontend sync** (`src/lib/cloudSync.ts`, `contexts/AuthContext.tsx`): localStorage stays the primary store; cloud sync is best-effort, last-write-wins by `updated_at`, debounced, and paused after "Delete my cloud data". Local data owned by another user is never uploaded to the signed-in account. Analytics calls refresh the token once on a 401 (`requestWithAuthRetry` in `api.ts`).
+- **Analytics UI** (`AnalyticsView.tsx`, `ReviewQueue.tsx`, `components/ui/`) is lazy-loaded (recharts + `motion`) and shown as an overlay, not a route. Do not remove `isolate` from the player shell in `VideoPlayer.tsx`: it keeps the quiz panel's `z-50` from painting over that overlay.
+- **Invalid Gemini keys fail fast** (`_model_race.py`): a 400 `API_KEY_INVALID` stops the model race instead of trying every model; `/api/health` reports `gemini_key_configured` and, after a failed call, `gemini_key_valid`.
 
 ### Cross-cutting
 - CORS allow-list in `backend/app/core/config.py` (`cors_origins`) must include any new frontend deployment origin.

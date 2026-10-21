@@ -55,19 +55,25 @@ d:/ZED_AI/
 │   │   │   ├── routes_notes.py      # Personalized notes synthesis and PDF export
 │   │   │   └── routes_voice.py      # Voice input transcription for spoken answers
 │   │   ├── core/
-│   │   │   └── config.py            # Environment configuration & Gemini settings
+│   │   │   ├── config.py            # Environment configuration & Gemini settings
+│   │   │   └── rate_limit.py        # Per-IP rate limiting middleware
 │   │   ├── models/
 │   │   │   └── schemas.py           # Pydantic data schemas
 │   │   ├── services/
 │   │   │   ├── transcript_service.py# youtube-transcript-api fetcher
 │   │   │   ├── segmenter_service.py # Gemini semantic topic segmenter
 │   │   │   ├── evaluator_service.py # Socratic misconception evaluator
+│   │   │   ├── _model_race.py       # Parallel Gemini model fallback helper
 │   │   │   ├── notes_service.py     # Markdown study notes generator
 │   │   │   ├── visual_service.py    # Gemini vision keyframe "explain screen" analysis
 │   │   │   └── pdf_service.py       # ReportLab PDF styling & compilation
 │   │   └── main.py                  # FastAPI application entrypoint
-│   ├── test_backend.py              # End-to-end backend verification test
-│   └── requirements.txt
+│   ├── tests/                       # pytest unit tests (no network or API key needed)
+│   ├── test_backend.py              # End-to-end backend verification test (live services)
+│   ├── Dockerfile / .dockerignore   # Backend container image
+│   ├── .env.example                 # Backend environment template
+│   ├── requirements.txt
+│   └── requirements-dev.txt         # Adds pytest
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
@@ -81,37 +87,123 @@ d:/ZED_AI/
 │   │   │   ├── ThemeToggle.tsx      # Light/dark theme switch
 │   │   │   └── NotesModal.tsx       # Markdown notes preview & PDF download
 │   │   ├── lib/
-│   │   │   └── api.ts               # Backend API client
+│   │   │   ├── api.ts               # Backend API client
+│   │   │   ├── api.test.ts          # API client tests (vitest)
+│   │   │   ├── persistence.ts       # Local session resume
+│   │   │   └── persistence.test.ts
 │   │   ├── types/
 │   │   │   └── index.ts             # TypeScript definitions
 │   │   ├── App.tsx                  # Main orchestration component
 │   │   └── index.css                # Tailwind CSS v4 styling
+│   ├── .env.example                 # Frontend environment template
 │   ├── package.json
 │   └── vite.config.ts
+├── .github/workflows/ci.yml         # CI: backend pytest, frontend lint/test/build
+├── LICENSE
 └── README.md
 ```
 
 ---
 
-## ⚡ Quickstart Guide
+## Setup
 
-### 1. Start the Backend (FastAPI)
+Prerequisites: Python 3.12+, Node.js 22+, and a Gemini API key.
+
+```bash
+# Backend
+cd backend
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements-dev.txt
+cp .env.example .env                                  # then set GOOGLE_API_KEY
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+# Frontend (separate terminal)
+cd frontend
+npm ci
+cp .env.example .env                                  # optional locally
+npm run dev
+```
+
+- Frontend: `http://localhost:5173`
+- Swagger docs: `http://localhost:8000/docs`, health check: `http://localhost:8000/api/health`
+- Instead of a server key, users can paste their own Gemini key in the Navbar; it is sent per request as `X-Gemini-Key`.
+
+## Environment Variables
+
+Backend (`backend/.env`, see `backend/.env.example`):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `GOOGLE_API_KEY` | empty | Gemini API key (optional if clients send `X-Gemini-Key`) |
+| `WEBSHARE_PROXY_USERNAME` / `WEBSHARE_PROXY_PASSWORD` | empty | Webshare proxy for transcript fetching from cloud IPs |
+| `YOUTUBE_PROXY` | empty | Generic proxy URL for YouTube requests |
+| `YOUTUBE_COOKIES_TXT` | empty | Path to a Netscape cookies.txt (or its contents) |
+| `YOUTUBE_COOKIES_CONTENT` | empty | Cookies file contents as an env value |
+| `ENABLE_VISUAL_ANALYSIS` | `true` | Toggle yt-dlp/ffmpeg frame analysis |
+| `MEDIA_CACHE_TTL_HOURS` | `72` | Lifetime of cached media and frames |
+| `RATE_LIMIT_ENABLED` | `true` | Toggle per-IP rate limiting |
+| `RATE_LIMIT_PER_MINUTE` | `30` | Requests per IP per minute, per endpoint group |
+| `RATE_LIMIT_FRAME_PER_MINUTE` | `120` | Limit for frame image endpoints |
+| `MAX_AUDIO_BYTES` | `10485760` | Max voice upload size (10 MB) |
+| `UVICORN_RELOAD` | off | Dev-only auto-reload |
+| `SUPABASE_URL` | empty | Optional. Enables Supabase auth verification (JWKS) and the shared transcript/segment cache |
+| `SUPABASE_SERVICE_KEY` | empty | Optional. Service role key, server-side only |
+| `SUPABASE_JWT_SECRET` | empty | Optional. Only for legacy HS256 Supabase projects |
+
+Supabase is optional; with these unset the backend behaves exactly as without it. The schema lives in `supabase/migrations/0001_init.sql`. With it configured, `DELETE /api/me/data` (Bearer token required) erases the caller's synced sessions and Q&A attempts.
+
+Learning analytics (needs Supabase and migrations `0001`-`0003` applied manually; routes return `503 {"detail":"Supabase not configured"}` otherwise). All require a Bearer token and are rate limited:
+
+| Route | Purpose |
+|---|---|
+| `POST /api/analytics/record` | Record a graded attempt; updates per-concept spaced-repetition state |
+| `POST /api/analytics/study-time` | Add study seconds to a day (atomic RPC `add_study_seconds`, capped at 24h) |
+| `GET /api/analytics/summary?days=30` | Retention, velocity, consistency, decay, projected curve, domain mastery |
+| `GET /api/analytics/due?limit=20` | Concepts due for review with their original question |
+| `POST /api/analytics/insight` | 2-3 sentence AI insight from the summary only (honours `X-Gemini-Key`; cached per day) |
+| `GET /api/analytics/export?format=csv\|pdf&days=30` | Progress export (no answers included) |
+
+`DELETE /api/me/data` also erases concepts, review events, study days and settings.
+
+Frontend (`frontend/.env`, see `frontend/.env.example`):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `VITE_API_URL` | `http://localhost:8000` | Backend base URL, no trailing slash |
+
+CORS origins and Gemini model candidates live in `backend/app/core/config.py`.
+
+## Running Tests and CI
+
+```bash
+cd backend && pytest                     # unit tests, no network or API key required
+cd frontend && npm run lint && npm test && npm run build
+```
+
+GitHub Actions (`.github/workflows/ci.yml`) runs both on every push and pull request to `main`.
+
+## Docker
 
 ```bash
 cd backend
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+docker build -t studify-backend .
+docker run --rm -p 8000:8000 --env-file .env studify-backend
+# custom port: docker run --rm -e PORT=9000 -p 9000:9000 --env-file .env studify-backend
 ```
-- Interactive Swagger documentation: `http://localhost:8000/docs`
-- Health check: `http://localhost:8000/api/health`
 
-### 2. Start the Frontend (Vite + React)
+The image runs as a non-root user and includes a `/api/health` healthcheck. Only the bundled demo transcripts in `backend/.cache/transcripts/` are baked in; other cache content is excluded.
 
-In a separate terminal:
-```bash
-cd frontend
-npm run dev
-```
-- Open `http://localhost:5173` in your browser.
+## Deployment Notes
+
+- **Frontend**: deploy `frontend/` to Vercel (root directory `frontend`) and set `VITE_API_URL` to the backend URL. No rewrites are needed because the app is a single page.
+- **Backend**: deploy the container to any host that sets `PORT`.
+- **CORS**: add the frontend origin to `cors_origins` in `backend/app/core/config.py`.
+- **Rate limiting**: the container starts uvicorn with `--proxy-headers --forwarded-allow-ips='*'` so limits apply to real client IPs behind a reverse proxy. Only expose it behind a trusted proxy.
+- **YouTube blocking**: cloud IPs are often blocked from fetching transcripts. Set the proxy variables (preferred) or the cookies variables listed above.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
 
 ---
 
