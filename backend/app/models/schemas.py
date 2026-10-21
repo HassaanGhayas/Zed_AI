@@ -1,4 +1,3 @@
-from datetime import date
 from typing import Annotated, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field, StringConstraints
 
@@ -178,10 +177,3 @@ class RecordRequest(BaseModel):
     # Optional source-question details stored on the attempt row so /due can rebuild the card.
     expected_concept: Optional[str] = Field(default=None, max_length=500)
     hints: Optional[List[str]] = Field(default=None, max_length=10)
-
-class StudyTimeRequest(BaseModel):
-    seconds: int = Field(ge=1, le=3600)
-    day: Optional[date] = None
-
-class InsightRequest(BaseModel):
-    days: int = Field(default=30, ge=1, le=365)

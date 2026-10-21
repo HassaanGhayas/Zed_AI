@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Navbar } from './components/Navbar';
 import { LandingPage } from './components/landing/LandingPage';
@@ -8,12 +8,8 @@ import { SocraticQuiz } from './components/SocraticQuiz';
 import { NotesModal } from './components/NotesModal';
 import { AiTutorPanel } from './components/AiTutorPanel';
 import { ProgressView } from './components/ProgressView';
-const AnalyticsView = lazy(() => import('./components/AnalyticsView').then((m) => ({ default: m.AnalyticsView })));
-import { SkeletonLine, SkeletonBlock } from './components/ui/Skeleton';
 import { Button } from './components/ui/Button';
 import { ReviewQueue } from './components/ReviewQueue';
-import { useAuth } from './contexts/AuthContext';
-import { noteStudyActivity, setStudyActivity, startStudyTimeTracking } from './lib/studyTime';
 import type { VideoSession, QAHistoryItem } from './types';
 import { processVideo, segmentVisual, visualAvailability, frameUrl } from './lib/api';
 import {
@@ -26,29 +22,6 @@ import { saveSessionToHistory } from './lib/sessionHistory';
 import { scheduleSessionSync, recordQaAttempt, onLocalDataForeign } from './lib/cloudSync';
 import { CloudLibrary } from './components/CloudLibrary';
 import { useRetryableAsync } from './hooks/useRetryableAsync';
-
-/** Lightweight placeholder while the lazy AnalyticsView chunk loads. */
-const AnalyticsFallback: React.FC = () => (
-  <div className="fixed inset-x-0 bottom-0 top-16 z-30 overflow-y-auto bg-surface" role="status" aria-busy="true">
-    <span className="sr-only">Loading analytics</span>
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6">
-      <div>
-        <h1 className="font-display text-xl sm:text-2xl font-bold text-ink tracking-tight">Learning Analytics</h1>
-        <p className="text-xs text-ink-faint">Retention, pace and weak spots across all your sessions</p>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="rounded-lg border border-line-soft bg-raised p-5 space-y-3">
-            <SkeletonLine className="w-1/3" />
-            <SkeletonLine className="w-1/2 h-8" />
-            <SkeletonLine className="w-2/3" />
-          </div>
-        ))}
-      </div>
-      <SkeletonBlock className="w-full h-56" />
-    </div>
-  </div>
-);
 
 export const App: React.FC = () => {
   // Restore the last study session (video + chapter + mastery) on reload so a
@@ -88,8 +61,6 @@ export const App: React.FC = () => {
   );
   const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [isProgressOpen, setIsProgressOpen] = useState(false);
-  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
-  const { enabled: authEnabled } = useAuth();
   // Lifted out of Navbar so the landing page's footer can open the same modal.
   const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
   // Latch so one boundary crossing can't fire twice (interval tick race), and so
@@ -97,7 +68,7 @@ export const App: React.FC = () => {
   const boundaryLatchRef = useRef<number | null>(null);
 
   // Lazily enrich each chapter with a Gemini-vision keyframe (thumbnail + visual
-  // insight) once a session loads. Fully opt-in: skipped when the backend reports
+  // description) once a session loads. Fully opt-in: skipped when the backend reports
   // the media toolchain is unavailable, and cancellable so a reset/new video stops it.
   const sessionVideoId = session?.video_id;
   useEffect(() => {
@@ -167,15 +138,6 @@ export const App: React.FC = () => {
     // not re-trigger itself as segments gain visual fields.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionVideoId]);
-
-  // Active study-time tracking (no-op unless Supabase is configured and the user is signed in).
-  useEffect(() => startStudyTimeTracking(), []);
-  useEffect(() => {
-    setStudyActivity('quiz', Boolean(session) && isPausedForQuiz);
-    return () => setStudyActivity('quiz', false);
-  }, [session, isPausedForQuiz]);
-  const handlePlayingChange = useCallback((playing: boolean) => setStudyActivity('video', playing), []);
-  const handleVideoProgress = useCallback(() => noteStudyActivity(), []);
 
   // Persist progress on every change so a refresh resumes the same session.
   useEffect(() => {
@@ -467,20 +429,18 @@ export const App: React.FC = () => {
         canViewNotes={qaHistory.length > 0}
         notesCount={qaHistory.length}
         onOpenProgress={() => setIsProgressOpen(true)}
-        onOpenAnalytics={authEnabled ? () => setIsAnalyticsOpen(true) : undefined}
         needsReviewCount={needsReviewSegmentIds.size}
         isKeyModalOpen={isKeyModalOpen}
         onOpenKeyModal={() => setIsKeyModalOpen(true)}
         onCloseKeyModal={() => setIsKeyModalOpen(false)}
       />
 
-      <main id="main-content" inert={isAnalyticsOpen} className="flex-1 w-full mx-auto flex flex-col">
+      <main id="main-content" className="flex-1 w-full mx-auto flex flex-col">
         {/* Full-bleed landing sections manage their own max-w-7xl/padding internally
             (via the fullBleed utility) since CTA bands need to span the viewport;
             the active-session view below still gets the standard padded container. */}
         {!session && <CloudLibrary onResume={handleResumeCloud} />}
-        {/* Not while the analytics overlay is open: it hosts its own queue and two instances would clobber the 'review' study source. */}
-        {!session && !isAnalyticsOpen && <ReviewQueue variant="landing" />}
+        {!session && <ReviewQueue variant="landing" />}
         {!session ? (
           <LandingPage
             onProcess={handleProcessVideo}
@@ -561,8 +521,6 @@ export const App: React.FC = () => {
                     onBoundaryReached={handleBoundaryReached}
                     seekTime={seekTime}
                     onRewatchSegment={handleRewatchSegment}
-                    onPlayingChange={handlePlayingChange}
-                    onProgress={handleVideoProgress}
                     quizOverlay={
                       <SocraticQuiz
                         videoId={session.video_id}
@@ -606,13 +564,6 @@ export const App: React.FC = () => {
           </div>
         )}
       </main>
-
-      {/* Learning analytics dashboard (signed-in; overlays the page, session stays intact underneath) */}
-      {authEnabled && isAnalyticsOpen && (
-        <Suspense fallback={<AnalyticsFallback />}>
-          <AnalyticsView onClose={() => setIsAnalyticsOpen(false)} />
-        </Suspense>
-      )}
 
       {/* Synthesized Notes & PDF Export Modal */}
       {session && (

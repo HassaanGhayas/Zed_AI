@@ -3,7 +3,7 @@
 Memory model: recall decays as R(t) = 0.7 ** (t / S), where S is the stability
 in days, so R is exactly AT_RISK_RECALL (0.70) when a review becomes due
 (`stability_days` after the last one). A successful review grows S; a failed
-one resets it. Scheduler, summary and curve all use this same formula.
+one resets it. Scheduler and /due use this same formula.
 """
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone

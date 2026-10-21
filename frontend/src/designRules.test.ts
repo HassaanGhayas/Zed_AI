@@ -209,9 +209,8 @@ describe('design rules', () => {
     });
   });
 
-  describe('insights and review (Task 11 scope)', () => {
+  describe('review (Task 11 scope)', () => {
     const scope11 = (rel: string) =>
-      rel === 'components/AnalyticsView.tsx' ||
       rel === 'components/ReviewQueue.tsx' ||
       rel === 'components/ReviewModal.tsx';
     const outside11 = (rel: string) => !scope11(rel);
@@ -219,7 +218,7 @@ describe('design rules', () => {
       /[\s"'`:]!-?[a-z]+-|-[\w.\]/%)]+!(?=[\s"'`]|$)|(?:^|[\s"'`:])(?:!(?:absolute|relative|fixed|sticky|static|hidden|block|inline|flex|grid|contents|border|rounded|shadow|truncate|italic|underline|uppercase|visible|invisible|grow|shrink|transition)|(?:absolute|relative|fixed|sticky|static|hidden|block|inline|flex|grid|contents|border|rounded|shadow|truncate|italic|underline|uppercase|visible|invisible|grow|shrink|transition)!)(?=[\s"'`]|$)/;
 
     it('scope matches files', () => {
-      expect(files.filter((f) => scope11(f.rel)).length).toBe(3);
+      expect(files.filter((f) => scope11(f.rel)).length).toBe(2);
     });
     it('no text-[10px] / text-[11px]', () => {
       expect(offenders(/text-\[1[01]px\]/, outside11)).toEqual([]);

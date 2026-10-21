@@ -522,30 +522,6 @@ class PdfService:
         # Match single $...$ but skip $$...$$ (display math)
         return re.sub(r'(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)', _repl, text)
 
-    def plain_text_pdf(self, title: str, text: str) -> bytes:
-        """Minimal, markup-free PDF used as a fallback when rich rendering fails."""
-        from reportlab.pdfgen import canvas
-        from reportlab.lib.utils import simpleSplit
-
-        buf = io.BytesIO()
-        c = canvas.Canvas(buf, pagesize=letter)
-        c.setTitle(str(title)[:200])
-        y = PAGE_H - 60
-        c.setFont("Helvetica-Bold", 14)
-        c.drawString(MARGIN_X, y, str(title)[:100])
-        y -= 28
-        c.setFont("Helvetica", 10)
-        for raw in str(text).splitlines() or [""]:
-            for line in simpleSplit(raw, "Helvetica", 10, AVAIL_W) or [""]:
-                if y < 50:
-                    c.showPage()
-                    c.setFont("Helvetica", 10)
-                    y = PAGE_H - 50
-                c.drawString(MARGIN_X, y, line)
-                y -= 14
-        c.save()
-        return buf.getvalue()
-
     def _format_inline_markdown(self, text: str) -> str:
         """Convert markdown bold/italic/code/links/LaTeX to ReportLab tags."""
         # 1. Escape XML entities

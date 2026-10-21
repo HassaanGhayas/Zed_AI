@@ -176,23 +176,6 @@ class FakeSupabase:
     def table(self, name):
         return _Query(self, name)
 
-    def rpc(self, name, params):
-        db = self
-
-        class _Rpc:
-            def execute(self_inner):
-                assert name == "add_study_seconds"
-                rows = db.tables.setdefault("study_days", [])
-                hit = next((r for r in rows if r["user_id"] == params["p_user"] and r["day"] == params["p_day"]), None)
-                if hit is None:
-                    hit = {"user_id": params["p_user"], "day": params["p_day"], "seconds": 0}
-                    rows.append(hit)
-                hit["seconds"] = min(hit["seconds"] + params["p_seconds"], 86400)
-                return SimpleNamespace(data=hit["seconds"])
-
-        return _Rpc()
-
-
 @pytest.fixture
 def db():
     fake = FakeSupabase()
@@ -200,7 +183,6 @@ def db():
             patch("app.api.routes_analytics.get_supabase", return_value=fake), \
             patch("app.api.routes_analytics._now", return_value=NOW):
         reset_rate_limits()
-        ra.reset_insight_cache()
         yield fake
         reset_rate_limits()
 
@@ -315,11 +297,7 @@ class TestDomain:
 
 ROUTES = [
     ("post", "/api/analytics/record", _record_body()),
-    ("post", "/api/analytics/study-time", {"seconds": 10}),
-    ("get", "/api/analytics/summary", None),
     ("get", "/api/analytics/due", None),
-    ("post", "/api/analytics/insight", {"days": 30}),
-    ("get", "/api/analytics/export", None),
 ]
 
 
@@ -346,12 +324,7 @@ class TestAuthAndConfig:
     def test_validation(self, db):
         assert client.post("/api/analytics/record", json=_record_body(score=101), headers=_h()).status_code == 422
         assert client.post("/api/analytics/record", json=_record_body(status="MAYBE"), headers=_h()).status_code == 422
-        assert client.post("/api/analytics/study-time", json={"seconds": 0}, headers=_h()).status_code == 422
-        assert client.post("/api/analytics/study-time", json={"seconds": 3601}, headers=_h()).status_code == 422
-        assert client.get("/api/analytics/summary?days=0", headers=_h()).status_code == 422
-        assert client.get("/api/analytics/summary?days=366", headers=_h()).status_code == 422
         assert client.get("/api/analytics/due?limit=51", headers=_h()).status_code == 422
-        assert client.get("/api/analytics/export?format=xml", headers=_h()).status_code == 422
 
 
 # ───────────────────────────── record ─────────────────────────────
@@ -411,30 +384,6 @@ class TestRecord:
         assert "AIza-secret-key" not in caplog.text
 
 
-# ───────────────────────────── study time ─────────────────────────────
-
-class TestStudyTime:
-    def test_accumulates_and_caps(self, db):
-        assert client.post("/api/analytics/study-time", json={"seconds": 600}, headers=_h()).json() == {
-            "day": "2026-10-21", "seconds": 600}
-        assert client.post("/api/analytics/study-time", json={"seconds": 600}, headers=_h()).json()["seconds"] == 1200
-        db.tables["study_days"][0]["seconds"] = 86000
-        assert client.post("/api/analytics/study-time", json={"seconds": 3600}, headers=_h()).json()["seconds"] == 86400
-
-    def test_explicit_day_and_range(self, db):
-        r = client.post("/api/analytics/study-time", json={"seconds": 60, "day": "2026-10-20"}, headers=_h())
-        assert r.json()["day"] == "2026-10-20"
-        assert client.post("/api/analytics/study-time", json={"seconds": 60, "day": "2030-01-01"}, headers=_h()).status_code == 422
-        assert client.post("/api/analytics/study-time", json={"seconds": 60, "day": "2020-01-01"}, headers=_h()).status_code == 422
-
-    def test_per_user(self, db):
-        client.post("/api/analytics/study-time", json={"seconds": 60}, headers=_h())
-        client.post("/api/analytics/study-time", json={"seconds": 90}, headers=_h(OTHER))
-        assert sorted((r["user_id"], r["seconds"]) for r in db.tables["study_days"]) == sorted([(USER, 60), (OTHER, 90)])
-
-
-# ───────────────────────────── summary ─────────────────────────────
-
 def _attempt(user, days_ago, score, ms=None, keys=None, **extra):
     return {"user_id": user, "created_at": _iso(NOW - timedelta(days=days_ago)), "score": score,
             "time_spent_ms": ms, "concept_keys": keys or [], "question": f"Q{days_ago}", "verdict": "CORRECT",
@@ -447,110 +396,6 @@ def _concept(user, key, domain, strength, stability, last_days_ago, due_in_days,
             "strength": strength, "stability_days": stability, "reps": 1, "lapses": 0,
             "last_reviewed": _iso(last), "next_due": _iso(NOW + timedelta(days=due_in_days))}
 
-
-class TestSummary:
-    def test_empty(self, db):
-        s = client.get("/api/analytics/summary", headers=_h()).json()
-        assert s["retention"] == {"value": None, "delta": None}
-        assert s["velocity"] == {"median_seconds_per_concept": None, "delta_pct": None, "fastest_domain": None}
-        assert s["curve"]["days"] == [] and s["curve"]["recall"] == [] and s["curve"]["natural"] == []
-        assert s["curve"]["reviews"] == [] and "projection" in s["curve"]["note"]
-        assert s["domains"] == [] and s["totals"] == {"attempts": 0, "concepts": 0}
-        assert s["decay"]["at_risk_count"] == 0 and s["decay"]["overdue_count"] == 0
-        assert s["decay"]["top_at_risk"] == [] and s["decay"]["note"]
-        assert s["consistency"]["hours"] == 0 and s["consistency"]["target_hours"] == 20
-        assert s["period"] == {"days": 30, "start": "2026-09-21", "end": "2026-10-21"}
-
-    def test_retention_velocity_deltas(self, db):
-        db.tables["qa_attempts"] = [
-            _attempt(USER, 2, 80, 20000, ["a"]), _attempt(USER, 5, 100, 40000, ["a", "b"]),   # current: avg 90
-            _attempt(USER, 40, 60, 60000, ["a"]),                                              # previous: 60
-            _attempt(USER, 3, 0, None, []),                                                    # current score 0
-            _attempt(OTHER, 1, 100, 1000, ["a"]),                                              # other user ignored
-            _attempt(USER, 100, 100),                                                          # too old
-        ]
-        db.tables["concepts"] = [_concept(USER, "a", "Physics", 0.5, 5, 1, 4)]
-        s = client.get("/api/analytics/summary?days=30", headers=_h()).json()
-        assert s["retention"]["value"] == pytest.approx(60.0)          # (80+100+0)/3
-        assert s["retention"]["delta"] == pytest.approx(0.0)
-        assert s["totals"]["attempts"] == 3
-        # per-concept seconds: 20, 20 -> median 20; previous 60 -> -66.7%
-        assert s["velocity"]["median_seconds_per_concept"] == 20
-        assert s["velocity"]["delta_pct"] == pytest.approx(-66.7)
-        assert s["velocity"]["fastest_domain"] == "Physics"
-
-    def test_delta_null_without_prior_period(self, db):
-        db.tables["qa_attempts"] = [_attempt(USER, 1, 70)]
-        s = client.get("/api/analytics/summary", headers=_h()).json()
-        assert s["retention"] == {"value": 70.0, "delta": None}
-
-    def test_consistency_target_and_pct_cap(self, db):
-        db.tables["study_days"] = [
-            {"user_id": USER, "day": "2026-10-20", "seconds": 3600 * 30},
-            {"user_id": USER, "day": "2026-09-10", "seconds": 7200},   # previous period (days 30..60)
-            {"user_id": OTHER, "day": "2026-10-20", "seconds": 9999},
-        ]
-        db.tables["user_settings"] = [{"user_id": USER, "monthly_target_hours": 10}]
-        c = client.get("/api/analytics/summary", headers=_h()).json()["consistency"]
-        assert c["hours"] == 30 and c["target_hours"] == 10 and c["pct"] == 100
-        assert c["delta_hours"] == pytest.approx(28.0)
-
-    def test_decay_and_domains(self, db):
-        db.tables["concepts"] = [
-            _concept(USER, "fresh", "Physics", 0.95, 30, 1, 29),                  # healthy, mastered
-            _concept(USER, "fading", "Physics", 0.85, 2, 3, 1, label="Fading One"),   # recall 0.7^1.5 -> at risk
-            _concept(USER, "overdue", "Biology", 0.4, 100, 2, -1),                # overdue
-            _concept(USER, "nodomain", None, 0.7, 30, 1, 29),
-            _concept(OTHER, "theirs", "Physics", 0.1, 1, 9, -9),
-        ]
-        s = client.get("/api/analytics/summary", headers=_h()).json()
-        assert s["decay"]["at_risk_count"] == 2 and s["decay"]["overdue_count"] == 1
-        top = s["decay"]["top_at_risk"]
-        assert [t["concept_key"] for t in top] == ["fading", "overdue"]   # lowest recall first
-        assert top[0]["label"] == "Fading One" and top[0]["predicted_recall"] == pytest.approx(0.7 ** 1.5, abs=1e-3)
-        doms = {d["domain"]: d for d in s["domains"]}
-        assert set(doms) == {"Physics", "Biology", "Other"}
-        assert doms["Physics"]["mastery"] == 90.0 and doms["Physics"]["status"] == "Mastered"
-        assert doms["Physics"]["concepts_tracked"] == 2
-        assert doms["Biology"]["status"] == "Action Needed"
-        assert doms["Other"]["status"] == "In Review"           # 70
-        assert [d["domain"] for d in s["domains"]] == ["Physics", "Biology", "Other"]
-        assert s["totals"]["concepts"] == 4
-
-    @pytest.mark.parametrize("mastery,status", [(95, "Mastered"), (90, "Mastered"), (85, "Advanced"), (80, "Advanced"),
-                                                (70, "In Review"), (65, "In Review"), (64.9, "Action Needed")])
-    def test_domain_thresholds(self, mastery, status):
-        assert ra._domain_status(mastery) == status
-
-    def test_curve_projection(self, db):
-        db.tables["review_events"] = [
-            {"user_id": USER, "concept_key": "a", "score": 90, "status": "CORRECT",
-             "reviewed_at": _iso(NOW - timedelta(days=4))},
-            {"user_id": USER, "concept_key": "a", "score": 90, "status": "CORRECT",
-             "reviewed_at": _iso(NOW - timedelta(days=2))},
-            {"user_id": OTHER, "concept_key": "z", "score": 10, "status": "INCORRECT",
-             "reviewed_at": _iso(NOW - timedelta(days=3))},
-        ]
-        curve = client.get("/api/analytics/summary", headers=_h()).json()["curve"]
-        assert curve["days"] == list(range(29))
-        assert len(curve["recall"]) == len(curve["natural"]) == len(curve["tracked"]) == 29
-        assert [r["day"] for r in curve["reviews"]] == [0, 2]
-        # natural = same concept decaying from its first review with no later reviews
-        assert curve["natural"][0] <= 100 and curve["natural"][1] < curve["natural"][0]
-        assert curve["natural"][2] < curve["recall"][2]
-        assert "projection" in curve["note"]
-        # a review on day 2 lifts recall above where it was the day before
-        assert curve["recall"][2] > curve["recall"][1]
-        assert curve["recall"][28] < curve["recall"][2]
-
-    def test_isolation(self, db):
-        db.tables["qa_attempts"] = [_attempt(OTHER, 1, 100, 1000, ["a"])]
-        db.tables["concepts"] = [_concept(OTHER, "a", "Physics", 1, 1, 9, -9)]
-        s = client.get("/api/analytics/summary", headers=_h()).json()
-        assert s["totals"] == {"attempts": 0, "concepts": 0}
-
-
-# ───────────────────────────── due ─────────────────────────────
 
 class TestDue:
     def _setup(self, db):
@@ -612,82 +457,14 @@ class TestDue:
         assert client.get("/api/analytics/due", headers=_h()).json() == {"total_due": 0, "items": []}
 
 
-# ───────────────────────────── insight ─────────────────────────────
-
-class TestInsight:
-    def test_heuristic_when_no_data(self, db):
-        r = client.post("/api/analytics/insight", json={"days": 30}, headers=_h())
-        assert r.status_code == 200
-        assert "No study activity" in r.json()["insight"] and r.json()["generated_at"]
-
-    def test_fallback_when_gemini_fails(self, db):
-        db.tables["qa_attempts"] = [_attempt(USER, 1, 80)]
-        with patch("app.api.routes_analytics._gemini_insight", side_effect=RuntimeError("down")):
-            r = client.post("/api/analytics/insight", json={"days": 30}, headers=_h())
-        assert r.status_code == 200 and "80%" in r.json()["insight"]
-
-    def test_gemini_text_cached_per_user_per_day(self, db):
-        db.tables["qa_attempts"] = [_attempt(USER, 1, 80)]
-        with patch("app.api.routes_analytics._gemini_insight", return_value="Great work.") as g:
-            h = {**_h(), "X-Gemini-Key": "k"}
-            a = client.post("/api/analytics/insight", json={"days": 30}, headers=h).json()
-            b = client.post("/api/analytics/insight", json={"days": 30}, headers=h).json()
-            assert a == b and a["insight"] == "Great work." and g.call_count == 1
-            assert g.call_args.args[1] == "k"
-            db.tables["qa_attempts"].append(_attempt(OTHER, 1, 50))
-            client.post("/api/analytics/insight", json={"days": 30}, headers={**_h(OTHER), "X-Gemini-Key": "k"})
-            assert g.call_count == 2    # other user has their own cache entry
-
-    def test_prompt_contains_only_summary(self, db):
-        db.tables["qa_attempts"] = [_attempt(USER, 1, 80)]
-        sent = {}
-
-        def fake(summary, key):
-            sent["s"] = str(summary)
-            return "ok"
-
-        with patch("app.api.routes_analytics._gemini_insight", side_effect=fake):
-            client.post("/api/analytics/insight", json={"days": 30}, headers=_h())
-        assert "TOP-SECRET" not in sent["s"]
-
-    def test_cache_is_bounded(self, db):
-        for i in range(ra._INSIGHT_CACHE_MAX + 5):
-            ra._insight_cache[(str(i), "d", 30)] = {"insight": "x", "generated_at": "t"}
-            while len(ra._insight_cache) > ra._INSIGHT_CACHE_MAX:
-                ra._insight_cache.popitem(last=False)
-        assert len(ra._insight_cache) == ra._INSIGHT_CACHE_MAX
-
-
-# ───────────────────────────── export ─────────────────────────────
-
-class TestExport:
-    def test_csv_has_no_answers(self, db):
-        db.tables["qa_attempts"] = [_attempt(USER, 1, 80, question="=HYPERLINK(\"x\")"), _attempt(OTHER, 1, 50, question="THEIRS")]
-        db.tables["concepts"] = [_concept(USER, "a", "Physics", 0.9, 5, 1, 4)]
-        r = client.get("/api/analytics/export?format=csv&days=30", headers=_h())
-        assert r.status_code == 200
-        assert r.headers["content-disposition"].startswith("attachment;")
-        assert r.headers["content-type"].startswith("text/csv")
-        text = r.text
-        assert "TOP-SECRET" not in text and "THEIRS" not in text
-        assert "question,score,verdict,date" in text and "domain,mastery" in text
-        assert "'=HYPERLINK" in text      # formula injection neutralised
-
-    def test_pdf(self, db):
-        db.tables["qa_attempts"] = [_attempt(USER, 1, 80)]
-        r = client.get("/api/analytics/export?format=pdf", headers=_h())
-        assert r.status_code == 200 and r.content.startswith(b"%PDF")
-        assert "attachment" in r.headers["content-disposition"] and r.headers["content-disposition"].endswith('.pdf"')
-
-
 # ───────────────────────────── delete ─────────────────────────────
 
 class TestDelete:
     def test_delete_covers_new_tables_for_caller_only(self, db):
-        for t in ("concepts", "review_events", "study_days", "user_settings", "qa_attempts", "video_sessions"):
+        for t in ("concepts", "review_events", "user_settings", "qa_attempts", "video_sessions"):
             db.tables[t] = [{"user_id": USER, "x": 1}, {"user_id": OTHER, "x": 2}]
         with patch("app.api.routes_me.get_supabase", return_value=db):
             r = client.delete("/api/me/data", headers=_h())
         assert r.status_code == 200
-        for t in ("concepts", "review_events", "study_days", "user_settings", "qa_attempts", "video_sessions"):
+        for t in ("concepts", "review_events", "user_settings", "qa_attempts", "video_sessions"):
             assert db.tables[t] == [{"user_id": OTHER, "x": 2}], t

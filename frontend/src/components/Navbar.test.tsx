@@ -59,30 +59,14 @@ beforeEach(() => {
 const DISPLAY = ['inline-flex', 'flex', 'block', 'inline-block', 'inline', 'grid', 'inline-grid'];
 
 describe('Navbar', () => {
-  it('auth disabled: renders theme and API key controls, no Sign in, no Insights, no account menu', () => {
-    // Insights is gated in App (`authEnabled ? fn : undefined`), so with auth off the prop is absent.
+  it('auth disabled: renders theme and API key controls, no Sign in, no account menu', () => {
     const html = render();
     expect(html).toContain('Switch to dark mode');
     expect(html).toContain('Manage Gemini API Key');
     expect(html).not.toContain('Sign in');
-    expect(html).not.toContain('Insights');
     expect(html).not.toContain('Account menu');
     expect(html).not.toContain('role="menu"'); // menu is closed
     expect(html).toContain('More options'); // sm-only overflow trigger (theme + API key) is intended with auth off
-  });
-
-  it('renders Insights when onOpenAnalytics is passed (the auth gate is the App responsibility)', () => {
-    const html = renderToStaticMarkup(
-      <Navbar
-        hasActiveSession={false}
-        onReset={vi.fn()}
-        onOpenAnalytics={vi.fn()}
-        isKeyModalOpen={false}
-        onOpenKeyModal={vi.fn()}
-        onCloseKeyModal={vi.fn()}
-      />
-    );
-    expect(html).toContain('Insights');
   });
 
   it('auth enabled and signed out: renders Sign in, no account menu', () => {

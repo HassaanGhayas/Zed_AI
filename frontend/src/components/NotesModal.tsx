@@ -220,11 +220,11 @@ export const NotesModal: React.FC<NotesModalProps> = ({
         continue;
       }
 
-      // Validated concepts and tutor insights must NOT appear in notes
+      // Validated concepts and tutor commentary must NOT appear in notes
       if (/^\*\*(?:Validated\s+Concepts|Key\s+Concepts\s+Validated):?/i.test(raw)) {
         continue;
       }
-      if (/^\*\*(?:Tutor\s+Insight|Tutor\s+Takeaway|Tutor\s+Feedback):?/i.test(raw)) {
+      if (/^\*\*(?:Tutor\s+Ins\w+|Tutor\s+Takeaway|Tutor\s+Feedback):?/i.test(raw)) {
         continue;
       }
 

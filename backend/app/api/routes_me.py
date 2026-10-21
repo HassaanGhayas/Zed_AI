@@ -2,7 +2,6 @@ import asyncio
 import logging
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.api.routes_analytics import evict_user_insights
 from app.core.auth import get_required_user
 from app.core.rate_limit import rate_limit
 from app.core.supabase import get_supabase
@@ -28,7 +27,6 @@ async def delete_my_data(user_id: str = Depends(get_required_user)):
         raise HTTPException(status_code=503, detail="Cloud sync is not configured on this server.")
     try:
         await asyncio.to_thread(_delete_user_rows, client, user_id)
-        evict_user_insights(user_id)
     except Exception:
         logger.exception("Failed to delete user data")
         raise HTTPException(status_code=500, detail="Could not delete your data. Please try again.")

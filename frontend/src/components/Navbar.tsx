@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Key, Video, FileText, CheckCircle2, X, PieChart, BarChart3, LogIn, LogOut, Trash2, BookOpen, MoreHorizontal, Sun, Moon } from 'lucide-react';
+import { Key, Video, FileText, CheckCircle2, X, PieChart, LogIn, LogOut, Trash2, BookOpen, MoreHorizontal, Sun, Moon } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { Modal } from './ui/Modal';
 import { Badge } from './ui/Badge';
@@ -18,8 +18,6 @@ interface NavbarProps {
   canViewNotes?: boolean;
   notesCount?: number;
   onOpenProgress?: () => void;
-  /** Provided only when Supabase auth is configured; opens the cloud analytics dashboard. */
-  onOpenAnalytics?: () => void;
   needsReviewCount?: number;
   /** Lifted so the landing page's footer can trigger the same modal. */
   isKeyModalOpen: boolean;
@@ -34,7 +32,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   canViewNotes,
   notesCount = 0,
   onOpenProgress,
-  onOpenAnalytics,
   needsReviewCount = 0,
   isKeyModalOpen,
   onOpenKeyModal,
@@ -170,18 +167,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {needsReviewCount > 0 && (
                   <span className="w-2 h-2 rounded-full bg-warning" title="Has topics needing review" />
                 )}
-              </Button>
-            )}
-
-            {onOpenAnalytics && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={onOpenAnalytics}
-                aria-label="Open learning analytics dashboard"
-              >
-                <BarChart3 className="w-4 h-4 text-ink-faint flex-shrink-0" />
-                <span className="hidden sm:inline">Insights</span>
               </Button>
             )}
 
@@ -331,7 +316,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Key className="w-4 h-4 text-warning flex-shrink-0" />
             <p className="text-xs text-ink-muted flex-1 min-w-[160px]">
               No Gemini API key set — Studify AI is running on built-in fallbacks.
-              Add a free key for full AI chaptering, answer evaluation & visual insights.
+              Add a free key for full AI chaptering, answer evaluation & visual explanations.
             </p>
             <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto sm:ml-0">
               <Button variant="secondary" size="sm" onClick={() => onOpenKeyModal()}>

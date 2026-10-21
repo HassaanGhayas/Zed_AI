@@ -8,10 +8,7 @@ import type {
   Segment,
   AnalyticsRecordPayload,
   AnalyticsRecordResponse,
-  AnalyticsSummary,
   DueResponse,
-  InsightResponse,
-  StudyTimeResponse,
 } from '../types';
 
 export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -390,9 +387,9 @@ export async function segmentVisual(
   return res.json();
 }
 
-// ── Analytics (signed-in only; bearer token, never the Gemini key except /insight) ──
+// ── Analytics (signed-in only; bearer token) ──
 
-/** Bearer-only headers: analytics calls must not carry the Gemini key (only /insight does). */
+/** Bearer-only headers: analytics calls must not carry the Gemini key. */
 function authOnlyHeaders(): Record<string, string> {
   if (!authToken) throw new Error('Sign in to use analytics.');
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` };
@@ -411,34 +408,6 @@ export async function recordAnalytics(payload: AnalyticsRecordPayload): Promise<
   return res.json();
 }
 
-/** `keepalive` lets the request survive page unload (pagehide flush). */
-export async function postStudyTime(
-  seconds: number,
-  day: string | null,
-  opts?: { keepalive?: boolean }
-): Promise<StudyTimeResponse> {
-  const res = await requestWithAuthRetry(() =>
-    request(`${API_BASE}/api/analytics/study-time`, {
-      method: 'POST',
-      headers: authOnlyHeaders(),
-      body: JSON.stringify({ seconds, day }),
-      ...(opts?.keepalive ? { keepalive: true } : {}),
-    })
-  );
-  if (!res.ok) throw await errorFrom(res, 'Could not record study time');
-  return res.json();
-}
-
-export async function fetchAnalyticsSummary(days: number): Promise<AnalyticsSummary> {
-  const res = await requestWithAuthRetry(() =>
-    request(`${API_BASE}/api/analytics/summary?days=${encodeURIComponent(String(days))}`, {
-      headers: authOnlyHeaders(),
-    })
-  );
-  if (!res.ok) throw await errorFrom(res, 'Could not load analytics');
-  return res.json();
-}
-
 export async function fetchDueQueue(limit = 20): Promise<DueResponse> {
   const res = await requestWithAuthRetry(() =>
     request(`${API_BASE}/api/analytics/due?limit=${encodeURIComponent(String(limit))}`, {
@@ -447,38 +416,4 @@ export async function fetchDueQueue(limit = 20): Promise<DueResponse> {
   );
   if (!res.ok) throw await errorFrom(res, 'Could not load your review queue');
   return res.json();
-}
-
-/** Asks the AI tutor for an insight; the only analytics call that forwards the Gemini key. */
-export async function requestInsight(days: number, apiKey?: string): Promise<InsightResponse> {
-  if (!authToken) throw new Error('Sign in to use analytics.');
-  const res = await requestWithAuthRetry(() =>
-    request(`${API_BASE}/api/analytics/insight`, {
-      method: 'POST',
-      headers: getHeaders(apiKey),
-      body: JSON.stringify({ days }),
-    }, LONG_TIMEOUT_MS)
-  );
-  if (!res.ok) throw await errorFrom(res, 'Could not generate an insight');
-  return res.json();
-}
-
-export async function exportAnalytics(format: 'csv' | 'pdf', days: number): Promise<void> {
-  const res = await requestWithAuthRetry(() =>
-    request(
-      `${API_BASE}/api/analytics/export?format=${format}&days=${encodeURIComponent(String(days))}`,
-      { headers: authOnlyHeaders() },
-      LONG_TIMEOUT_MS
-    )
-  );
-  if (!res.ok) throw await errorFrom(res, `Could not export ${format.toUpperCase()}`);
-  const blob = await res.blob();
-  const url = window.URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `studify-analytics-${days}d.${format}`;
-  document.body.appendChild(a);
-  a.click();
-  window.URL.revokeObjectURL(url);
-  document.body.removeChild(a);
 }
