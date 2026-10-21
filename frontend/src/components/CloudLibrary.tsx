@@ -39,9 +39,9 @@ export const CloudLibrary: React.FC<CloudLibraryProps> = ({ onResume }) => {
 
   return (
     <section aria-label="Resume from your cloud library" className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-6">
-      <div className="p-4 rounded-xl bg-sunken/30 border border-line-soft space-y-3">
+      <div className="p-4 rounded-lg bg-raised border border-line-soft shadow-card space-y-3">
         <h2 className="text-xs font-bold uppercase tracking-wider text-ink-faint flex items-center gap-1.5">
-          <Cloud className="w-3.5 h-3.5 text-ember-400" /> Continue where you left off
+          <Cloud className="w-3.5 h-3.5 text-accent" /> Continue where you left off
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {items.map(({ row, persisted }) => {
@@ -52,15 +52,15 @@ export const CloudLibrary: React.FC<CloudLibraryProps> = ({ onResume }) => {
                 key={row.client_session_id}
                 type="button"
                 onClick={() => onResume(persisted)}
-                className="p-3 min-h-[44px] rounded-lg bg-raised/70 border border-line-soft hover:border-ember-500/40 flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
+                className="p-3 min-h-[44px] rounded-md bg-sunken border border-line-soft hover:border-accent/40 flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block text-xs font-semibold text-ink truncate">{row.lecture_title}</span>
-                  <span className="block text-[10px] text-ink-faint">
+                  <span className="block text-xs text-ink-faint">
                     {done} / {total} topics · {row.status === 'complete' ? 'Completed' : 'In Progress'}
                   </span>
                 </span>
-                <PlayCircle className="w-5 h-5 text-ember-400 flex-shrink-0" aria-hidden="true" />
+                <PlayCircle className="w-5 h-5 text-accent flex-shrink-0" aria-hidden="true" />
                 <span className="sr-only">Resume</span>
               </button>
             );

@@ -2,11 +2,20 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type ButtonSize = 'md' | 'sm' | 'icon';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
+  /** md: default; sm: compact (toolbars); icon: square 44px tap target. */
+  size?: ButtonSize;
   loading?: boolean;
 }
+
+const sizeClasses: Record<ButtonSize, string> = {
+  md: 'px-4 py-2 text-sm',
+  sm: 'px-2.5 sm:px-3 py-2 text-xs sm:text-sm',
+  icon: 'min-w-[44px] p-0 text-sm',
+};
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
@@ -18,11 +27,11 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ variant = 'primary', loading = false, disabled, className = '', children, ...rest }, ref) => (
+  ({ variant = 'primary', size = 'md', loading = false, disabled, className = '', children, ...rest }, ref) => (
     <button
       ref={ref}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2 rounded-md text-sm font-semibold transition-[color,background-color,border-color,transform] duration-150 cursor-pointer active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 ${variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-md font-semibold transition-[color,background-color,border-color,transform] duration-150 cursor-pointer active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
       {...rest}
     >
       {loading && <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />}

@@ -3,6 +3,7 @@ import { Key, Video, FileText, CheckCircle2, X, PieChart, BarChart3, LogIn, LogO
 import { ThemeToggle } from './ThemeToggle';
 import { Modal } from './ui/Modal';
 import { Badge } from './ui/Badge';
+import { Button } from './ui/Button';
 import { Logo } from './ui/Logo';
 import { getStoredGeminiKey, setStoredGeminiKey, deleteMyCloudData } from '../lib/api';
 import { useTheme } from '../contexts/ThemeContext';
@@ -138,13 +139,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       <header className="border-b border-line-soft bg-raised/90 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-accent flex items-center justify-center shadow-lg shadow-accent/30 flex-shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
               <Logo className="w-5 h-5 text-on-accent" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-display font-bold text-base sm:text-lg text-ink tracking-tight truncate">Studify AI</span>
-                <Badge tone="accent" className="hidden! min-[480px]:inline-flex! text-xs! flex-shrink-0">
+                <span className="font-display font-bold text-base sm:text-lg text-ink truncate">Studify AI</span>
+                <Badge tone="accent" className="hidden min-[480px]:inline-flex flex-shrink-0">
                   Active Recall
                 </Badge>
               </div>
@@ -158,76 +159,83 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Below sm, theme + API key live in the overflow/account menu so 5 controls fit at 320px. */}
             <div className="hidden sm:block"><ThemeToggle /></div>
             {onOpenProgress && (
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={onOpenProgress}
                 aria-label="View learning dashboard & progress"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-colors cursor-pointer"
               >
                 <PieChart className="w-4 h-4 text-ink-faint flex-shrink-0" />
                 <span className="hidden sm:inline">Analytics</span>
                 {needsReviewCount > 0 && (
                   <span className="w-2 h-2 rounded-full bg-warning" title="Has topics needing review" />
                 )}
-              </button>
+              </Button>
             )}
 
             {onOpenAnalytics && (
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={onOpenAnalytics}
                 aria-label="Open learning analytics dashboard"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-colors cursor-pointer"
               >
                 <BarChart3 className="w-4 h-4 text-ink-faint flex-shrink-0" />
                 <span className="hidden sm:inline">Insights</span>
-              </button>
+              </Button>
             )}
 
             {canViewNotes && onOpenNotes && (
-              <button
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={onOpenNotes}
                 aria-label="View study notes"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ember-800 dark:text-ember-200 bg-ember-500/10 dark:bg-ember-900/40 border border-ember-500/30 dark:border-ember-700/50 rounded-lg hover:bg-ember-500/20 dark:hover:bg-ember-900/60 transition-colors shadow-sm cursor-pointer"
               >
-                <FileText className="w-4 h-4 text-ember-600 dark:text-ember-400 flex-shrink-0" />
+                <FileText className="w-4 h-4 flex-shrink-0" />
                 <span className="hidden sm:inline">Study Notes</span>
                 {notesCount > 0 && (
-                  <Badge tone="accent" className="bg-ember-500/20! border-ember-500/30! font-bold! px-1.5! text-[10px]!">
+                  <span className="inline-flex items-center px-1.5 rounded-full bg-on-accent/15 text-xs font-bold">
                     {notesCount}
-                  </Badge>
+                  </span>
                 )}
-              </button>
+              </Button>
             )}
 
             {hasActiveSession && (
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={onReset}
                 aria-label="Start new video session"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-colors cursor-pointer"
               >
                 <Video className="w-4 h-4 text-ink-faint flex-shrink-0" />
                 <span className="hidden sm:inline">New Video</span>
-              </button>
+              </Button>
             )}
 
             {authEnabled && !authLoading && !user && (
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={() => void signInWithGoogle()}
                 aria-label="Sign in with Google"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-colors cursor-pointer"
               >
                 <LogIn className="w-4 h-4 text-ink-faint flex-shrink-0" />
                 <span className="hidden sm:inline">Sign in</span>
-              </button>
+              </Button>
             )}
 
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => onOpenKeyModal()}
               aria-label="Manage Gemini API Key"
-              className="hidden sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-colors cursor-pointer"
+              className="hidden sm:inline-flex"
             >
               <Key className="w-4 h-4 text-ink-faint flex-shrink-0" />
               <span className="hidden sm:inline">API Key</span>
-            </button>
+            </Button>
 
             {(
               <div className={`relative flex-shrink-0 ${authEnabled && user ? '' : 'sm:hidden'}`} ref={menuRef}>
@@ -237,7 +245,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   aria-label={authEnabled && user ? 'Account menu' : 'More options'}
                   aria-haspopup="menu"
                   aria-expanded={menuOpen}
-                  className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center bg-sunken border border-line/60 hover:border-ember-500/50 text-sm font-semibold text-ink-muted cursor-pointer transition-colors"
+                  className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center bg-sunken border border-line/60 hover:border-accent/50 text-sm font-semibold text-ink-muted cursor-pointer transition-colors"
                 >
                   {!(authEnabled && user) ? (
                     <MoreHorizontal className="w-5 h-5" aria-hidden="true" />
@@ -251,56 +259,66 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div
                     role="menu"
                     aria-label="Account"
-                    className="absolute right-0 mt-2 w-60 bg-raised border border-line-soft rounded-xl shadow-2xl p-1.5 z-50"
+                    className="absolute right-0 mt-2 w-60 bg-raised border border-line rounded-lg shadow-pop p-1.5 z-50"
                   >
                     <div className="sm:hidden border-b border-line-soft mb-1 pb-1">
-                      <button
+                      <Button
                         role="menuitem"
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => { toggleTheme(); setMenuOpen(false); }}
-                        className="w-full flex items-center gap-2 px-3 py-2.5 min-h-[44px] text-xs text-ink-muted hover:text-ink hover:bg-sunken rounded-lg cursor-pointer text-left"
+                        className="w-full justify-start text-left"
                       >
                         {theme === 'dark' ? <Sun className="w-4 h-4 text-ink-faint" /> : <Moon className="w-4 h-4 text-ink-faint" />}
                         {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         role="menuitem"
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => { setMenuOpen(false); onOpenKeyModal(); }}
-                        className="w-full flex items-center gap-2 px-3 py-2.5 min-h-[44px] text-xs text-ink-muted hover:text-ink hover:bg-sunken rounded-lg cursor-pointer text-left"
+                        className="w-full justify-start text-left"
                       >
                         <Key className="w-4 h-4 text-ink-faint" /> API Key
-                      </button>
+                      </Button>
                     </div>
                     {authEnabled && user && (<>
                     <div className="px-3 py-2 border-b border-line-soft mb-1">
                       <p className="text-xs font-semibold text-ink truncate">{displayName}</p>
-                      {user.email && <p className="text-[10px] text-ink-faint truncate">{user.email}</p>}
+                      {user.email && <p className="text-xs text-ink-faint truncate">{user.email}</p>}
                     </div>
-                    <button
+                    <Button
                       role="menuitem"
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => { setMenuOpen(false); setIsReviewOpen(true); }}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 min-h-[44px] text-xs text-ink-muted hover:text-ink hover:bg-sunken rounded-lg cursor-pointer text-left"
+                      className="w-full justify-start text-left"
                     >
                       <BookOpen className="w-4 h-4 text-ink-faint" /> Review weak spots
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       role="menuitem"
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => { setMenuOpen(false); void signOut(); }}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 min-h-[44px] text-xs text-ink-muted hover:text-ink hover:bg-sunken rounded-lg cursor-pointer text-left"
+                      className="w-full justify-start text-left"
                     >
                       <LogOut className="w-4 h-4 text-ink-faint" /> Sign out
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       role="menuitem"
                       type="button"
+                      variant="danger"
+                      size="sm"
                       onClick={() => { setMenuOpen(false); setDeleteResult(null); setIsDeleteOpen(true); }}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 min-h-[44px] text-xs text-danger hover:bg-danger/10 rounded-lg cursor-pointer text-left"
+                      className="w-full justify-start text-left"
                     >
                       <Trash2 className="w-4 h-4" /> Delete my cloud data
-                    </button>
+                    </Button>
                     </>)}
                   </div>
                 )}
@@ -320,19 +338,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               Add a free key for full AI chaptering, answer evaluation & visual insights.
             </p>
             <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto sm:ml-0">
-              <button
-                onClick={() => onOpenKeyModal()}
-                className="px-3.5 py-2 min-h-[44px] rounded-lg text-xs font-semibold bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-colors cursor-pointer"
-              >
+              <Button variant="secondary" size="sm" onClick={() => onOpenKeyModal()}>
                 Add key
-              </button>
-              <button
-                onClick={dismissKeyHint}
-                aria-label="Dismiss API key hint"
-                className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-ink-faint hover:text-ink-muted hover:bg-sunken transition-colors cursor-pointer"
-              >
+              </Button>
+              <Button variant="ghost" size="icon" onClick={dismissKeyHint} aria-label="Dismiss API key hint">
                 <X className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -348,7 +359,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         className="max-w-md w-full p-6"
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2.5 rounded-xl bg-danger/10 text-danger border border-danger/30">
+          <div className="p-2.5 rounded-lg bg-danger/10 text-danger border border-danger/30">
             <Trash2 className="w-5 h-5" />
           </div>
           <h3 id="delete-cloud-modal-title" className="text-lg font-semibold text-ink">Delete my cloud data?</h3>
@@ -362,23 +373,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           </p>
         )}
         <div className="flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={closeDeleteDialog}
-            disabled={deleting}
-            className="px-4 py-2.5 min-h-[44px] text-sm text-ink-faint hover:text-ink-muted rounded-xl cursor-pointer disabled:opacity-60"
-          >
+          <Button type="button" variant="ghost" onClick={closeDeleteDialog} disabled={deleting}>
             {deleteResult?.ok ? 'Close' : 'Cancel'}
-          </button>
+          </Button>
           {!deleteResult?.ok && (
-            <button
-              type="button"
-              onClick={() => void handleDeleteCloudData()}
-              disabled={deleting}
-              className="px-5 py-2.5 min-h-[44px] text-sm font-semibold bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 rounded-xl transition-[color,background-color,border-color,opacity] cursor-pointer disabled:opacity-60"
-            >
+            <Button type="button" variant="danger" onClick={() => void handleDeleteCloudData()} disabled={deleting}>
               {deleting ? 'Deleting...' : 'Delete permanently'}
-            </button>
+            </Button>
           )}
         </div>
       </Modal>
@@ -391,7 +392,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         className="max-w-md w-full p-6"
       >
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2.5 rounded-xl bg-warning/10 text-warning border border-warning/25">
+          <div className="p-2.5 rounded-lg bg-warning/10 text-warning border border-warning/25">
             <Key className="w-5 h-5" />
           </div>
           <div>
@@ -414,22 +415,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           value={apiKeyInput}
           onChange={(e) => setApiKeyInput(e.target.value)}
           placeholder="AIzaSy..."
-          className="w-full px-4 py-3 bg-sunken border border-line rounded-xl text-ink placeholder-ink-faint text-sm focus:outline-none focus:ring-2 focus:ring-ember-500 mb-5"
+          className="w-full px-4 py-3 bg-sunken border border-line rounded-md text-ink placeholder-ink-faint text-sm focus:outline-none focus:ring-2 focus:ring-accent mb-5"
         />
 
         <div className="flex items-center justify-end gap-3">
-          <button
-            type="button"
-            onClick={() => onCloseKeyModal()}
-            className="px-4 py-2.5 min-h-[44px] text-sm text-ink-faint hover:text-ink-muted rounded-xl cursor-pointer"
-          >
+          <Button type="button" variant="ghost" onClick={() => onCloseKeyModal()}>
             Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSaveKey}
-            className="flex items-center gap-2 px-5 py-2.5 min-h-[44px] text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent rounded-xl shadow-lg shadow-ember-500/25 transition-colors cursor-pointer"
-          >
+          </Button>
+          <Button type="button" variant="primary" onClick={handleSaveKey}>
             {savedSuccess ? (
               <>
                 <CheckCircle2 className="w-4 h-4 text-on-accent" />
@@ -438,7 +431,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <span>Save Key</span>
             )}
-          </button>
+          </Button>
         </div>
       </Modal>
     </>
