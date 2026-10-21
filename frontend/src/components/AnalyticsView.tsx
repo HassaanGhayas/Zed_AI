@@ -51,7 +51,6 @@ import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { SkeletonLine } from './ui/Skeleton';
 import { ReviewQueue } from './ReviewQueue';
-import { MotionRoot } from './ui/MotionRoot';
 import { ProgressBar } from './ui/ProgressBar';
 import { RollingNumber } from './ui/RollingNumber';
 import { SegmentedControl } from './ui/SegmentedControl';
@@ -83,7 +82,6 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onClose }) => {
   if (!enabled) return null;
 
   return (
-    <MotionRoot>
     <div
       className="fixed inset-x-0 bottom-0 top-16 z-30 overflow-y-auto bg-surface"
       role="region"
@@ -118,7 +116,6 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onClose }) => {
         )}
       </div>
     </div>
-    </MotionRoot>
   );
 };
 

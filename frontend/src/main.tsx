@@ -8,12 +8,15 @@ import './index.css'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import { AuthProvider } from './contexts/AuthContext.tsx'
+import { MotionRoot } from './components/ui/MotionRoot.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <AuthProvider>
-        <App />
+        <MotionRoot>
+          <App />
+        </MotionRoot>
       </AuthProvider>
     </ErrorBoundary>
   </StrictMode>,
