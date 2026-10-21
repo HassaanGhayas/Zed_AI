@@ -179,45 +179,6 @@ export interface AnalyticsRecordResponse {
   replayed?: boolean;
 }
 
-export interface StudyTimeResponse {
-  day: string;
-  seconds: number;
-}
-
-export type DomainStatus = 'Mastered' | 'Advanced' | 'In Review' | 'Action Needed';
-
-export interface AtRiskConcept {
-  concept_key: string;
-  label: string;
-  domain: string | null;
-  predicted_recall: number;
-  next_due: string | null;
-}
-
-export interface AnalyticsSummary {
-  period: { days: number; start: string; end: string };
-  retention: { value: number | null; delta: number | null };
-  velocity: {
-    median_seconds_per_concept: number | null;
-    delta_pct: number | null;
-    fastest_domain: string | null;
-  };
-  consistency: { hours: number; target_hours: number; pct: number; delta_hours: number | null };
-  decay: { at_risk_count: number; overdue_count: number; top_at_risk: AtRiskConcept[]; note?: string };
-  curve: {
-    days: number[];
-    recall: number[];
-    /** May be empty: then the baseline line is hidden. */
-    natural: number[];
-    reviews: { day: number; label: string }[];
-    /** Model-projection explanation, shown under the chart. */
-    note?: string;
-    tracked?: number;
-  };
-  domains: { domain: string; mastery: number; concepts_tracked: number; status: DomainStatus; note: string }[];
-  totals: { attempts: number; concepts: number };
-}
-
 export interface DueItem {
   concept_key: string;
   label: string;

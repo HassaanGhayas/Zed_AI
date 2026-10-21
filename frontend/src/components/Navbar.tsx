@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Key, Video, FileText, CheckCircle2, X, PieChart, BarChart3, LogIn, LogOut, Trash2, BookOpen, MoreHorizontal, Sun, Moon } from 'lucide-react';
+import { Key, Video, FileText, CheckCircle2, X, PieChart, LogIn, LogOut, Trash2, BookOpen, MoreHorizontal, Sun, Moon } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { Modal } from './ui/Modal';
 import { Badge } from './ui/Badge';
@@ -17,8 +17,6 @@ interface NavbarProps {
   canViewNotes?: boolean;
   notesCount?: number;
   onOpenProgress?: () => void;
-  /** Provided only when Supabase auth is configured; opens the cloud analytics dashboard. */
-  onOpenAnalytics?: () => void;
   needsReviewCount?: number;
   /** Lifted so the landing page's footer can trigger the same modal. */
   isKeyModalOpen: boolean;
@@ -33,7 +31,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   canViewNotes,
   notesCount = 0,
   onOpenProgress,
-  onOpenAnalytics,
   needsReviewCount = 0,
   isKeyModalOpen,
   onOpenKeyModal,
@@ -168,17 +165,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {needsReviewCount > 0 && (
                   <span className="w-2 h-2 rounded-full bg-warning" title="Has topics needing review" />
                 )}
-              </button>
-            )}
-
-            {onOpenAnalytics && (
-              <button
-                onClick={onOpenAnalytics}
-                aria-label="Open learning analytics dashboard"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-all cursor-pointer"
-              >
-                <BarChart3 className="w-4 h-4 text-ink-faint flex-shrink-0" />
-                <span className="hidden sm:inline">Insights</span>
               </button>
             )}
 

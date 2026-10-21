@@ -12,7 +12,6 @@ import {
   submitReviewAnswer,
   type ReviewState,
 } from '../lib/reviewQueue';
-import { setStudyActivity } from '../lib/studyTime';
 import { useActiveStopwatch } from '../hooks/useActiveStopwatch';
 import { Badge } from './ui/Badge';
 import { Button } from './ui/Button';
@@ -75,7 +74,6 @@ const ReviewQueueBody: React.FC<ReviewQueueProps> = ({ variant = 'panel', onRevi
   const state = load.kind === 'ready' ? load.state : null;
   const item = state ? currentItem(state) : null;
   const itemKey = item ? item.concept_key : null;
-  const answering = Boolean(state && item && state.phase === 'answering');
 
   // A question on screen restarts the timer and counts as study time.
   useEffect(() => {
@@ -86,11 +84,6 @@ const ReviewQueueBody: React.FC<ReviewQueueProps> = ({ variant = 'panel', onRevi
     stopwatch.restart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemKey]);
-
-  useEffect(() => {
-    setStudyActivity('review', answering);
-    return () => setStudyActivity('review', false);
-  }, [answering]);
 
   const update = (fn: (s: ReviewState) => ReviewState) =>
     setLoad((l) => (l.kind === 'ready' ? { ...l, state: fn(l.state) } : l));

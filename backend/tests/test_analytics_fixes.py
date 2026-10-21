@@ -149,22 +149,9 @@ class TestTagging:
         assert "source" not in db.tables["qa_attempts"][0]
 
 
-# ───────────────────────────── 5 / 6 / 9 / 10: summary ─────────────────────────────
+# ───────────────────────────── pagination ─────────────────────────────
 
-class TestSummaryFixes:
-    def test_study_window_boundaries(self, db):
-        # now = 2026-10-21, days=30 -> start.date() = 2026-09-21
-        db.tables["study_days"] = [
-            {"user_id": USER, "day": "2026-10-21", "seconds": 3600},    # today: current
-            {"user_id": USER, "day": "2026-09-22", "seconds": 7200},    # first current day
-            {"user_id": USER, "day": "2026-09-21", "seconds": 1800},    # boundary: previous
-            {"user_id": USER, "day": "2026-08-23", "seconds": 900},     # first previous day
-            {"user_id": USER, "day": "2026-08-22", "seconds": 5000},    # outside both
-        ]
-        c = client.get("/api/analytics/summary?days=30", headers=_h()).json()["consistency"]
-        assert c["hours"] == pytest.approx(3.0)
-        assert c["delta_hours"] == pytest.approx(3.0 - 2700 / 3600, abs=0.01)
-
+class TestPagination:
     def test_fetch_all_paginates(self, db):
         db.tables["concepts"] = [
             {"user_id": USER, "concept_key": f"k{i:03d}"} for i in range(7)
@@ -178,49 +165,6 @@ class TestSummaryFixes:
         db.tables["concepts"] = [{"user_id": USER, "concept_key": f"k{i}"} for i in range(10)]
         rows = ra._fetch_all(lambda: db.table("concepts").select("*").eq("user_id", USER), page=2, max_pages=3)
         assert len(rows) == 6
-
-    def test_recall_is_threshold_at_next_due_and_not_at_risk_before(self, db):
-        last = NOW - timedelta(days=4)
-        db.tables["concepts"] = [{
-            "user_id": USER, "concept_key": "edge", "label": "Edge", "domain": "Physics", "strength": 0.5,
-            "stability_days": 4.0, "reps": 1, "lapses": 0,
-            "last_reviewed": _iso(last), "next_due": _iso(NOW),     # exactly due now
-        }]
-        d = client.get("/api/analytics/summary", headers=_h()).json()["decay"]
-        assert d["at_risk_count"] == 0 and d["overdue_count"] == 0
-        assert sched.predicted_recall(4.0, last, NOW) == pytest.approx(0.7)
-
-    def test_curve_seeds_from_stored_concepts_without_jump(self, db):
-        db.tables["concepts"] = [
-            _concept(USER, "old", "Physics", 0.5, 20.0, 10, 10),     # never reviewed in the window
-            _concept(USER, "a", "Physics", 0.5, 2.85, 2, 1),
-        ]
-        db.tables["review_events"] = [
-            {"user_id": USER, "concept_key": "a", "score": 90, "status": "CORRECT",
-             "interval_days_before": 1.0, "reviewed_at": _iso(NOW - timedelta(days=4))},
-        ]
-        curve = client.get("/api/analytics/summary", headers=_h()).json()["curve"]
-        assert curve["tracked"][0] == 2          # stored concept counted from day 0
-        assert set(curve["tracked"]) == {2}
-        assert all(0 <= v <= 100 for v in curve["recall"] + curve["natural"])
-
-    def test_curve_natural_is_data_derived_and_empty_without_events(self, db):
-        db.tables["concepts"] = [_concept(USER, "old", "Physics", 0.5, 20.0, 10, 10)]
-        curve = client.get("/api/analytics/summary", headers=_h()).json()["curve"]
-        assert curve["natural"] == [] and curve["days"] == []
-
-    def test_events_newest_not_dropped_by_cap(self, db):
-        events = [
-            {"id": f"e{i}", "user_id": USER, "concept_key": "a", "score": 90, "status": "CORRECT",
-             "reviewed_at": _iso(NOW - timedelta(hours=i + 1))} for i in range(30)
-        ]
-        db.tables["review_events"] = events
-        rows = ra._fetch_all(
-            lambda: db.table("review_events").select("*").eq("user_id", USER).order("reviewed_at", desc=True),
-            page=10, max_pages=2,
-        )
-        assert rows[0]["id"] == "e0"      # newest first, so the cap can only drop the oldest
-
 
 # ───────────────────────────── 2 / 3 / 7: due ─────────────────────────────
 
@@ -306,51 +250,15 @@ class TestDeleteMyData:
 class TestAnonymous:
     @pytest.mark.parametrize("method,path,body", [
         ("post", "/api/analytics/record", _record_body()),
-        ("post", "/api/analytics/study-time", {"seconds": 10}),
     ])
     def test_writes_rejected(self, db, method, path, body):
         r = client.request(method, path, json=body, headers=_anon_headers())
         assert r.status_code == 403
-        assert not db.tables.get("concepts") and not db.tables.get("study_days")
+        assert not db.tables.get("concepts")
 
-    @pytest.mark.parametrize("path", ["/api/analytics/summary", "/api/analytics/due"])
+    @pytest.mark.parametrize("path", ["/api/analytics/due"])
     def test_reads_allowed(self, db, path):
         assert client.get(path, headers=_anon_headers()).status_code == 200
-
-
-# ───────────────────────────── 15: pdf / markdown ─────────────────────────────
-
-class TestExportSafety:
-    def test_plain_strips_markup(self):
-        out = ra._plain('**bold** <b>x</b> [l](http://e.com/"onclick) `code` $x$ a&b')
-        for ch in "*<>[]()`$&\"":
-            assert ch not in out
-        assert "bold" in out and "code" in out
-
-    def test_markdown_has_sanitised_question(self):
-        s = {"period": {"start": "a", "end": "b"}, "retention": {"value": 1}, "consistency": {
-            "hours": 0, "target_hours": 1, "pct": 0}, "decay": {"at_risk_count": 0, "overdue_count": 0},
-             "totals": {"attempts": 1, "concepts": 0}, "domains": []}
-        md = ra.render_markdown(s, [{"question": "<script>*x*</script> [a](http://x)", "score": 1,
-                                     "verdict": "CORRECT", "created_at": "2026-01-01"}])
-        assert "<" not in md and "[" not in md and "*x*" not in md
-
-    def test_link_regex_excludes_quote(self):
-        from app.services.pdf_service import pdf_service
-        out = pdf_service._format_inline_markdown('[x](https://e.com/a"b onclick)')
-        assert 'href="https://e.com/a"b' not in out
-
-    def test_pdf_falls_back_to_plain_text(self, db):
-        db.tables["qa_attempts"] = [_attempt(USER, 1, 80)]
-        with patch("app.api.routes_analytics.pdf_service.markdown_to_pdf", side_effect=RuntimeError("boom")):
-            r = client.get("/api/analytics/export?format=pdf", headers=_h())
-        assert r.status_code == 200 and r.content.startswith(b"%PDF")
-
-    def test_pdf_total_failure_is_safe_500(self, db):
-        with patch("app.api.routes_analytics.pdf_service.markdown_to_pdf", side_effect=RuntimeError("boom")), \
-                patch("app.api.routes_analytics.pdf_service.plain_text_pdf", side_effect=RuntimeError("boom2")):
-            r = client.get("/api/analytics/export?format=pdf", headers=_h())
-        assert r.status_code == 500 and r.json() == {"detail": "Could not export analytics."}
 
 
 # ───────────────────────────── 18: /process domain ─────────────────────────────

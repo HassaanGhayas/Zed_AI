@@ -54,7 +54,6 @@ vi.mock('./supabase', () => {
 import { ApiError } from './api';
 import {
   sendAnalyticsRecord,
-  saveMonthlyTarget,
   buildVideoAnalyticsPayload,
   newAttemptId,
   aggregateReview,
@@ -606,7 +605,6 @@ describe('delete race: all cloud writes are tracked and awaited', () => {
     setCloudUser('u1');
     pauseSync();
     expect(await sendAnalyticsRecord(payload())).toBe(false);
-    expect(await saveMonthlyTarget(20)).toBe(false);
     await recordQaAttempt('vid1', 1, item);
     scheduleSessionSync(persisted());
     await flushSessionSync();
