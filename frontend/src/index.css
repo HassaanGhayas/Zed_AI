@@ -12,33 +12,7 @@
   --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  /* Primitive ramp: cosmos — true neutral stone (barely-warm, not brown) */
-  --color-cosmos-50: #fafaf9;
-  --color-cosmos-100: #f0efec;
-  --color-cosmos-200: #e2e0db;
-  --color-cosmos-300: #c9c6bf;
-  --color-cosmos-400: #9b9790;
-  --color-cosmos-500: #716d66;
-  --color-cosmos-600: #4a4742;
-  --color-cosmos-700: #302d29;
-  --color-cosmos-800: #1e1c19;
-  --color-cosmos-900: #141311;
-  --color-cosmos-950: #0b0a09;
 
-  /* Primitive ramp: ember — muted brand ramp centred on the dark accent
-     (500 = #e0663f). Kept so legacy ember-* utilities compile; components
-     migrate to the semantic tokens below in later tasks. */
-  --color-ember-50: #fbefe9;
-  --color-ember-100: #f6dccf;
-  --color-ember-200: #efbea6;
-  --color-ember-300: #e9a07e;
-  --color-ember-400: #e5835e;
-  --color-ember-500: #e0663f;
-  --color-ember-600: #c4532f;
-  --color-ember-700: #9e4427;
-  --color-ember-800: #77341f;
-  --color-ember-900: #4f2416;
-  --color-ember-950: #2c150d;
 
   /* Semantic tokens (dark) */
   --color-surface: #1a1816;
@@ -102,12 +76,6 @@
   --color-warning: #8a5a14;      /*  5.20:1 */
   --color-danger: #b0382f;       /*  5.35:1 */
 
-  /* Legacy ember text stops stay readable on light surfaces until components
-     move to semantic tokens: 200/300/400 become deep text stops. */
-  --color-ember-200: #7f3820;    /* 7.42:1 */
-  --color-ember-300: #9c4426;    /* 5.65:1 */
-  --color-ember-400: #b2502d;    /* 4.53:1 */
-  --color-ember-500: #c4582f;
 }
 
 @layer base {
@@ -195,8 +163,8 @@
   z-index: 0;
   pointer-events: none;
   background-image:
-    linear-gradient(to right, var(--color-cosmos-300) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--color-cosmos-300) 1px, transparent 1px);
+    linear-gradient(to right, var(--color-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-line) 1px, transparent 1px);
   background-size: 48px 48px;
   background-position: center top;
   /* Clear an oval over the hero copy (grid lines crossing text read as

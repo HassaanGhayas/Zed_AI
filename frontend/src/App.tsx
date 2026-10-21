@@ -10,6 +10,7 @@ import { AiTutorPanel } from './components/AiTutorPanel';
 import { ProgressView } from './components/ProgressView';
 const AnalyticsView = lazy(() => import('./components/AnalyticsView').then((m) => ({ default: m.AnalyticsView })));
 import { SkeletonLine, SkeletonBlock } from './components/ui/Skeleton';
+import { Button } from './components/ui/Button';
 import { ReviewQueue } from './components/ReviewQueue';
 import { useAuth } from './contexts/AuthContext';
 import { noteStudyActivity, setStudyActivity, startStudyTimeTracking } from './lib/studyTime';
@@ -503,19 +504,21 @@ export const App: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
-                <div aria-live="polite" className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sunken/60 border border-line-soft text-xs">
-                  <span className="w-2 h-2 rounded-full bg-ember-500" />
+                <div aria-live="polite" className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-sunken border border-line-soft text-xs">
+                  <span className="w-2 h-2 rounded-full bg-accent" />
                   <span className="text-ink-muted">
                     Chapter <strong className="text-ink">{activeSegmentIndex + 1}</strong> of {session.segments.length}
                   </span>
                   <span className="text-line-soft">|</span>
-                  <span className="font-semibold text-ember-400">
+                  <span className="font-semibold text-accent">
                     {Math.round((completedSegmentIds.size / Math.max(1, session.segments.length)) * 100)}% Mastered
                   </span>
                 </div>
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setIsProgressOpen(true)}
-                  className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-colors cursor-pointer flex items-center justify-center gap-1.5 flex-1 sm:flex-initial"
+                  className="flex-1 sm:flex-initial"
                 >
                   <span>Analytics</span>
                   {needsReviewSegmentIds.size > 0 && (
@@ -524,19 +527,23 @@ export const App: React.FC = () => {
                       <span className="sr-only">(has topics needing review)</span>
                     </>
                   )}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={handleTriggerQuiz}
-                  className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-warning/15 dark:bg-warning/10 text-warning border border-warning/30 dark:border-warning/25 hover:bg-warning/25 transition-colors cursor-pointer flex items-center justify-center flex-1 sm:flex-initial"
+                  className="flex-1 sm:flex-initial"
                 >
                   Trigger Quiz Check Now
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => setIsNotesModalOpen(true)}
-                  className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-ember-500/15 dark:bg-ember-500/10 text-ember-800 dark:text-ember-300 border border-ember-500/30 dark:border-ember-500/25 hover:bg-ember-500/25 transition-colors cursor-pointer flex items-center justify-center flex-1 sm:flex-initial"
+                  className="flex-1 sm:flex-initial"
                 >
                   Notes Preview ({qaHistory.length})
-                </button>
+                </Button>
               </div>
             </div>
 

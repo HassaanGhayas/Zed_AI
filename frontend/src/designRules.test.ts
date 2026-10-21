@@ -252,4 +252,36 @@ describe('design rules', () => {
       expect(offenders(/dark:/, outside11)).toEqual([]);
     });
   });
+
+  describe('whole source (Task 12 final gates)', () => {
+    // Not Tailwind classes: a local variable named `rounded`.
+    const skipFormat = (rel: string) => rel === 'lib/analyticsFormat.ts';
+    const IMPORTANT_CLASS_ALL =
+      /[\s"'`:]!-?[a-z]+-|-[\w.\]/%)]+!(?=[\s"'`]|$)|(?:^|[\s"'`:])(?:!(?:absolute|relative|fixed|sticky|static|hidden|block|inline|flex|grid|contents|border|rounded|shadow|truncate|italic|underline|uppercase|visible|invisible|grow|shrink|transition)|(?:absolute|relative|fixed|sticky|static|hidden|block|inline|flex|grid|contents|border|rounded|shadow|truncate|italic|underline|uppercase|visible|invisible|grow|shrink|transition)!)(?=[\s"'`]|$)/;
+
+    it('no text-[10px] / text-[11px]', () => {
+      expect(offenders(/text-\[1[01]px\]/)).toEqual([]);
+    });
+    it('no rounded-xl/2xl/3xl', () => {
+      expect(offenders(/rounded-(xl|2xl|3xl)/)).toEqual([]);
+    });
+    it('no bare rounded', () => {
+      expect(offenders(/rounded(?![-\w])/, skipFormat)).toEqual([]);
+    });
+    it('no important (!) Tailwind modifiers', () => {
+      expect(offenders(IMPORTANT_CLASS_ALL)).toEqual([]);
+    });
+    it('no bg-gradient', () => {
+      expect(offenders(/bg-gradient/)).toEqual([]);
+    });
+    it('no ember-/cosmos- classes or tokens', () => {
+      expect(offenders(/(ember|cosmos)-\d/)).toEqual([]);
+    });
+    it('no dark: variants', () => {
+      expect(offenders(/dark:/)).toEqual([]);
+    });
+    it('no shadow-lg/xl/2xl', () => {
+      expect(offenders(/shadow-(lg|xl|2xl)/)).toEqual([]);
+    });
+  });
 });

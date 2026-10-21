@@ -594,7 +594,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
           </div>
           {/* Fade + chevron cue; pointer-events-none so it never blocks the quiz */}
           {showMoreHint && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-center h-16 pb-2 bg-gradient-to-t from-surface via-surface/60 to-transparent">
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex items-end justify-center h-16 pb-2 bg-surface/80">
               <ChevronDown className="w-4 h-4 text-ink-faint animate-bounce" />
             </div>
           )}
