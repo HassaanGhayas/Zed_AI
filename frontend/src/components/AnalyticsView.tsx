@@ -638,9 +638,9 @@ const InsightCard: React.FC<{ days: number; disabled: boolean }> = ({ days, disa
   };
 
   return (
-    <Card radius="lg" className="p-5 space-y-3 bg-gradient-to-br from-ember-500/5 to-transparent">
+    <Card radius="lg" className="p-5 space-y-3">
       <div className="flex items-center gap-2">
-        <Sparkles className="w-4 h-4 text-ember-400" aria-hidden="true" />
+        <Sparkles className="w-4 h-4 text-accent" aria-hidden="true" />
         <h2 className="text-sm font-bold text-ink">AI tutor insight</h2>
       </div>
       <div aria-live="polite" className="text-sm text-ink-muted leading-relaxed">
@@ -661,7 +661,7 @@ const InsightCard: React.FC<{ days: number; disabled: boolean }> = ({ days, disa
         {state.kind === 'ready' && (
           <>
             <p className="whitespace-pre-line text-ink">{state.data.insight}</p>
-            <p className="text-[11px] text-ink-faint mt-2">
+            <p className="text-xs text-ink-faint mt-2">
               Generated {formatDueDate(state.data.generated_at)}
             </p>
           </>
