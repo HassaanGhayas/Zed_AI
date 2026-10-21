@@ -230,3 +230,25 @@ This function is a pure extraction of the decision logic currently inline in `sr
 - [ ] **Step 6:** Run axe: write a short Node script using the existing `axe-core` and `puppeteer-core` devDependencies against the dev server landing page; fix any contrast violations introduced.
 - [ ] **Step 7:** Re-run the checkpoint lock manual check (Task 2 Step 9) and the profiler check (Task 3 Step 2).
 - [ ] **Step 8:** `git add src docs/superpowers/plans/screens && git commit -m "chore(frontend): motion root at app level, final design gates"`
+
+### Task 13: New logo (concept D, "book that plays")
+
+Added after the owner chose concept D from sketches. Owner request, outside the original spec.
+
+**Files:**
+- Modify: `frontend/src/components/ui/Logo.tsx`, `frontend/public/favicon.svg`
+- Modify (only if they reference owl-specific markup or comments): `frontend/src/components/VideoInput.tsx` (comment at ~line 64 mentions the owl mark), `frontend/src/components/Navbar.tsx`, `frontend/src/components/landing/LandingFooter.tsx`
+- Test: `frontend/src/components/ui/Logo.test.tsx` (create)
+
+**Interfaces:**
+- Produces: `Logo({ className?: string })` keeps its current signature and default `className = 'w-5 h-5'`; renders an `<svg viewBox="0 0 24 24" aria-hidden="true">` using `currentColor`, so callers keep controlling color.
+
+Mark geometry (from the approved sketch, stroke width 1.8, round caps and joins, `fill="none"` unless noted): open-book outline `M12 6c-2-1.5-5-2-8-1.5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5v-13c-3-.5-6 0-8 1.5z`; spine `M12 6v13`; play triangle on the right page `M14.6 9.4 L17.6 11.3 L14.6 13.2Z` filled with `currentColor` (stroke width 1, round join). The builder may refine proportions for optical balance at 16-20px, keeping the same concept.
+
+- [ ] **Step 1: Write failing test** `Logo.test.tsx`, rendering like `ui/RollingNumber.test.tsx`: `Logo renders an svg with viewBox "0 0 24 24" and aria-hidden`, `Logo applies a custom className`, `Logo contains no owl geometry` (no `<circle>` elements and no `<line>` elements in the markup).
+- [ ] **Step 2:** Run `npx vitest run src/components/ui/Logo.test.tsx`. Expected: FAIL (current owl uses circles and lines).
+- [ ] **Step 3:** Replace `Logo.tsx` body with the concept D mark; update the doc comment (drop the owl rationale; say the mark is a book with a play symbol for video-led study).
+- [ ] **Step 4:** Replace `public/favicon.svg` with a 48x48 rounded tile (`rx="12"`, fill `#e0663f`) containing the same mark scaled to about 60% in `#1a1816`, stroke width scaled to stay about 3.6 at 48px.
+- [ ] **Step 5:** Update any owl wording in comments at the callers listed above; no behavior change. Check Navbar and LandingFooter render the Logo inside a tile or alone with token colors (`text-accent` or `text-on-accent`), not hard-coded ember classes that no longer match.
+- [ ] **Step 6:** Run `npm test`, `npm run lint`, `npm run build`. Expected: pass.
+- [ ] **Step 7:** `git add` the changed paths and commit `feat(frontend): new book-with-play logo and favicon`.
