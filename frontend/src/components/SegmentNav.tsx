@@ -52,7 +52,7 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
       {/* Progress Bar — ember trail */}
       <div className="w-full h-1.5 bg-cosmos-800 rounded-full overflow-hidden mb-4">
         <div
-          className="h-full bg-gradient-to-r from-ember-700 via-ember-600 to-ember-500 shadow-[0_0_10px_rgba(255,81,0,0.45)] transition-all duration-300"
+          className="h-full bg-gradient-to-r from-ember-700 via-ember-600 to-ember-500 shadow-[0_0_10px_rgba(255,81,0,0.45)] transition-[width] duration-300"
           style={{ width: `${progressPct}%` }}
         />
       </div>
@@ -91,7 +91,7 @@ export const SegmentNav: React.FC<SegmentNavProps> = ({
                 ) : isCompleted ? (
                   <CheckCircle2 className="w-4 h-4 text-success" />
                 ) : isActive ? (
-                  <PlayCircle className="w-4 h-4 text-ember-400 animate-pulse" />
+                  <PlayCircle className="w-4 h-4 text-ember-400" />
                 ) : (
                   <Lock className="w-4 h-4 text-cosmos-600" />
                 )}

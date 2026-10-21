@@ -504,7 +504,7 @@ export const App: React.FC = () => {
 
               <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
                 <div aria-live="polite" className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-sunken/60 border border-line-soft text-xs">
-                  <span className="w-2 h-2 rounded-full bg-ember-500 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-ember-500" />
                   <span className="text-ink-muted">
                     Chapter <strong className="text-ink">{activeSegmentIndex + 1}</strong> of {session.segments.length}
                   </span>
@@ -527,13 +527,13 @@ export const App: React.FC = () => {
                 </button>
                 <button
                   onClick={handleTriggerQuiz}
-                  className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-warning/15 dark:bg-warning/10 text-warning border border-warning/30 dark:border-warning/25 hover:bg-warning/25 transition-all cursor-pointer flex items-center justify-center flex-1 sm:flex-initial"
+                  className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-warning/15 dark:bg-warning/10 text-warning border border-warning/30 dark:border-warning/25 hover:bg-warning/25 transition-colors cursor-pointer flex items-center justify-center flex-1 sm:flex-initial"
                 >
                   Trigger Quiz Check Now
                 </button>
                 <button
                   onClick={() => setIsNotesModalOpen(true)}
-                  className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-ember-500/15 dark:bg-ember-500/10 text-ember-800 dark:text-ember-300 border border-ember-500/30 dark:border-ember-500/25 hover:bg-ember-500/25 transition-all cursor-pointer flex items-center justify-center flex-1 sm:flex-initial"
+                  className="px-3.5 py-2 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold bg-ember-500/15 dark:bg-ember-500/10 text-ember-800 dark:text-ember-300 border border-ember-500/30 dark:border-ember-500/25 hover:bg-ember-500/25 transition-colors cursor-pointer flex items-center justify-center flex-1 sm:flex-initial"
                 >
                   Notes Preview ({qaHistory.length})
                 </button>

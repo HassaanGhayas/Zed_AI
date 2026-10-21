@@ -43,7 +43,7 @@ export const FeatureShowcase: React.FC = () => {
                     <CheckCircle2 className="relative w-4 h-4 text-success" />
                   </span>
                 )}
-                {row.state === 'active' && <PlayCircle className="w-4 h-4 text-ember-400 flex-shrink-0 animate-pulse" />}
+                {row.state === 'active' && <PlayCircle className="w-4 h-4 text-ember-400 flex-shrink-0" />}
                 {row.state === 'locked' && <Lock className="w-4 h-4 text-ink-faint flex-shrink-0" />}
                 <span className={`text-sm font-medium flex-1 ${row.state === 'locked' ? 'text-ink-faint' : 'text-ink'}`}>
                   {row.title}

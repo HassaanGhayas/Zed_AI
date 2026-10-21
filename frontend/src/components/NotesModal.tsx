@@ -250,7 +250,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
       onClose={onClose}
       titleId="notes-modal-title"
       className="sm:rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden"
-      overlayClassName="!bg-black/80 !backdrop-blur-md !p-3 sm:!p-6 overflow-x-hidden"
+      overlayClassName="!bg-black/80 !p-3 sm:!p-6 overflow-x-hidden"
     >
         {/* Modal Header */}
         <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-line-soft flex items-center justify-between gap-2.5 bg-raised/90">
@@ -292,7 +292,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
               aria-selected={activeTab === 'synthesized'}
               aria-controls="notes-tabpanel"
               onClick={() => setActiveTab('synthesized')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                 activeTab === 'synthesized'
                   ? 'bg-raised text-ink shadow-sm font-semibold'
                   : 'text-ink-faint hover:text-ink'
@@ -307,7 +307,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
               aria-selected={activeTab === 'raw'}
               aria-controls="notes-tabpanel"
               onClick={() => setActiveTab('raw')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                 activeTab === 'raw'
                   ? 'bg-raised text-ink shadow-sm font-semibold'
                   : 'text-ink-faint hover:text-ink'
@@ -322,7 +322,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
               aria-selected={activeTab === 'markdown'}
               aria-controls="notes-tabpanel"
               onClick={() => setActiveTab('markdown')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                 activeTab === 'markdown'
                   ? 'bg-raised text-ink shadow-sm font-semibold'
                   : 'text-ink-faint hover:text-ink'
@@ -356,7 +356,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
               <div className="flex items-center gap-3">
                 <div className="relative flex-shrink-0">
                   <div className="w-10 h-10 rounded-xl bg-ember-500/10 border border-ember-500/25 flex items-center justify-center text-ember-400">
-                    <Sparkles className="w-5 h-5 animate-pulse" />
+                    <Sparkles className="w-5 h-5" />
                   </div>
                   <Loader2 className="w-4 h-4 text-ember-400 animate-spin absolute -top-1 -right-1" />
                 </div>
@@ -540,7 +540,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             <button
               onClick={handleCopyMarkdown}
               disabled={isLoading || !markdownNotes}
-              className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] text-xs font-medium rounded-xl bg-sunken hover:bg-line-soft text-ink-muted hover:text-ink border border-line transition-all cursor-pointer disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] text-xs font-medium rounded-xl bg-sunken hover:bg-line-soft text-ink-muted hover:text-ink border border-line transition-[color,background-color,border-color,opacity] cursor-pointer disabled:opacity-40"
             >
               {isCopied ? (
                 <>
@@ -558,7 +558,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             <button
               onClick={handleDownloadPdf}
               disabled={isLoading || !markdownNotes || isDownloading}
-              className="flex items-center gap-2 px-5 py-2 min-h-[44px] text-xs font-semibold rounded-xl bg-accent hover:bg-accent-hover text-on-accent shadow-lg shadow-ember-500/25 transition-all cursor-pointer disabled:opacity-40"
+              className="flex items-center gap-2 px-5 py-2 min-h-[44px] text-xs font-semibold rounded-xl bg-accent hover:bg-accent-hover text-on-accent shadow-lg shadow-ember-500/25 transition-[color,background-color,border-color,opacity] cursor-pointer disabled:opacity-40"
             >
               {isDownloading ? (
                 <>

@@ -61,12 +61,6 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
 
   return (
     <div id="hero" className="relative max-w-3xl mx-auto py-8 sm:py-12 px-0 sm:px-4 text-center">
-      {/* Ambient drifting glow — purely decorative, frozen under prefers-reduced-motion */}
-      <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none" aria-hidden="true">
-        <div className="animate-drift absolute -top-24 left-1/4 w-72 h-72 rounded-full bg-ember-500/15 blur-3xl" />
-        <div className="animate-drift-slow absolute top-10 right-0 w-80 h-80 rounded-full bg-cosmos-400/10 blur-3xl" />
-      </div>
-
       {/* Hero Badge — the owl mark gets a subtle radar-ping halo */}
       <div
         className="animate-in fade-in slide-in-from-bottom-2 relative inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-ember-500/10 border border-ember-500/25 text-ember-300 text-xs font-medium mb-6"
@@ -84,7 +78,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
         style={{ animationDuration: '500ms', animationDelay: '80ms' }}
       >
         Any lecture on YouTube, <br className="hidden sm:inline" />
-        <span className="animate-headline-shimmer bg-gradient-to-r from-ember-300 via-ember-400 to-ember-500 bg-clip-text text-transparent">
+        <span className="bg-gradient-to-r from-ember-300 via-ember-400 to-ember-500 bg-clip-text text-transparent">
           taught the Socratic way
         </span>
       </h1>
@@ -105,7 +99,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
         <label htmlFor="youtube-url-input" className="sr-only">
           YouTube Video URL
         </label>
-        <div className="flex items-center bg-raised/90 border border-line hover:border-cosmos-600 focus-within:border-ember-500 rounded-2xl p-1.5 sm:p-2 shadow-xl focus-within:ring-4 focus-within:ring-ember-500/20 transition-all">
+        <div className="flex items-center bg-raised/90 border border-line hover:border-cosmos-600 focus-within:border-ember-500 rounded-2xl p-1.5 sm:p-2 shadow-xl focus-within:ring-4 focus-within:ring-ember-500/20 transition-[border-color,box-shadow]">
           <div className="pl-3 pr-2 text-ember-500 flex items-center justify-center flex-shrink-0 pointer-events-none" aria-hidden="true">
             <svg className="w-6 h-6 fill-current text-ember-500" viewBox="0 0 24 24">
               <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
@@ -126,9 +120,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
             type="submit"
             variant="primary"
             loading={isLoading}
-            className={`flex-shrink-0 px-3.5! sm:px-5! py-2.5! gap-1.5 sm:gap-2 text-xs! sm:text-sm! shadow-md! shadow-ember-500/0! disabled:opacity-50! ${
-              isLoading ? '' : 'animate-cta-breathe'
-            }`}
+            className="flex-shrink-0 px-3.5! sm:px-5! py-2.5! gap-1.5 sm:gap-2 text-xs! sm:text-sm! shadow-md! shadow-ember-500/0! disabled:opacity-50!"
           >
             {isLoading ? (
               <span>Analyzing</span>
@@ -193,7 +185,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
               type="button"
               onClick={() => handleSelectPreset(preset.url)}
               disabled={isLoading}
-              className="group flex items-center gap-2 px-3 py-2 min-h-[44px] max-w-full rounded-xl bg-raised border border-line-soft hover:border-ember-500/50 hover:bg-sunken hover:-translate-y-0.5 transition-all text-left text-xs cursor-pointer"
+              className="group flex items-center gap-2 px-3 py-2 min-h-[44px] max-w-full rounded-xl bg-raised border border-line-soft hover:border-ember-500/50 hover:bg-sunken hover:-translate-y-0.5 transition-[transform,border-color,background-color] text-left text-xs cursor-pointer"
             >
               <span className="px-1.5 py-0.5 rounded bg-ember-500/10 text-ember-300 font-medium flex-shrink-0">
                 {preset.tag}
@@ -210,7 +202,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
       <h2 className="sr-only">Key Learning Features</h2>
       <div className="grid sm:grid-cols-3 gap-5 mt-14 text-left">
         <div
-          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-2xl bg-raised/50 border border-line-soft hover:border-ember-500/30 hover:-translate-y-1 transition-all"
+          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-2xl bg-raised/50 border border-line-soft hover:border-ember-500/30 hover:-translate-y-1 transition-[transform,border-color]"
           style={{ animationDuration: '500ms', animationDelay: '320ms' }}
         >
           <div className="w-9 h-9 rounded-xl bg-ember-500/10 text-ember-400 flex items-center justify-center mb-3">
@@ -223,7 +215,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
         </div>
 
         <div
-          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-2xl bg-raised/50 border border-line-soft hover:border-ember-500/30 hover:-translate-y-1 transition-all"
+          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-2xl bg-raised/50 border border-line-soft hover:border-ember-500/30 hover:-translate-y-1 transition-[transform,border-color]"
           style={{ animationDuration: '500ms', animationDelay: '390ms' }}
         >
           <div className="w-9 h-9 rounded-xl bg-ember-500/10 text-ember-400 flex items-center justify-center mb-3">
@@ -236,7 +228,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
         </div>
 
         <div
-          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-2xl bg-raised/50 border border-line-soft hover:border-ember-500/30 hover:-translate-y-1 transition-all"
+          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-2xl bg-raised/50 border border-line-soft hover:border-ember-500/30 hover:-translate-y-1 transition-[transform,border-color]"
           style={{ animationDuration: '500ms', animationDelay: '460ms' }}
         >
           <div className="w-9 h-9 rounded-xl bg-ember-500/10 text-ember-400 flex items-center justify-center mb-3">

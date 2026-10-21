@@ -281,7 +281,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
           )}
 
           {isPausedForQuiz && (
-            <Badge tone="warning" className="px-2.5! py-1! text-[11px]! border-warning/25! animate-pulse">
+            <Badge tone="warning" className="px-2.5! py-1! text-[11px]! border-warning/25!">
               Video Paused
             </Badge>
           )}
@@ -325,7 +325,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
                 aria-pressed={tts.isSpeaking}
                 className={`p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg border transition-colors cursor-pointer ${
                   tts.isSpeaking
-                    ? 'bg-ember-500/10 border-ember-500/25 text-ember-400 animate-pulse'
+                    ? 'bg-ember-500/10 border-ember-500/25 text-ember-400'
                     : 'bg-transparent border-line-soft text-ink-faint hover:text-ink-muted'
                 }`}
               >
@@ -370,7 +370,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
       {isEvaluating && !evaluationResult && (
         <div className="mb-4 p-4 rounded-xl border border-line-soft bg-sunken/50 space-y-2.5 animate-in fade-in duration-150">
           <div className="flex items-center gap-2 text-xs font-semibold text-ink-faint">
-            <Sparkles className="w-3.5 h-3.5 text-ember-400 animate-pulse" />
+            <Sparkles className="w-3.5 h-3.5 text-ember-400" />
             <span>Evaluating your explanation…</span>
           </div>
           <SkeletonLine className="w-5/6" />
@@ -517,7 +517,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
                   aria-label={stt.isListening ? 'Stop voice recording' : 'Answer by voice'}
                   className={`flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] min-w-[44px] rounded-full text-xs font-semibold border transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                     stt.isListening
-                      ? 'bg-danger/10 border-danger/30 text-danger animate-pulse'
+                      ? 'bg-danger/10 border-danger/30 text-danger'
                       : 'bg-sunken border-line-soft text-ink-faint hover:text-ink-muted'
                   }`}
                 >
@@ -546,11 +546,11 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
                   ? 'Apply the tutor feedback above and give it another shot...'
                   : 'Type your explanation here — or tap the mic and say it. Focus on the core mechanism or cause...'
               }
-              className="w-full p-3.5 bg-sunken border border-line/80 rounded-xl text-ink text-sm placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-ember-500 focus:border-transparent transition-all resize-none disabled:opacity-50"
+              className="w-full p-3.5 bg-sunken border border-line/80 rounded-xl text-ink text-sm placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-ember-500 focus:border-transparent transition-[border-color,box-shadow] resize-none disabled:opacity-50"
             />
             {(stt.isListening || stt.isTranscribing) && (
               <p className="mt-1.5 text-[11px] italic text-ink-faint flex items-center gap-1.5" role="status" aria-live="polite">
-                <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse flex-shrink-0" />
+                <span className="w-1.5 h-1.5 rounded-full bg-danger flex-shrink-0" />
                 {stt.isTranscribing
                   ? 'Transcribing your answer…'
                   : stt.mode === 'record'

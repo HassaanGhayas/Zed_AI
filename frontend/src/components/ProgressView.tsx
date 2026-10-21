@@ -172,7 +172,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
       onClose={onClose}
       titleId="progress-view-title"
       className="max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden my-auto"
-      overlayClassName="!bg-black/75 !backdrop-blur-md !p-3 sm:!p-6 overflow-y-auto overflow-x-hidden"
+      overlayClassName="!bg-black/75 !p-3 sm:!p-6 overflow-y-auto overflow-x-hidden"
     >
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-line-soft flex items-center justify-between bg-sunken/40">
@@ -198,7 +198,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                   onClose();
                   onOpenNotes();
                 }}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-ember-500/10 text-ember-300 border border-ember-500/25 hover:bg-ember-500/20 transition-all cursor-pointer"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-ember-500/10 text-ember-300 border border-ember-500/25 hover:bg-ember-500/20 transition-colors cursor-pointer"
               >
                 <BookOpen className="w-3.5 h-3.5" />
                 <span>Study Notes</span>
@@ -208,7 +208,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Close dashboard"
-              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-ink-faint hover:text-ink hover:bg-sunken border border-line-soft transition-all cursor-pointer"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-ink-faint hover:text-ink hover:bg-sunken border border-line-soft transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -232,7 +232,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
               </div>
               <div className="w-full h-1 bg-cosmos-800 rounded-full overflow-hidden mt-1">
                 <div
-                  className="h-full bg-success transition-all duration-300"
+                  className="h-full bg-success transition-[width] duration-300"
                   style={{ width: `${overallProgressPct}%` }}
                 />
               </div>
@@ -325,7 +325,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                         strokeDasharray={`${arcLen} ${CIRCUMFERENCE - arcLen}`}
                         strokeDashoffset={-slice.offset}
                         transform="rotate(-90 70 70)"
-                        className={`transition-all duration-200 cursor-pointer ${
+                        className={`transition-opacity duration-200 cursor-pointer ${
                           isDim ? 'opacity-30' : 'opacity-100'
                         }`}
                         onMouseEnter={() => setActiveSlice(slice.key)}
@@ -360,7 +360,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                     key={k}
                     type="button"
                     onClick={() => setActiveSlice((cur) => (cur === k ? null : k))}
-                    className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-all cursor-pointer ${
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded-md transition-colors cursor-pointer ${
                       activeSlice === k
                         ? 'bg-raised shadow-sm font-semibold'
                         : 'text-ink-muted hover:text-ink'
@@ -402,7 +402,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                       <button
                         type="button"
                         onClick={() => setSelectedTopicIdx((cur) => (cur === t.index ? null : t.index))}
-                        className={`w-full text-left p-2 rounded-xl border transition-all flex items-center gap-3 cursor-pointer ${
+                        className={`w-full text-left p-2 rounded-xl border transition-colors flex items-center gap-3 cursor-pointer ${
                           isSelected
                             ? 'bg-raised border-ember-500/50 shadow-sm'
                             : 'bg-raised/40 border-line-soft hover:bg-sunken/60'
@@ -424,7 +424,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
 
                           <div className="w-full h-1.5 bg-cosmos-800 rounded-full overflow-hidden">
                             <div
-                              className="h-full rounded-full transition-all duration-300"
+                              className="h-full rounded-full transition-[width] duration-300"
                               style={{
                                 width: `${t.isCompleted ? Math.min(100, Math.max(10, t.score)) : 0}%`,
                                 backgroundColor: OUTCOME_META[t.outcome].color,
@@ -556,7 +556,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 min-h-[40px] text-xs sm:text-sm font-semibold text-ink-muted hover:text-ink rounded-xl border border-line-soft bg-sunken hover:bg-line-soft transition-all cursor-pointer"
+            className="px-4 py-2 min-h-[40px] text-xs sm:text-sm font-semibold text-ink-muted hover:text-ink rounded-xl border border-line-soft bg-sunken hover:bg-line-soft transition-colors cursor-pointer"
           >
             Close Dashboard
           </button>

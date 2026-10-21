@@ -52,7 +52,7 @@ export const CloudLibrary: React.FC<CloudLibraryProps> = ({ onResume }) => {
                 key={row.client_session_id}
                 type="button"
                 onClick={() => onResume(persisted)}
-                className="p-3 min-h-[44px] rounded-lg bg-raised/70 border border-line-soft hover:border-ember-500/40 flex items-center justify-between gap-2 text-left transition-all cursor-pointer"
+                className="p-3 min-h-[44px] rounded-lg bg-raised/70 border border-line-soft hover:border-ember-500/40 flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block text-xs font-semibold text-ink truncate">{row.lecture_title}</span>

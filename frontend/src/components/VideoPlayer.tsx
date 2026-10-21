@@ -492,7 +492,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
             }}
             onKeyDown={handleScrubberKeyDown}
           >
-            <div className="relative w-full h-1.5 group-hover:h-2.5 transition-all bg-white/20">
+            <div className="relative w-full h-1.5 group-hover:h-2.5 transition-[height] bg-white/20">
               {/* played fill */}
               {/* scaleX keeps the 1s linear glide on the compositor between the
                   once-per-second currentTime updates */}
@@ -543,7 +543,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
           <div
             ref={overlayScrollRef}
             onScroll={updateMoreHint}
-            className="no-scrollbar absolute inset-0 overflow-y-auto bg-surface/95 backdrop-blur-md animate-in fade-in duration-200"
+            className="no-scrollbar absolute inset-0 overflow-y-auto bg-surface/95 animate-in fade-in duration-200"
           >
             <div ref={overlayContentRef} className="min-h-full flex flex-col gap-3 p-4 sm:p-6 pb-16 max-w-3xl mx-auto">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -557,7 +557,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
                   <button
                     onClick={handleExplainScreen}
                     aria-label="Explain what is on screen"
-                    className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] text-xs font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] text-xs font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-colors cursor-pointer"
                   >
                     <ScanEye className="w-4 h-4" />
                     <span>Explain screen</span>
@@ -566,7 +566,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
                 <button
                   onClick={handleReplaySegment}
                   aria-label="Re-watch this segment"
-                  className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] text-xs font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] text-xs font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-colors cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
                   <span>Re-watch Segment</span>
@@ -577,7 +577,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
                   onClick={toggleFullscreen}
                   title={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
                   aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
-                  className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer"
+                  className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-colors cursor-pointer"
                 >
                   {isFullscreen ? (
                     <Minimize className="w-4 h-4" />
@@ -605,8 +605,8 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
         isOpen={explain.open}
         onClose={closeExplain}
         titleId="visual-explanation-title"
-        overlayClassName="!absolute !z-[60] !bg-transparent !backdrop-blur-none"
-        className="no-scrollbar !bg-surface/95 !border-0 !rounded-none !shadow-none absolute inset-0 overflow-y-auto backdrop-blur-md"
+        overlayClassName="!absolute !z-[60] !bg-transparent"
+        className="no-scrollbar !bg-surface/95 !border-0 !rounded-none !shadow-none absolute inset-0 overflow-y-auto"
       >
             <div className="min-h-full flex flex-col gap-4 p-4 sm:p-6 max-w-3xl mx-auto">
               <div className="flex items-center justify-between gap-3">
@@ -621,7 +621,7 @@ const VideoPlayerImpl: React.FC<VideoPlayerProps> = ({
                   onClick={closeExplain}
                   title="Close visual explanation"
                   aria-label="Close visual explanation"
-                  className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-all cursor-pointer flex-shrink-0"
+                  className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-colors cursor-pointer flex-shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>

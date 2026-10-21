@@ -135,7 +135,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      <header className="border-b border-line-soft bg-raised/60 backdrop-blur-md sticky top-0 z-40">
+      <header className="border-b border-line-soft bg-raised/90 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
             <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-ember-700 to-ember-500 flex items-center justify-center shadow-lg shadow-ember-500/30 flex-shrink-0">
@@ -161,7 +161,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={onOpenProgress}
                 aria-label="View learning dashboard & progress"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-all cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-colors cursor-pointer"
               >
                 <PieChart className="w-4 h-4 text-ink-faint flex-shrink-0" />
                 <span className="hidden sm:inline">Analytics</span>
@@ -175,7 +175,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={onOpenAnalytics}
                 aria-label="Open learning analytics dashboard"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-all cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-colors cursor-pointer"
               >
                 <BarChart3 className="w-4 h-4 text-ink-faint flex-shrink-0" />
                 <span className="hidden sm:inline">Insights</span>
@@ -186,7 +186,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={onOpenNotes}
                 aria-label="View study notes"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ember-800 dark:text-ember-200 bg-ember-500/10 dark:bg-ember-900/40 border border-ember-500/30 dark:border-ember-700/50 rounded-lg hover:bg-ember-500/20 dark:hover:bg-ember-900/60 transition-all shadow-sm cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ember-800 dark:text-ember-200 bg-ember-500/10 dark:bg-ember-900/40 border border-ember-500/30 dark:border-ember-700/50 rounded-lg hover:bg-ember-500/20 dark:hover:bg-ember-900/60 transition-colors shadow-sm cursor-pointer"
               >
                 <FileText className="w-4 h-4 text-ember-600 dark:text-ember-400 flex-shrink-0" />
                 <span className="hidden sm:inline">Study Notes</span>
@@ -202,7 +202,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={onReset}
                 aria-label="Start new video session"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-all cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-colors cursor-pointer"
               >
                 <Video className="w-4 h-4 text-ink-faint flex-shrink-0" />
                 <span className="hidden sm:inline">New Video</span>
@@ -213,7 +213,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 onClick={() => void signInWithGoogle()}
                 aria-label="Sign in with Google"
-                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-all cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-colors cursor-pointer"
               >
                 <LogIn className="w-4 h-4 text-ink-faint flex-shrink-0" />
                 <span className="hidden sm:inline">Sign in</span>
@@ -223,7 +223,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => onOpenKeyModal()}
               aria-label="Manage Gemini API Key"
-              className="hidden sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-all cursor-pointer"
+              className="hidden sm:flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-2 min-h-[44px] text-xs sm:text-sm font-medium text-ink-muted hover:text-ink bg-sunken hover:bg-line-soft rounded-lg border border-line/60 transition-colors cursor-pointer"
             >
               <Key className="w-4 h-4 text-ink-faint flex-shrink-0" />
               <span className="hidden sm:inline">API Key</span>
@@ -237,7 +237,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   aria-label={authEnabled && user ? 'Account menu' : 'More options'}
                   aria-haspopup="menu"
                   aria-expanded={menuOpen}
-                  className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center bg-sunken border border-line/60 hover:border-ember-500/50 text-sm font-semibold text-ink-muted cursor-pointer transition-all"
+                  className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center bg-sunken border border-line/60 hover:border-ember-500/50 text-sm font-semibold text-ink-muted cursor-pointer transition-colors"
                 >
                   {!(authEnabled && user) ? (
                     <MoreHorizontal className="w-5 h-5" aria-hidden="true" />
@@ -322,14 +322,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="flex items-center gap-1.5 flex-shrink-0 ml-auto sm:ml-0">
               <button
                 onClick={() => onOpenKeyModal()}
-                className="px-3.5 py-2 min-h-[44px] rounded-lg text-xs font-semibold bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-all cursor-pointer"
+                className="px-3.5 py-2 min-h-[44px] rounded-lg text-xs font-semibold bg-warning/15 text-warning border border-warning/30 hover:bg-warning/25 transition-colors cursor-pointer"
               >
                 Add key
               </button>
               <button
                 onClick={dismissKeyHint}
                 aria-label="Dismiss API key hint"
-                className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-ink-faint hover:text-ink-muted hover:bg-sunken transition-all cursor-pointer"
+                className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-ink-faint hover:text-ink-muted hover:bg-sunken transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -375,7 +375,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={() => void handleDeleteCloudData()}
               disabled={deleting}
-              className="px-5 py-2.5 min-h-[44px] text-sm font-semibold bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 rounded-xl transition-all cursor-pointer disabled:opacity-60"
+              className="px-5 py-2.5 min-h-[44px] text-sm font-semibold bg-danger/10 hover:bg-danger/20 text-danger border border-danger/30 rounded-xl transition-[color,background-color,border-color,opacity] cursor-pointer disabled:opacity-60"
             >
               {deleting ? 'Deleting...' : 'Delete permanently'}
             </button>
@@ -428,7 +428,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={handleSaveKey}
-            className="flex items-center gap-2 px-5 py-2.5 min-h-[44px] text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent rounded-xl shadow-lg shadow-ember-500/25 transition-all cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2.5 min-h-[44px] text-sm font-semibold bg-accent hover:bg-accent-hover text-on-accent rounded-xl shadow-lg shadow-ember-500/25 transition-colors cursor-pointer"
           >
             {savedSuccess ? (
               <>

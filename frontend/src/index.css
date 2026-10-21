@@ -145,46 +145,6 @@
   --tw-enter-translate-y: 1rem;
 }
 
-/* ── Landing-page accent motion: ambient drifting glow, headline shimmer,
-   a blinking brand mark, a breathing CTA ring. All opt-in, all frozen by
-   the prefers-reduced-motion rule above since it targets `*`. ── */
-@keyframes drift {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(3%, -4%) scale(1.08); }
-}
-.animate-drift {
-  animation: drift 16s ease-in-out infinite;
-}
-.animate-drift-slow {
-  animation: drift 22s ease-in-out infinite reverse;
-}
-
-@keyframes headline-shimmer {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-.animate-headline-shimmer {
-  background-size: 200% auto;
-  animation: headline-shimmer 6s ease-in-out infinite;
-}
-
-@keyframes owl-blink {
-  0%, 92%, 100% { transform: scaleY(1); }
-  96% { transform: scaleY(0.1); }
-}
-.owl-eye {
-  transform-origin: center;
-  animation: owl-blink 5s ease-in-out infinite;
-}
-
-@keyframes cta-breathe {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-ember-500) 35%, transparent); }
-  50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-ember-500) 0%, transparent); }
-}
-.animate-cta-breathe {
-  animation: cta-breathe 2.6s ease-out infinite;
-}
-
 /* ── Lets a landing-page section span the full viewport width while sitting
    inside a max-w-7xl-constrained parent (used by the CTA bands). ── */
 .full-bleed {

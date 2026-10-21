@@ -117,7 +117,7 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
             return (
               <React.Fragment key={s.id}>
                 <div
-                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
                     isCurrent
                       ? 'bg-ember-500/20 text-ember-800 dark:text-ember-300 border border-ember-500/40 shadow-sm'
                       : isPassed
@@ -162,12 +162,12 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
         <span
           className={`w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0 ${
             stage === 'ACTIVE_RECALL'
-              ? 'bg-ember-400 animate-pulse'
+              ? 'bg-ember-400'
               : stage === 'REVIEW'
-              ? 'bg-warning animate-pulse'
+              ? 'bg-warning'
               : stage === 'COMPLETE'
               ? 'bg-success'
-              : 'bg-cosmos-500 animate-pulse'
+              : 'bg-cosmos-500'
           }`}
         />
         <div className="text-xs leading-relaxed flex-1">
@@ -278,7 +278,7 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
             type="button"
             disabled={activeSegmentIndex === 0}
             onClick={() => onSelectSegment(activeSegmentIndex - 1)}
-            className="px-3 py-2 min-h-[44px] rounded-lg border border-line-soft text-ink-faint hover:text-ink hover:bg-sunken disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer flex items-center justify-center"
+            className="px-3 py-2 min-h-[44px] rounded-lg border border-line-soft text-ink-faint hover:text-ink hover:bg-sunken disabled:opacity-30 disabled:pointer-events-none transition-[color,background-color,border-color,opacity] cursor-pointer flex items-center justify-center"
           >
             ← Prev Chapter
           </button>
@@ -289,7 +289,7 @@ export const AiTutorPanel: React.FC<AiTutorPanelProps> = ({
             type="button"
             disabled={activeSegmentIndex >= segments.length - 1}
             onClick={() => onSelectSegment(activeSegmentIndex + 1)}
-            className="px-3 py-2 min-h-[44px] rounded-lg border border-line-soft text-ink-faint hover:text-ink hover:bg-sunken disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer flex items-center justify-center"
+            className="px-3 py-2 min-h-[44px] rounded-lg border border-line-soft text-ink-faint hover:text-ink hover:bg-sunken disabled:opacity-30 disabled:pointer-events-none transition-[color,background-color,border-color,opacity] cursor-pointer flex items-center justify-center"
           >
             Next Chapter →
           </button>
