@@ -117,7 +117,7 @@ const ReviewQueueBody: React.FC<ReviewQueueProps> = ({ variant = 'panel', onRevi
   const wrapper = (children: React.ReactNode) =>
     variant === 'landing' ? (
       <section aria-label="Spaced review queue" className="max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-6">
-        <div className="p-4 sm:p-5 rounded-xl bg-sunken/30 border border-line-soft space-y-3">{children}</div>
+        <div className="p-4 sm:p-5 rounded-lg bg-sunken border border-line-soft space-y-3">{children}</div>
       </section>
     ) : (
       <section aria-label="Spaced review queue" className="space-y-3">{children}</section>
@@ -126,7 +126,7 @@ const ReviewQueueBody: React.FC<ReviewQueueProps> = ({ variant = 'panel', onRevi
   const heading = (
     <div className="flex items-center justify-between gap-2 flex-wrap">
       <h2 className="text-xs font-bold uppercase tracking-wider text-ink-faint flex items-center gap-1.5">
-        <RotateCcw className="w-3.5 h-3.5 text-ember-400" aria-hidden="true" /> Review queue
+        <RotateCcw className="w-3.5 h-3.5 text-accent" aria-hidden="true" /> Review queue
       </h2>
       {load.kind === 'ready' && load.totalDue > 0 && (
         <Badge tone="warning">{remaining} due</Badge>
@@ -154,7 +154,7 @@ const ReviewQueueBody: React.FC<ReviewQueueProps> = ({ variant = 'panel', onRevi
         <div role="alert" className="flex items-start gap-2 text-xs text-danger">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
           <span className="flex-1">{load.message}</span>
-          <Button type="button" variant="danger" onClick={fetchQueue} className="px-3! py-1.5! text-xs!">
+          <Button type="button" variant="danger" onClick={fetchQueue} >
             Retry
           </Button>
         </div>
@@ -185,8 +185,8 @@ const ReviewQueueBody: React.FC<ReviewQueueProps> = ({ variant = 'panel', onRevi
   return wrapper(
     <>
       {heading}
-      <div className="rounded-xl bg-raised/70 border border-line-soft p-4 space-y-3">
-        <div className="flex items-center gap-2 flex-wrap text-[11px] text-ink-faint">
+      <div className="rounded-lg bg-raised border border-line-soft p-4 space-y-3">
+        <div className="flex items-center gap-2 flex-wrap text-xs text-ink-faint">
           <span>
             Question {load.state.index + 1} of {load.state.items.length}
           </span>
@@ -205,11 +205,11 @@ const ReviewQueueBody: React.FC<ReviewQueueProps> = ({ variant = 'panel', onRevi
               aria-expanded={showHint}
               className="flex items-center gap-1.5 text-xs text-ink-faint hover:text-warning transition-colors cursor-pointer min-h-[44px]"
             >
-              <Lightbulb className="w-3.5 h-3.5 text-warning/80" aria-hidden="true" />
+              <Lightbulb className="w-3.5 h-3.5 text-warning" aria-hidden="true" />
               {showHint ? 'Hide hint' : 'Show hint'}
             </button>
             {showHint && (
-              <p className="p-3 rounded-lg bg-warning/5 border border-warning/20 text-warning/90 text-xs leading-relaxed">
+              <p className="p-3 rounded-md bg-warning/10 border border-warning/30 text-warning text-xs leading-relaxed">
                 {item.hints.join(' ')}
               </p>
             )}
@@ -221,7 +221,7 @@ const ReviewQueueBody: React.FC<ReviewQueueProps> = ({ variant = 'panel', onRevi
             <div
               role="status"
               aria-live="polite"
-              className={`p-3.5 rounded-xl border text-sm ${
+              className={`p-3.5 rounded-lg border text-sm ${
                 feedback.status === 'CORRECT'
                   ? 'bg-success/10 border-success/30'
                   : 'bg-warning/10 border-warning/30'
@@ -257,7 +257,7 @@ const ReviewQueueBody: React.FC<ReviewQueueProps> = ({ variant = 'panel', onRevi
               onChange={(e) => setAnswer(e.target.value)}
               disabled={busy}
               placeholder="Explain it in your own words..."
-              className="w-full p-3 bg-sunken border border-line/80 rounded-xl text-ink text-sm placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-ember-500 resize-none disabled:opacity-50"
+              className="w-full p-3 bg-sunken border border-line rounded-md text-ink text-sm placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent resize-none disabled:opacity-50"
             />
             {submitError && (
               <p role="alert" className="text-xs text-danger flex items-center gap-1">

@@ -34,7 +34,7 @@ const ReviewModalBody: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     <Modal isOpen onClose={onClose} titleId="review-modal-title" className="max-w-2xl w-full max-h-[85vh] flex flex-col">
       <div className="p-5 border-b border-line-soft flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-warning/10 text-warning border border-warning/25">
+          <div className="p-2.5 rounded-lg bg-warning/10 text-warning border border-warning/30">
             <BookOpen className="w-5 h-5" />
           </div>
           <div>
@@ -46,7 +46,7 @@ const ReviewModalBody: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           type="button"
           onClick={onClose}
           aria-label="Close review"
-          className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-ink-faint hover:text-ink hover:bg-sunken cursor-pointer"
+          className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-ink-faint hover:text-ink hover:bg-sunken cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
@@ -84,9 +84,9 @@ const ReviewModalBody: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <h4 className="text-xs font-bold uppercase tracking-wider text-ink-faint">Questions to revisit</h4>
             <ul className="space-y-2">
               {data.needsReview.map((q) => (
-                <li key={`${q.sessionId}|${q.question}`} className="p-3 rounded-lg bg-sunken/40 border border-line-soft">
+                <li key={`${q.sessionId}|${q.question}`} className="p-3 rounded-lg bg-sunken border border-line-soft">
                   <p className="text-xs font-semibold text-ink">{q.question}</p>
-                  <p className="text-[10px] text-ink-faint">{q.segmentTitle}</p>
+                  <p className="text-xs text-ink-faint">{q.segmentTitle}</p>
                 </li>
               ))}
             </ul>

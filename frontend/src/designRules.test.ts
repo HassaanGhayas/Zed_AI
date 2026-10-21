@@ -208,4 +208,48 @@ describe('design rules', () => {
       expect(offenders(/\bdark:/, outside10)).toEqual([]);
     });
   });
+
+  describe('insights and review (Task 11 scope)', () => {
+    const scope11 = (rel: string) =>
+      rel === 'components/AnalyticsView.tsx' ||
+      rel === 'components/ReviewQueue.tsx' ||
+      rel === 'components/ReviewModal.tsx';
+    const outside11 = (rel: string) => !scope11(rel);
+    const IMPORTANT_CLASS_11 =
+      /[\s"'`:]!-?[a-z]+-|-[\w.\]/%)]+!(?=[\s"'`]|$)|(?:^|[\s"'`:])(?:!(?:absolute|relative|fixed|sticky|static|hidden|block|inline|flex|grid|contents|border|rounded|shadow|truncate|italic|underline|uppercase|visible|invisible|grow|shrink|transition)|(?:absolute|relative|fixed|sticky|static|hidden|block|inline|flex|grid|contents|border|rounded|shadow|truncate|italic|underline|uppercase|visible|invisible|grow|shrink|transition)!)(?=[\s"'`]|$)/;
+
+    it('scope matches files', () => {
+      expect(files.filter((f) => scope11(f.rel)).length).toBe(3);
+    });
+    it('no text-[10px] / text-[11px]', () => {
+      expect(offenders(/text-\[1[01]px\]/, outside11)).toEqual([]);
+    });
+    it('no rounded-xl/2xl/3xl', () => {
+      expect(offenders(/rounded-(xl|2xl|3xl)/, outside11)).toEqual([]);
+    });
+    it('no bare rounded', () => {
+      expect(offenders(/rounded(?![-\w])/, outside11)).toEqual([]);
+    });
+    it('no shadow-lg/xl/2xl', () => {
+      expect(offenders(/shadow-(lg|xl|2xl)/, outside11)).toEqual([]);
+    });
+    it('no raw bg-white / bg-black / text-red- classes', () => {
+      expect(offenders(/bg-(white|black)|text-red-/, outside11)).toEqual([]);
+    });
+    it('no rgba(', () => {
+      expect(offenders(/rgba\(/, outside11)).toEqual([]);
+    });
+    it('no important (!) Tailwind modifiers', () => {
+      expect(offenders(IMPORTANT_CLASS_11, outside11)).toEqual([]);
+    });
+    it('no bg-gradient', () => {
+      expect(offenders(/bg-gradient/, outside11)).toEqual([]);
+    });
+    it('no ember-/cosmos- classes', () => {
+      expect(offenders(/(ember|cosmos)-/, outside11)).toEqual([]);
+    });
+    it('no dark: classes', () => {
+      expect(offenders(/dark:/, outside11)).toEqual([]);
+    });
+  });
 });

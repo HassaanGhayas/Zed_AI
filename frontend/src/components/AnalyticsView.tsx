@@ -96,7 +96,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onClose }) => {
               type="button"
               onClick={onClose}
               aria-label="Back to study session"
-              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-ink-faint hover:text-ink hover:bg-sunken border border-line/60 cursor-pointer"
+              className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md text-ink-faint hover:text-ink hover:bg-sunken border border-line cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -124,7 +124,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({ onClose }) => {
 
 const SignedOutPrompt: React.FC<{ onSignIn: () => void }> = ({ onSignIn }) => (
   <Card radius="lg" className="p-6 sm:p-10 text-center max-w-xl mx-auto space-y-4">
-    <div className="mx-auto w-12 h-12 rounded-xl bg-ember-500/10 border border-ember-500/25 text-ember-400 flex items-center justify-center">
+    <div className="mx-auto w-12 h-12 rounded-lg bg-accent/10 border border-accent/30 text-accent flex items-center justify-center">
       <BarChart3 className="w-6 h-6" aria-hidden="true" />
     </div>
     <h2 className="text-lg font-semibold text-ink">Sign in to see your analytics</h2>
@@ -295,8 +295,8 @@ const MetricCard: React.FC<{
 }> = ({ label, icon, children }) => (
   <Card radius="lg" className="p-5 flex flex-col gap-2 min-w-0">
     <div className="flex items-center justify-between gap-2">
-      <h3 className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">{label}</h3>
-      <span className="text-ember-400" aria-hidden="true">{icon}</span>
+      <h3 className="text-xs font-bold uppercase tracking-wider text-ink-faint">{label}</h3>
+      <span className="text-accent" aria-hidden="true">{icon}</span>
     </div>
     {children}
   </Card>
@@ -469,7 +469,7 @@ const DecayCurve: React.FC<{ curve: AnalyticsSummary['curve']; days: number }> =
               <CartesianGrid stroke="var(--color-line-soft)" strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="day"
-                tick={{ fill: 'var(--color-ink-faint)', fontSize: 11 }}
+                tick={{ fill: 'var(--color-ink-faint)', fontSize: 12 }}
                 tickLine={false}
                 axisLine={{ stroke: 'var(--color-line)' }}
                 tickFormatter={(d: number) => `D${d}`}
@@ -477,7 +477,7 @@ const DecayCurve: React.FC<{ curve: AnalyticsSummary['curve']; days: number }> =
               />
               <YAxis
                 domain={[0, 100]}
-                tick={{ fill: 'var(--color-ink-faint)', fontSize: 11 }}
+                tick={{ fill: 'var(--color-ink-faint)', fontSize: 12 }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(v: number) => `${v}%`}
@@ -487,7 +487,7 @@ const DecayCurve: React.FC<{ curve: AnalyticsSummary['curve']; days: number }> =
                 contentStyle={{
                   background: 'var(--color-raised)',
                   border: '1px solid var(--color-line)',
-                  borderRadius: 12,
+                  borderRadius: 10,
                   fontSize: 12,
                   color: 'var(--color-ink)',
                 }}
@@ -534,7 +534,7 @@ const DecayCurve: React.FC<{ curve: AnalyticsSummary['curve']; days: number }> =
         </div>
       )}
 
-      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-faint" aria-label="Chart legend">
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-faint" aria-label="Chart legend">
         <li className="flex items-center gap-1.5">
           <span className="w-4 h-0.5 bg-accent inline-block" aria-hidden="true" /> Projected recall (with reviews)
         </li>
@@ -549,7 +549,7 @@ const DecayCurve: React.FC<{ curve: AnalyticsSummary['curve']; days: number }> =
       </ul>
 
       {curve.note && (
-        <p className="text-[11px] text-ink-faint leading-relaxed" data-testid="curve-note">
+        <p className="text-xs text-ink-faint leading-relaxed" data-testid="curve-note">
           {curve.note}
         </p>
       )}
@@ -606,10 +606,10 @@ const DomainMastery: React.FC<{ domains: AnalyticsSummary['domains'] }> = ({ dom
                       ? 'bg-danger'
                       : domainTone(d.status) === 'warning'
                         ? 'bg-warning'
-                        : 'bg-gradient-to-r from-ember-500 to-ember-300'
+                        : 'bg-accent'
                 }
               />
-              <p className="text-[11px] text-ink-faint">
+              <p className="text-xs text-ink-faint">
                 {Math.round(pct)}% &middot; {d.concepts_tracked} concept{d.concepts_tracked === 1 ? '' : 's'}
                 {d.note ? ` · ${d.note}` : ''}
               </p>
@@ -734,7 +734,7 @@ const TargetSetting: React.FC<{ onSaved: () => void }> = ({ onSaved }) => {
             onChange={(e) => {
               setValue(e.target.value);
             }}
-            className="w-28 px-3 py-2 min-h-[44px] bg-sunken border border-line rounded-xl text-ink text-sm focus:outline-none focus:ring-2 focus:ring-ember-500"
+            className="w-28 px-3 py-2 min-h-[44px] bg-sunken border border-line rounded-md text-ink text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <Button type="submit" variant="secondary" loading={busy}>
             Save
