@@ -220,11 +220,11 @@ export const NotesModal: React.FC<NotesModalProps> = ({
         continue;
       }
 
-      // Validated concepts and tutor commentary must NOT appear in notes
+      // Validated concepts and tutor insights must NOT appear in notes
       if (/^\*\*(?:Validated\s+Concepts|Key\s+Concepts\s+Validated):?/i.test(raw)) {
         continue;
       }
-      if (/^\*\*(?:Tutor\s+Ins\w+|Tutor\s+Takeaway|Tutor\s+Feedback):?/i.test(raw)) {
+      if (/^\*\*(?:Tutor\s+Insight|Tutor\s+Takeaway|Tutor\s+Feedback):?/i.test(raw)) {
         continue;
       }
 
@@ -398,7 +398,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                 <div className="text-center py-12 flex flex-col items-center gap-2 text-ink-faint">
                   <ListChecks className="w-8 h-8 text-ink-faint/60" />
                   <p className="text-sm">No active recall checkpoints were synthesized for this video.</p>
-                  <p className="text-xs text-ink-faint/80">Answer a few checkpoint questions while watching to generate synthesized notes.</p>
+                  <p className="text-xs text-ink-faint">Answer a few checkpoint questions while watching to generate synthesized notes.</p>
                 </div>
               ) : (
                 parsedSections.map((section, sIdx) => {
@@ -511,7 +511,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                 <div className="text-center py-10 flex flex-col items-center gap-2 text-ink-faint">
                   <BookOpen className="w-8 h-8 text-ink-faint/60" />
                   <p className="text-sm">No questions were completed in this session.</p>
-                  <p className="text-xs text-ink-faint/80">Watch the video and answer checkpoint questions to build your question history.</p>
+                  <p className="text-xs text-ink-faint">Watch the video and answer checkpoint questions to build your question history.</p>
                 </div>
               )}
             </div>

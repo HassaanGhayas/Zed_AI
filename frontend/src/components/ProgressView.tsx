@@ -392,7 +392,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                 <div className="py-6 flex flex-col items-center gap-1.5 text-center text-ink-faint">
                   <BookOpen className="w-6 h-6 text-ink-faint/60" />
                   <p className="text-xs">No chapters loaded yet.</p>
-                  <p className="text-xs text-ink-faint/80">Start watching the video to populate chapter mastery scores here.</p>
+                  <p className="text-xs text-ink-faint">Start watching the video to populate chapter mastery scores here.</p>
                 </div>
               ) : (
                 segmentPerf.map((t) => {
