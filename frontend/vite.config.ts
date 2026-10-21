@@ -4,7 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 
 // Production-only CSP (dev needs inline HMR scripts + websockets). Allows the
-// YouTube iframe/API, Google Fonts and the configured backend origin.
+// YouTube iframe/API, and the configured backend origin.
 function cspPlugin(apiBase: string, supabaseUrl: string): Plugin {
   return {
     name: 'studify-csp',
@@ -13,8 +13,8 @@ function cspPlugin(apiBase: string, supabaseUrl: string): Plugin {
       const csp = [
         "default-src 'self'",
         "script-src 'self' https://www.youtube.com https://s.ytimg.com",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "font-src 'self' https://fonts.gstatic.com data:",
+        "style-src 'self' 'unsafe-inline'",
+        "font-src 'self'",
         "img-src 'self' data: blob: https:",
         `connect-src 'self' ${apiBase}${supabaseUrl ? ` ${supabaseUrl}` : ''}`,
         'frame-src https://www.youtube.com https://www.youtube-nocookie.com',

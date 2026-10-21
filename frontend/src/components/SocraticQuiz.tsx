@@ -338,7 +338,7 @@ export const SocraticQuiz: React.FC<SocraticQuizProps> = ({
             </div>
           )}
         </div>
-        <p className="text-base text-ink font-medium leading-relaxed">
+        <p className="font-display text-lg text-ink font-semibold leading-snug">
           {promptToSpeak}
         </p>
       </div>

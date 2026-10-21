@@ -431,7 +431,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                     <section key={`sec-${sIdx}`} className="space-y-3">
                       {/* Section Title Header */}
                       <div className="border-l-4 border-ember-500 pl-3 py-0.5">
-                        <h4 className="text-sm sm:text-base font-bold text-ink">{section.title}</h4>
+                        <h4 className="font-display text-sm sm:text-base font-bold text-ink">{section.title}</h4>
                       </div>
 
                       {/* Question Cards */}

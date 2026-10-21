@@ -4,10 +4,12 @@
    ember accent. Dark is the default (`@theme`); `[data-theme="light"]`
    overrides the semantic tokens. Contrast bars are pinned by
    src/lib/contrast.test.ts. ── */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme {
   /* Typography roles */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Source Sans 3 Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
   /* Primitive ramp: cosmos — true neutral stone (barely-warm, not brown) */
@@ -113,6 +115,7 @@
     @apply bg-surface text-ink min-h-screen antialiased selection:bg-accent/30 selection:text-ink;
     font-family: var(--font-sans);
     font-feature-settings: "kern" 1, "liga" 1;
+    line-height: 1.6;
     transition: background-color 200ms ease, color 200ms ease;
   }
 
