@@ -124,4 +124,44 @@ describe('design rules', () => {
       expect(offenders(IMPORTANT_CLASS, outsideScope)).toEqual([]);
     });
   });
+
+  describe('landing, notes, progress (Task 9 scope)', () => {
+    const scope9 = (rel: string) =>
+      rel === 'components/VideoInput.tsx' ||
+      rel === 'components/NotesModal.tsx' ||
+      rel === 'components/ProgressView.tsx' ||
+      rel === 'components/ErrorBoundary.tsx' ||
+      (rel.startsWith('components/landing/') && rel.endsWith('.tsx'));
+    const outside9 = (rel: string) => !scope9(rel);
+    const IMPORTANT_CLASS_9 =
+      /[\s"'`:]!-?[a-z]+-|-[\w.\]/%)]+!(?=[\s"'`]|$)|(?:^|[\s"'`:])(?:!(?:absolute|relative|fixed|sticky|static|hidden|block|inline|flex|grid|contents|border|rounded|shadow|truncate|italic|underline|uppercase|visible|invisible|grow|shrink|transition)|(?:absolute|relative|fixed|sticky|static|hidden|block|inline|flex|grid|contents|border|rounded|shadow|truncate|italic|underline|uppercase|visible|invisible|grow|shrink|transition)!)(?=[\s"'`]|$)/;
+
+    it('scope matches files', () => {
+      expect(files.filter((f) => scope9(f.rel)).length).toBeGreaterThanOrEqual(12);
+    });
+    it('no text-[10px] / text-[11px]', () => {
+      expect(offenders(/text-\[1[01]px\]/, outside9)).toEqual([]);
+    });
+    it('no rounded-xl/2xl/3xl', () => {
+      expect(offenders(/\brounded-(xl|2xl|3xl)\b/, outside9)).toEqual([]);
+    });
+    it('no bare rounded', () => {
+      expect(offenders(/\brounded\b(?![-\w])/, outside9)).toEqual([]);
+    });
+    it('no raw bg-white / bg-black / text-red- classes', () => {
+      expect(offenders(/\bbg-(white|black)\b|\btext-red-/, outside9)).toEqual([]);
+    });
+    it('no rgba(', () => {
+      expect(offenders(/rgba\(/, outside9)).toEqual([]);
+    });
+    it('no important (!) Tailwind modifiers', () => {
+      expect(offenders(IMPORTANT_CLASS_9, outside9)).toEqual([]);
+    });
+    it('no bg-gradient', () => {
+      expect(offenders(/bg-gradient/, outside9)).toEqual([]);
+    });
+    it('no ember-/cosmos- ramp classes', () => {
+      expect(offenders(/\b(ember|cosmos)-\d/, outside9)).toEqual([]);
+    });
+  });
 });

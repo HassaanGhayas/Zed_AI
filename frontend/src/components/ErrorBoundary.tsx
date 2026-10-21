@@ -37,7 +37,7 @@ export class ErrorBoundary extends React.Component<
         role="alert"
         className="min-h-screen flex items-center justify-center bg-surface text-ink p-6"
       >
-        <div className="max-w-md w-full bg-raised border border-line-soft rounded-2xl p-6 shadow-2xl text-center">
+        <div className="max-w-md w-full bg-raised border border-line-soft rounded-lg p-6 shadow-pop text-center">
           <h1 className="text-xl font-semibold mb-2">Something went wrong</h1>
           <p className="text-sm text-ink-muted mb-6">
             Studify hit an unexpected error. You can reload the page, or reset your saved session if
@@ -46,13 +46,13 @@ export class ErrorBoundary extends React.Component<
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={this.handleReload}
-              className="px-4 py-2 min-h-[44px] text-sm font-semibold rounded-lg bg-ember-600 hover:bg-ember-500 text-white transition-colors cursor-pointer"
+              className="px-4 py-2 min-h-[44px] text-sm font-semibold rounded-md bg-accent hover:bg-accent-hover text-on-accent transition-colors cursor-pointer"
             >
               Reload
             </button>
             <button
               onClick={this.handleReset}
-              className="px-4 py-2 min-h-[44px] text-sm font-semibold rounded-lg bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-colors cursor-pointer"
+              className="px-4 py-2 min-h-[44px] text-sm font-semibold rounded-md bg-sunken hover:bg-line-soft text-ink-muted border border-line transition-colors cursor-pointer"
             >
               Reset saved session
             </button>

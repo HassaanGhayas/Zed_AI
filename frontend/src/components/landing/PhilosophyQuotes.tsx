@@ -23,10 +23,10 @@ export const PhilosophyQuotes: React.FC = () => {
           <Card
             key={text}
             radius="lg"
-            className="p-6 animate-in fade-in slide-in-from-bottom-4 hover:border-ember-500/30 hover:-translate-y-1 transition-[border-color,transform] duration-200"
+            className="p-6 animate-in fade-in slide-in-from-bottom-4 hover:border-accent/30 hover:-translate-y-1 transition-[border-color,transform] duration-200"
             style={{ animationDuration: '500ms', animationDelay: `${idx * 100}ms` }}
           >
-            <Quote className="w-6 h-6 text-ember-400/60 mb-3" aria-hidden="true" />
+            <Quote className="w-6 h-6 text-accent/60 mb-3" aria-hidden="true" />
             <p className="text-ink font-display text-lg leading-relaxed">{text}</p>
           </Card>
         ))}

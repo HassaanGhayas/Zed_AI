@@ -21,7 +21,7 @@ export const OutcomeStats: React.FC = () => {
           <Card
             key={stat.label}
             radius="lg"
-            className="p-6 text-center animate-in fade-in slide-in-from-bottom-4 hover:border-ember-500/30 hover:-translate-y-1 transition-[border-color,transform] duration-200"
+            className="p-6 text-center animate-in fade-in slide-in-from-bottom-4 hover:border-accent/30 hover:-translate-y-1 transition-[border-color,transform] duration-200"
             style={{ animationDuration: '500ms', animationDelay: `${idx * 80}ms` }}
           >
             <p className="font-display text-4xl font-extrabold text-accent mb-1.5">{stat.value}</p>

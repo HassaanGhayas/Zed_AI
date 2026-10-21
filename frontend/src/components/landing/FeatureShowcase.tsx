@@ -23,7 +23,7 @@ export const FeatureShowcase: React.FC = () => {
           className="order-2 md:order-1 animate-in fade-in slide-in-from-bottom-4"
           style={{ animationDuration: '500ms' }}
         >
-          <Card radius="lg" className="p-4 sm:p-5 shadow-xl space-y-2.5">
+          <Card radius="lg" className="p-4 sm:p-5 space-y-2.5">
             {[
               { title: 'Intro & motivation', state: 'done' as const },
               { title: 'Core mechanism', state: 'active' as const },
@@ -31,9 +31,9 @@ export const FeatureShowcase: React.FC = () => {
             ].map((row) => (
               <div
                 key={row.title}
-                className={`flex items-center gap-3 p-3 rounded-xl border ${
+                className={`flex items-center gap-3 p-3 rounded-md border ${
                   row.state === 'active'
-                    ? 'bg-ember-500/10 border-ember-500/30'
+                    ? 'bg-accent/10 border-accent/30'
                     : 'bg-sunken/50 border-line-soft'
                 }`}
               >
@@ -43,7 +43,7 @@ export const FeatureShowcase: React.FC = () => {
                     <CheckCircle2 className="relative w-4 h-4 text-success" />
                   </span>
                 )}
-                {row.state === 'active' && <PlayCircle className="w-4 h-4 text-ember-400 flex-shrink-0" />}
+                {row.state === 'active' && <PlayCircle className="w-4 h-4 text-accent flex-shrink-0" />}
                 {row.state === 'locked' && <Lock className="w-4 h-4 text-ink-faint flex-shrink-0" />}
                 <span className={`text-sm font-medium flex-1 ${row.state === 'locked' ? 'text-ink-faint' : 'text-ink'}`}>
                   {row.title}
@@ -77,7 +77,7 @@ export const FeatureShowcase: React.FC = () => {
           </p>
         </div>
         <div className="animate-in fade-in slide-in-from-bottom-4" style={{ animationDuration: '500ms' }}>
-          <Card radius="lg" className="p-4 sm:p-5 shadow-xl space-y-3">
+          <Card radius="lg" className="p-4 sm:p-5 space-y-3">
             <p className="text-sm font-semibold text-ink">
               Why does increasing the learning rate too much hurt training?
             </p>

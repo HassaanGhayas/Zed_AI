@@ -63,7 +63,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
     <div id="hero" className="relative max-w-3xl mx-auto py-8 sm:py-12 px-0 sm:px-4 text-center">
       {/* Hero Badge — the owl mark gets a subtle radar-ping halo */}
       <div
-        className="animate-in fade-in slide-in-from-bottom-2 relative inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-ember-500/10 border border-ember-500/25 text-ember-300 text-xs font-medium mb-6"
+        className="animate-in fade-in slide-in-from-bottom-2 relative inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-accent/30 text-accent text-xs font-medium mb-6"
         style={{ animationDuration: '400ms' }}
       >
         <div className="absolute -left-3 -top-3 w-10 h-10 pointer-events-none" aria-hidden="true">
@@ -74,11 +74,11 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
       </div>
 
       <h1
-        className="animate-in fade-in slide-in-from-bottom-2 font-display text-4xl sm:text-5xl font-extrabold tracking-tight text-ink mb-4 leading-tight"
+        className="animate-in fade-in slide-in-from-bottom-2 font-display text-display font-bold tracking-tight text-ink mb-4 leading-tight"
         style={{ animationDuration: '500ms', animationDelay: '80ms' }}
       >
         Any lecture on YouTube, <br className="hidden sm:inline" />
-        <span className="bg-gradient-to-r from-ember-300 via-ember-400 to-ember-500 bg-clip-text text-transparent">
+        <span className="text-accent">
           taught the Socratic way
         </span>
       </h1>
@@ -99,9 +99,9 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
         <label htmlFor="youtube-url-input" className="sr-only">
           YouTube Video URL
         </label>
-        <div className="flex items-center bg-raised/90 border border-line hover:border-cosmos-600 focus-within:border-ember-500 rounded-2xl p-1.5 sm:p-2 shadow-xl focus-within:ring-4 focus-within:ring-ember-500/20 transition-[border-color,box-shadow]">
-          <div className="pl-3 pr-2 text-ember-500 flex items-center justify-center flex-shrink-0 pointer-events-none" aria-hidden="true">
-            <svg className="w-6 h-6 fill-current text-ember-500" viewBox="0 0 24 24">
+        <div className="flex items-center bg-raised border border-line hover:border-ink-faint focus-within:border-accent rounded-lg p-1.5 sm:p-2 shadow-card focus-within:ring-2 focus-within:ring-accent/30 transition-[border-color,box-shadow]">
+          <div className="pl-3 pr-2 text-accent flex items-center justify-center flex-shrink-0 pointer-events-none" aria-hidden="true">
+            <svg className="w-6 h-6 fill-current text-accent" viewBox="0 0 24 24">
               <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
             </svg>
           </div>
@@ -120,7 +120,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
             type="submit"
             variant="primary"
             loading={isLoading}
-            className="flex-shrink-0 px-3.5! sm:px-5! py-2.5! gap-1.5 sm:gap-2 text-xs! sm:text-sm! shadow-md! shadow-ember-500/0! disabled:opacity-50!"
+            className="flex-shrink-0 sm:px-5"
           >
             {isLoading ? (
               <span>Analyzing</span>
@@ -136,9 +136,9 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
 
       {/* Loading Progress State */}
       {isLoading && (
-        <div role="status" aria-live="polite" className="max-w-md mx-auto p-4 rounded-xl bg-raised/80 border border-line-soft text-left mb-6 shadow-xl animate-in fade-in duration-200 space-y-3">
+        <div role="status" aria-live="polite" className="max-w-md mx-auto p-4 rounded-lg bg-raised border border-line-soft text-left mb-6 shadow-card animate-in fade-in duration-200 space-y-3">
           <div className="flex items-center gap-3">
-            <Loader2 className="w-5 h-5 text-ember-400 animate-spin flex-shrink-0" />
+            <Loader2 className="w-5 h-5 text-accent animate-spin flex-shrink-0" />
             <div>
               <p className="text-sm font-semibold text-ink">{loadingStep || 'Processing video...'}</p>
               <p className="text-xs text-ink-faint">Extracting subtitles & structuring Socratic recall chapters</p>
@@ -157,7 +157,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
 
       {/* Error Banner */}
       {displayError && (
-        <div id="youtube-url-error" role="alert" aria-live="polite" className="max-w-md mx-auto p-3.5 rounded-xl bg-danger/10 border border-danger/30 text-danger text-sm mb-6 text-left flex items-start gap-3">
+        <div id="youtube-url-error" role="alert" aria-live="polite" className="max-w-md mx-auto p-3.5 rounded-lg bg-danger/10 border border-danger/30 text-danger text-sm mb-6 text-left flex items-start gap-3">
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <span className="flex-1">{displayError}</span>
           {processError && onRetry && (
@@ -165,7 +165,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
               type="button"
               variant="danger"
               onClick={onRetry}
-              className="flex-shrink-0 px-3! py-1.5! min-h-[36px]! text-xs!"
+              className="flex-shrink-0"
             >
               Retry
             </Button>
@@ -185,9 +185,9 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
               type="button"
               onClick={() => handleSelectPreset(preset.url)}
               disabled={isLoading}
-              className="group flex items-center gap-2 px-3 py-2 min-h-[44px] max-w-full rounded-xl bg-raised border border-line-soft hover:border-ember-500/50 hover:bg-sunken hover:-translate-y-0.5 transition-[transform,border-color,background-color] text-left text-xs cursor-pointer"
+              className="group flex items-center gap-2 px-3 py-2 min-h-[44px] max-w-full rounded-md bg-raised border border-line-soft hover:border-accent/50 hover:bg-sunken hover:-translate-y-0.5 transition-[transform,border-color,background-color] text-left text-xs cursor-pointer"
             >
-              <span className="px-1.5 py-0.5 rounded bg-ember-500/10 text-ember-300 font-medium flex-shrink-0">
+              <span className="px-1.5 py-0.5 rounded-md bg-accent/10 text-accent font-medium flex-shrink-0">
                 {preset.tag}
               </span>
               <span className="text-ink-muted group-hover:text-ink transition-colors truncate min-w-0 flex-1 max-w-[200px] sm:max-w-xs">
@@ -202,10 +202,10 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
       <h2 className="sr-only">Key Learning Features</h2>
       <div className="grid sm:grid-cols-3 gap-5 mt-14 text-left">
         <div
-          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-2xl bg-raised/50 border border-line-soft hover:border-ember-500/30 hover:-translate-y-1 transition-[transform,border-color]"
+          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-lg bg-raised border border-line-soft hover:border-accent/30 hover:-translate-y-1 transition-[transform,border-color]"
           style={{ animationDuration: '500ms', animationDelay: '320ms' }}
         >
-          <div className="w-9 h-9 rounded-xl bg-ember-500/10 text-ember-400 flex items-center justify-center mb-3">
+          <div className="w-9 h-9 rounded-md bg-accent/10 text-accent flex items-center justify-center mb-3">
             <BookOpen className="w-5 h-5" />
           </div>
           <h3 className="font-semibold text-ink text-sm mb-1">Topic-Based Segments</h3>
@@ -215,10 +215,10 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
         </div>
 
         <div
-          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-2xl bg-raised/50 border border-line-soft hover:border-ember-500/30 hover:-translate-y-1 transition-[transform,border-color]"
+          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-lg bg-raised border border-line-soft hover:border-accent/30 hover:-translate-y-1 transition-[transform,border-color]"
           style={{ animationDuration: '500ms', animationDelay: '390ms' }}
         >
-          <div className="w-9 h-9 rounded-xl bg-ember-500/10 text-ember-400 flex items-center justify-center mb-3">
+          <div className="w-9 h-9 rounded-md bg-accent/10 text-accent flex items-center justify-center mb-3">
             <Brain className="w-5 h-5" />
           </div>
           <h3 className="font-semibold text-ink text-sm mb-1">Misconception Diagnosis</h3>
@@ -228,10 +228,10 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
         </div>
 
         <div
-          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-2xl bg-raised/50 border border-line-soft hover:border-ember-500/30 hover:-translate-y-1 transition-[transform,border-color]"
+          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-lg bg-raised border border-line-soft hover:border-accent/30 hover:-translate-y-1 transition-[transform,border-color]"
           style={{ animationDuration: '500ms', animationDelay: '460ms' }}
         >
-          <div className="w-9 h-9 rounded-xl bg-ember-500/10 text-ember-400 flex items-center justify-center mb-3">
+          <div className="w-9 h-9 rounded-md bg-accent/10 text-accent flex items-center justify-center mb-3">
             <CheckCircle className="w-5 h-5" />
           </div>
           <h3 className="font-semibold text-ink text-sm mb-1">Personalized PDF Notes</h3>

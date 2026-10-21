@@ -220,11 +220,11 @@ export const NotesModal: React.FC<NotesModalProps> = ({
         continue;
       }
 
-      // Validated concepts and tutor insights must NOT appear in notes
+      // Validated concepts and tutor commentary must NOT appear in notes
       if (/^\*\*(?:Validated\s+Concepts|Key\s+Concepts\s+Validated):?/i.test(raw)) {
         continue;
       }
-      if (/^\*\*(?:Tutor\s+Insight|Tutor\s+Takeaway|Tutor\s+Feedback):?/i.test(raw)) {
+      if (/^\*\*(?:Tutor\s+Ins\w+|Tutor\s+Takeaway|Tutor\s+Feedback):?/i.test(raw)) {
         continue;
       }
 
@@ -249,13 +249,13 @@ export const NotesModal: React.FC<NotesModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       titleId="notes-modal-title"
-      className="sm:rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden"
-      overlayClassName="!bg-black/80 !p-3 sm:!p-6 overflow-x-hidden"
+      className="sm:rounded-lg max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+      overlayClassName="overflow-x-hidden"
     >
         {/* Modal Header */}
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-line-soft flex items-center justify-between gap-2.5 bg-raised/90">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-line-soft flex items-center justify-between gap-2.5 bg-raised">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-ember-500/10 border border-ember-500/25 text-ember-400 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-accent/10 border border-accent/30 text-accent flex items-center justify-center flex-shrink-0">
               <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0 flex-1">
@@ -263,7 +263,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                 <h3 id="notes-modal-title" className="font-display text-xs sm:text-lg font-bold text-ink truncate">
                   Personalized Study Notes
                 </h3>
-                <span className="hidden min-[380px]:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold bg-ember-500/10 text-ember-300 border border-ember-500/25 flex-shrink-0">
+                <span className="hidden min-[380px]:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-accent/10 text-accent border border-accent/30 flex-shrink-0">
                   <Sparkles className="w-3 h-3" />
                   AI Synthesized & Grammar Refined
                 </span>
@@ -277,7 +277,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
           <button
             onClick={onClose}
             aria-label="Close notes modal"
-            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-ink-faint hover:text-ink hover:bg-sunken transition-colors cursor-pointer flex-shrink-0"
+            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-ink-faint hover:text-ink hover:bg-sunken transition-colors cursor-pointer flex-shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -285,7 +285,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
 
         {/* View Mode Navigation Tabs */}
         <div className="px-4 sm:px-6 pt-3 pb-2 border-b border-line-soft bg-sunken/30 flex items-center justify-between gap-3 flex-wrap">
-          <div role="tablist" aria-label="Notes view mode" className="flex items-center gap-1.5 bg-sunken/60 p-1 rounded-xl border border-line-soft text-xs font-medium">
+          <div role="tablist" aria-label="Notes view mode" className="flex items-center gap-1.5 bg-sunken/60 p-1 rounded-lg border border-line-soft text-xs font-medium">
             <button
               id="notes-tab-synthesized"
               role="tab"
@@ -298,7 +298,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                   : 'text-ink-faint hover:text-ink'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-ember-400" />
+              <Sparkles className="w-3.5 h-3.5 text-accent" />
               <span>Synthesized Notes</span>
             </button>
             <button
@@ -337,7 +337,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             href={`https://www.youtube.com/watch?v=${videoId}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ember-400 transition-colors"
+            className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-accent transition-colors"
           >
             <ExternalLink className="w-3 h-3" />
             <span>YouTube Lecture</span>
@@ -355,17 +355,17 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             <div className="space-y-6 animate-in fade-in duration-300">
               <div className="flex items-center gap-3">
                 <div className="relative flex-shrink-0">
-                  <div className="w-10 h-10 rounded-xl bg-ember-500/10 border border-ember-500/25 flex items-center justify-center text-ember-400">
+                  <div className="w-10 h-10 rounded-lg bg-accent/10 border border-accent/30 flex items-center justify-center text-accent">
                     <Sparkles className="w-5 h-5" />
                   </div>
-                  <Loader2 className="w-4 h-4 text-ember-400 animate-spin absolute -top-1 -right-1" />
+                  <Loader2 className="w-4 h-4 text-accent animate-spin absolute -top-1 -right-1" aria-hidden="true" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-ink">
-                    Auditing Grammar &amp; Synthesizing Notes...
+                  <h4 role="status" className="text-sm font-bold text-ink">
+                    Generating notes…
                   </h4>
                   <p className="text-xs text-ink-faint leading-relaxed">
-                    Refining your explanations and structuring pedagogical takeaways.
+                    Auditing grammar and structuring your explanations into takeaways.
                   </p>
                 </div>
               </div>
@@ -380,14 +380,14 @@ export const NotesModal: React.FC<NotesModalProps> = ({
               ))}
             </div>
           ) : notesError ? (
-            <div className="p-4 rounded-xl bg-danger/10 border border-danger/30 text-danger text-sm flex items-start gap-3">
+            <div className="p-4 rounded-lg bg-danger/10 border border-danger/30 text-danger text-sm flex items-start gap-3">
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
               <span className="flex-1">{notesError}</span>
               <Button
                 type="button"
                 variant="danger"
                 onClick={() => retryGenerateNotes()?.catch(() => {})}
-                className="flex-shrink-0 px-3! py-1.5! min-h-[36px]! text-xs!"
+                className="flex-shrink-0"
               >
                 Retry
               </Button>
@@ -406,7 +406,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                     return (
                       <div
                         key={`sec-${sIdx}`}
-                        className="rounded-2xl border border-warning/40 bg-warning/10 p-4 sm:p-5 space-y-3"
+                        className="rounded-lg border border-warning/40 bg-warning/10 p-4 sm:p-5 space-y-3"
                       >
                         <div className="flex items-center gap-2 text-warning font-bold text-sm">
                           <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0" />
@@ -430,7 +430,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                   return (
                     <section key={`sec-${sIdx}`} className="space-y-3">
                       {/* Section Title Header */}
-                      <div className="border-l-4 border-ember-500 pl-3 py-0.5">
+                      <div className="border-l-4 border-accent pl-3 py-0.5">
                         <h4 className="font-display text-sm sm:text-base font-bold text-ink">{section.title}</h4>
                       </div>
 
@@ -438,7 +438,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                       {section.checkpoints.map((cp, cIdx) => (
                         <div
                           key={`cp-${sIdx}-${cIdx}`}
-                          className="rounded-2xl border border-line-soft bg-raised shadow-sm overflow-hidden divide-y divide-line-soft"
+                          className="rounded-lg border border-line-soft bg-raised shadow-sm overflow-hidden divide-y divide-line-soft"
                         >
                           {/* Question Header (no Checkpoint label, just the question) */}
                           <div className="p-3 sm:p-4 bg-sunken/40">
@@ -450,11 +450,11 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                           {/* Student Answer */}
                           {cp.explanation && (
                             <div className="p-3 sm:p-4 bg-raised space-y-1.5">
-                              <div className="flex items-center gap-1.5 text-xs font-semibold text-ember-400">
-                                <Sparkles className="w-3.5 h-3.5 text-ember-400" />
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-accent">
+                                <Sparkles className="w-3.5 h-3.5 text-accent" />
                                 <span>Answer</span>
                               </div>
-                              <p className="text-xs sm:text-sm text-ink leading-relaxed bg-sunken/20 p-2.5 rounded-xl border border-line-soft">
+                              <p className="text-xs sm:text-sm text-ink leading-relaxed bg-sunken/20 p-2.5 rounded-lg border border-line-soft">
                                 {cp.explanation}
                               </p>
                             </div>
@@ -477,7 +477,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             </div>
           ) : activeTab === 'raw' ? (
             <div className="space-y-6">
-              <div className="p-3 rounded-xl bg-sunken/40 border border-line-soft text-xs text-ink-muted">
+              <div className="p-3 rounded-lg bg-sunken/40 border border-line-soft text-xs text-ink-muted">
                 Showing questions and answers recorded during your video study session.
               </div>
 
@@ -489,13 +489,13 @@ export const NotesModal: React.FC<NotesModalProps> = ({
                   {items.map((item, i) => (
                     <div
                       key={`${seg.segment_id}-${i}`}
-                      className="rounded-2xl border border-line-soft bg-sunken/40 p-4 space-y-3"
+                      className="rounded-lg border border-line-soft bg-sunken/40 p-4 space-y-3"
                     >
                       <div>
                         <p className="text-sm font-semibold text-ink leading-relaxed">{item.question}</p>
                       </div>
                       <div className="border-t border-line-soft pt-3 space-y-1">
-                        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-success/10 text-success border border-success/25">
+                        <span className="inline-block px-1.5 py-0.5 rounded-md text-xs font-bold bg-success/10 text-success border border-success/25">
                           Answer
                         </span>
                         <p className="text-sm text-ink-muted leading-relaxed">
@@ -517,7 +517,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             </div>
           ) : (
             <div>
-              <pre className="whitespace-pre-wrap font-mono bg-sunken/60 p-4 sm:p-5 rounded-2xl border border-line-soft text-ink-muted text-xs leading-relaxed overflow-x-auto">
+              <pre className="whitespace-pre-wrap font-mono bg-sunken/60 p-4 sm:p-5 rounded-lg border border-line-soft text-ink-muted text-xs leading-relaxed overflow-x-auto">
                 {markdownNotes || 'Generating notes...'}
               </pre>
             </div>
@@ -525,7 +525,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-4 sm:px-6 py-3.5 border-t border-line-soft bg-raised/90 flex flex-wrap items-center justify-between gap-3">
+        <div className="px-4 sm:px-6 py-3.5 border-t border-line-soft bg-raised flex flex-wrap items-center justify-between gap-3">
           <div className="text-xs text-ink-faint flex items-center gap-2">
             <span>{qaHistory.length} question(s) synthesized</span>
             {downloadError && (
@@ -540,7 +540,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             <button
               onClick={handleCopyMarkdown}
               disabled={isLoading || !markdownNotes}
-              className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] text-xs font-medium rounded-xl bg-sunken hover:bg-line-soft text-ink-muted hover:text-ink border border-line transition-[color,background-color,border-color,opacity] cursor-pointer disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3.5 py-2 min-h-[44px] text-xs font-medium rounded-lg bg-sunken hover:bg-line-soft text-ink-muted hover:text-ink border border-line transition-[color,background-color,border-color,opacity] cursor-pointer disabled:opacity-40"
             >
               {isCopied ? (
                 <>
@@ -558,7 +558,7 @@ export const NotesModal: React.FC<NotesModalProps> = ({
             <button
               onClick={handleDownloadPdf}
               disabled={isLoading || !markdownNotes || isDownloading}
-              className="flex items-center gap-2 px-5 py-2 min-h-[44px] text-xs font-semibold rounded-xl bg-accent hover:bg-accent-hover text-on-accent shadow-lg shadow-ember-500/25 transition-[color,background-color,border-color,opacity] cursor-pointer disabled:opacity-40"
+              className="flex items-center gap-2 px-5 py-2 min-h-[44px] text-xs font-semibold rounded-lg bg-accent hover:bg-accent-hover text-on-accent transition-[color,background-color,border-color,opacity] cursor-pointer disabled:opacity-40"
             >
               {isDownloading ? (
                 <>

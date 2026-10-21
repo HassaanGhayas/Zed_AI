@@ -31,7 +31,7 @@ export const CreatorStrip: React.FC<CreatorStripProps> = ({ heading, items, foot
               key={item.label}
               type="button"
               onClick={() => onSelect(item.url!)}
-              className="min-h-[44px] px-1 font-display text-base sm:text-lg font-semibold text-ink-muted hover:text-accent hover:scale-105 active:scale-100 transition-[color,transform] duration-150 cursor-pointer underline decoration-transparent hover:decoration-ember-500/50 underline-offset-4"
+              className="min-h-[44px] px-1 font-display text-base sm:text-lg font-semibold text-ink-muted hover:text-accent hover:scale-105 active:scale-100 transition-[color,transform] duration-150 cursor-pointer underline decoration-transparent hover:decoration-accent/50 underline-offset-4"
             >
               {item.label}
             </button>

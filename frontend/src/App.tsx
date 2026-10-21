@@ -37,7 +37,7 @@ const AnalyticsFallback: React.FC = () => (
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="rounded-2xl border border-line-soft bg-raised p-5 space-y-3">
+          <div key={i} className="rounded-lg border border-line-soft bg-raised p-5 space-y-3">
             <SkeletonLine className="w-1/3" />
             <SkeletonLine className="w-1/2 h-8" />
             <SkeletonLine className="w-2/3" />

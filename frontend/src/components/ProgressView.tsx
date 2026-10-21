@@ -32,7 +32,7 @@ type OutcomeType = 'first' | 'retry' | 'review';
 // correct across both themes instead of baking in one theme's hex value.
 const OUTCOME_META: Record<OutcomeType, { label: string; color: string; bg: string }> = {
   first: { label: 'Passed 1st Try', color: 'var(--color-success)', bg: 'bg-success/10 text-success border-success/30' },
-  retry: { label: 'Passed After Retry', color: 'var(--color-accent)', bg: 'bg-ember-500/10 text-ember-300 border-ember-500/25' },
+  retry: { label: 'Passed After Retry', color: 'var(--color-accent)', bg: 'bg-accent/10 text-accent border-accent/30' },
   review: { label: 'Needs Review', color: 'var(--color-warning)', bg: 'bg-warning/10 text-warning border-warning/30' },
 };
 
@@ -172,12 +172,12 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
       onClose={onClose}
       titleId="progress-view-title"
       className="max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden my-auto"
-      overlayClassName="!bg-black/75 !p-3 sm:!p-6 overflow-y-auto overflow-x-hidden"
+      overlayClassName="overflow-y-auto overflow-x-hidden"
     >
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-line-soft flex items-center justify-between bg-sunken/40">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-ember-600 to-warning text-white flex items-center justify-center shadow-lg shadow-ember-500/25">
+            <div className="w-10 h-10 rounded-lg bg-accent/10 border border-accent/30 text-accent flex items-center justify-center">
               <PieChart className="w-5 h-5" />
             </div>
             <div>
@@ -198,7 +198,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                   onClose();
                   onOpenNotes();
                 }}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-ember-500/10 text-ember-300 border border-ember-500/25 hover:bg-ember-500/20 transition-colors cursor-pointer"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent/10 text-accent border border-accent/30 hover:bg-accent/20 transition-colors cursor-pointer"
               >
                 <BookOpen className="w-3.5 h-3.5" />
                 <span>Study Notes</span>
@@ -208,7 +208,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
               type="button"
               onClick={onClose}
               aria-label="Close dashboard"
-              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-ink-faint hover:text-ink hover:bg-sunken border border-line-soft transition-colors cursor-pointer"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-ink-faint hover:text-ink hover:bg-sunken border border-line-soft transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -220,8 +220,8 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
           {/* Top Metric Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* Chapters Completed */}
-            <div className="p-4 rounded-xl bg-sunken/60 border border-line-soft flex flex-col justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">
+            <div className="p-4 rounded-lg bg-sunken/60 border border-line-soft flex flex-col justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink-faint">
                 Chapters Finished
               </span>
               <div className="mt-2 mb-1 flex items-baseline gap-1">
@@ -230,7 +230,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                 </span>
                 <span className="text-xs text-ink-faint font-medium">/ {totalSegments}</span>
               </div>
-              <div className="w-full h-1 bg-cosmos-800 rounded-full overflow-hidden mt-1">
+              <div className="w-full h-1 bg-line rounded-full overflow-hidden mt-1">
                 <div
                   className="h-full bg-success transition-[width] duration-300"
                   style={{ width: `${overallProgressPct}%` }}
@@ -239,21 +239,21 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
             </div>
 
             {/* Overall Understanding */}
-            <div className="p-4 rounded-xl bg-sunken/60 border border-line-soft flex flex-col justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">
+            <div className="p-4 rounded-lg bg-sunken/60 border border-line-soft flex flex-col justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink-faint">
                 Progress Ratio
               </span>
               <div className="mt-2 mb-1 flex items-baseline gap-1">
-                <span className="text-2xl sm:text-3xl font-bold font-display text-ember-300">
+                <span className="text-2xl sm:text-3xl font-bold font-display text-accent">
                   {overallProgressPct}%
                 </span>
               </div>
-              <p className="text-[11px] text-ink-faint">Through lecture checkpoints</p>
+              <p className="text-xs text-ink-faint">Through lecture checkpoints</p>
             </div>
 
             {/* Topics Needing Review */}
-            <div className="p-4 rounded-xl bg-sunken/60 border border-line-soft flex flex-col justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">
+            <div className="p-4 rounded-lg bg-sunken/60 border border-line-soft flex flex-col justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink-faint">
                 Needs Review
               </span>
               <div className="mt-2 mb-1 flex items-baseline gap-1">
@@ -266,14 +266,14 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                 </span>
                 <span className="text-xs text-ink-faint">Topics</span>
               </div>
-              <p className="text-[11px] text-ink-faint">
+              <p className="text-xs text-ink-faint">
                 {reviewCount > 0 ? 'Exhausted retries during quiz' : 'All checkpoints cleared'}
               </p>
             </div>
 
             {/* Concept Mastery Ratio */}
-            <div className="p-4 rounded-xl bg-sunken/60 border border-line-soft flex flex-col justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-faint">
+            <div className="p-4 rounded-lg bg-sunken/60 border border-line-soft flex flex-col justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-ink-faint">
                 Concept Ratio
               </span>
               <div className="mt-2 mb-1 flex items-baseline gap-1">
@@ -281,14 +281,14 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                   {masteryRatio}%
                 </span>
               </div>
-              <p className="text-[11px] text-ink-faint">
+              <p className="text-xs text-ink-faint">
                 {strongConcepts.length} mastered vs {weakConcepts.length} gap
               </p>
             </div>
           </div>
 
           {/* Performance & Donut Visualization */}
-          <div className="p-5 rounded-xl bg-sunken/40 border border-line-soft flex flex-col lg:flex-row gap-6 items-center">
+          <div className="p-5 rounded-lg bg-sunken/40 border border-line-soft flex flex-col lg:flex-row gap-6 items-center">
             {/* SVG Donut Chart */}
             <div className="flex flex-col items-center justify-center flex-shrink-0">
               <svg
@@ -305,7 +305,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="16"
-                    className="text-cosmos-800"
+                    className="text-line"
                   />
                 ) : (
                   donutSlices.map((slice) => {
@@ -347,7 +347,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                   x="70"
                   y="83"
                   textAnchor="middle"
-                  className="fill-current text-ink-faint text-[10px] uppercase tracking-wider font-semibold"
+                  className="fill-current text-ink-faint text-xs uppercase tracking-wider font-semibold"
                 >
                   {activeSlice ? OUTCOME_META[activeSlice].label : 'Topics'}
                 </text>
@@ -383,7 +383,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                 <h4 className="text-xs font-bold uppercase tracking-wider text-ink-muted">
                   Chapter Mastery Scores
                 </h4>
-                <span className="text-[11px] text-ink-faint">
+                <span className="text-xs text-ink-faint">
                   Click any topic to inspect details
                 </span>
               </div>
@@ -392,7 +392,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                 <div className="py-6 flex flex-col items-center gap-1.5 text-center text-ink-faint">
                   <BookOpen className="w-6 h-6 text-ink-faint/60" />
                   <p className="text-xs">No chapters loaded yet.</p>
-                  <p className="text-[11px] text-ink-faint/80">Start watching the video to populate chapter mastery scores here.</p>
+                  <p className="text-xs text-ink-faint/80">Start watching the video to populate chapter mastery scores here.</p>
                 </div>
               ) : (
                 segmentPerf.map((t) => {
@@ -402,9 +402,9 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                       <button
                         type="button"
                         onClick={() => setSelectedTopicIdx((cur) => (cur === t.index ? null : t.index))}
-                        className={`w-full text-left p-2 rounded-xl border transition-colors flex items-center gap-3 cursor-pointer ${
+                        className={`w-full text-left p-2 rounded-lg border transition-colors flex items-center gap-3 cursor-pointer ${
                           isSelected
-                            ? 'bg-raised border-ember-500/50 shadow-sm'
+                            ? 'bg-raised border-accent/50 shadow-sm'
                             : 'bg-raised/40 border-line-soft hover:bg-sunken/60'
                         }`}
                       >
@@ -437,7 +437,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                       {isSelected && (
                         <div className="p-3 rounded-lg bg-raised border border-line-soft text-xs space-y-1 animate-in fade-in duration-100">
                           <p className="text-ink font-semibold">{t.title}</p>
-                          <div className="flex flex-wrap gap-2 text-[11px] text-ink-muted">
+                          <div className="flex flex-wrap gap-2 text-xs text-ink-muted">
                             <span>
                               Best Score: <strong>{t.score}/100</strong>
                             </span>
@@ -462,7 +462,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
           {/* Concept Mastery Split Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Strong Concepts */}
-            <div className="p-4 rounded-xl bg-sunken/50 border border-line-soft space-y-2.5">
+            <div className="p-4 rounded-lg bg-sunken/50 border border-line-soft space-y-2.5">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-success" />
                 <h4 className="text-xs font-bold uppercase tracking-wider text-success">
@@ -480,7 +480,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
               ) : (
                 <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
                   {strongConcepts.map((c, i) => (
-                    <Badge key={i} tone="success" className="rounded-lg! font-medium! px-2.5! py-1! text-xs!">
+                    <Badge key={i} tone="success" className="font-medium">
                       <CheckCircle2 className="w-3 h-3" /> {c}
                     </Badge>
                   ))}
@@ -489,7 +489,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
             </div>
 
             {/* Concepts Needing Improvement */}
-            <div className="p-4 rounded-xl bg-sunken/50 border border-line-soft space-y-2.5">
+            <div className="p-4 rounded-lg bg-sunken/50 border border-line-soft space-y-2.5">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-warning" />
                 <h4 className="text-xs font-bold uppercase tracking-wider text-warning">
@@ -507,7 +507,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
               ) : (
                 <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
                   {weakConcepts.map((m, i) => (
-                    <Badge key={i} tone="warning" className="rounded-lg! font-medium! px-2.5! py-1! text-xs!">
+                    <Badge key={i} tone="warning" className="font-medium">
                       <AlertTriangle className="w-3 h-3" /> {m}
                     </Badge>
                   ))}
@@ -518,9 +518,9 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
 
           {/* Session History Across Videos */}
           {pastSessions.length > 0 && (
-            <div className="p-4 rounded-xl bg-sunken/30 border border-line-soft space-y-3">
+            <div className="p-4 rounded-lg bg-sunken/30 border border-line-soft space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-ink-faint flex items-center gap-1.5">
-                <Award className="w-3.5 h-3.5 text-ember-400" /> Recent Learning Sessions
+                <Award className="w-3.5 h-3.5 text-accent" /> Recent Learning Sessions
               </h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {pastSessions.slice(0, 4).map((s) => (
@@ -532,7 +532,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                       <p className="text-xs font-semibold text-ink truncate">
                         {s.lectureTitle}
                       </p>
-                      <p className="text-[10px] text-ink-faint">
+                      <p className="text-xs text-ink-faint">
                         {s.completedTopics} / {s.totalTopics} topics ·{' '}
                         {s.status === 'complete' ? (
                           <span className="text-success font-medium">Completed</span>
@@ -541,7 +541,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
                         )}
                       </p>
                     </div>
-                    <span className="text-xs font-mono font-bold text-ember-300">
+                    <span className="text-xs font-mono font-bold text-accent">
                       {s.totalTopics > 0 ? `${Math.round((s.completedTopics / s.totalTopics) * 100)}%` : '0%'}
                     </span>
                   </div>
@@ -556,7 +556,7 @@ export const ProgressView: React.FC<ProgressViewProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 min-h-[40px] text-xs sm:text-sm font-semibold text-ink-muted hover:text-ink rounded-xl border border-line-soft bg-sunken hover:bg-line-soft transition-colors cursor-pointer"
+            className="px-4 py-2 min-h-[40px] text-xs sm:text-sm font-semibold text-ink-muted hover:text-ink rounded-lg border border-line-soft bg-sunken hover:bg-line-soft transition-colors cursor-pointer"
           >
             Close Dashboard
           </button>
