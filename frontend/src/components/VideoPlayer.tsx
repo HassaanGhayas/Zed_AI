@@ -1,9 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Pause, RotateCcw, Maximize, Minimize, ChevronDown, ScanEye, X } from 'lucide-react';
 import type { Segment, FrameExplanation } from '../types';
 import { explainFrame, visualAvailability, frameUrl } from '../lib/api';
 import { Modal } from './ui/Modal';
 import { SkeletonBlock, SkeletonLine } from './ui/Skeleton';
+import { evaluateBoundary } from '../lib/playerBoundary';
+import { quantizeSeconds } from '../lib/playerTime';
 
 declare global {
   interface Window {
@@ -53,12 +55,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const settleUntilRef = useRef(0);
   // The YT player is created once per video, so its event handlers need refs
   // to see the latest quiz state and callback.
+  // The boundary polling interval reads these refs too, so it is only rebuilt
+  // when the active segment changes. Layout effects update them synchronously
+  // after commit, before any interval tick can observe a stale value.
   const isPausedForQuizRef = useRef(isPausedForQuiz);
+  const isSegmentResolvedRef = useRef(isSegmentResolved);
   const onBoundaryReachedRef = useRef(onBoundaryReached);
-  useEffect(() => {
+  useLayoutEffect(() => {
     isPausedForQuizRef.current = isPausedForQuiz;
+    isSegmentResolvedRef.current = isSegmentResolved;
     onBoundaryReachedRef.current = onBoundaryReached;
-  }, [isPausedForQuiz, onBoundaryReached]);
+  }, [isPausedForQuiz, isSegmentResolved, onBoundaryReached]);
   const onPlayingChangeRef = useRef(onPlayingChange);
   useEffect(() => {
     onPlayingChangeRef.current = onPlayingChange;
@@ -68,6 +75,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   useEffect(() => {
     onProgressRef.current = onProgress;
   }, [onProgress]);
+  // Exact playhead, updated every poll tick without re-rendering. `currentTime`
+  // state below is quantized to whole seconds, so it changes at most once per second.
+  const currentTimeRef = useRef(0);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [duration, setDuration] = useState<number>(0);
   const [apiLoaded, setApiLoaded] = useState<boolean>(false);
@@ -178,7 +188,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       try {
         const time = playerRef.current.getCurrentTime();
-        setCurrentTime(time);
+        currentTimeRef.current = time;
+        setCurrentTime(quantizeSeconds(time));
         if (Number.isFinite(time) && time !== lastProgressTimeRef.current) {
           lastProgressTimeRef.current = time;
           onProgressRef.current?.();
@@ -188,50 +199,37 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         const d = playerRef.current.getDuration?.();
         if (d) setDuration((prev) => (prev === d ? prev : d));
 
-        // Transcript-derived end_time (from the last caption cue's padded
-        // duration) can overshoot the real video — especially for the final
-        // segment, which would then never reach its boundary since the video
-        // simply stops first. Clamp against the player's own real duration,
-        // the one value YouTube always reports accurately.
-        // Small tolerance at the very end: getCurrentTime() often stalls a few
-        // hundred ms short of getDuration() when the video finishes.
-        const effectiveEndTime = d
-          ? Math.min(activeSegment.end_time, Math.max(0, d - 0.5))
-          : activeSegment.end_time;
+        const isPausedForQuizNow = isPausedForQuizRef.current;
+        // Boundary decision (duration clamp, settle window, fail-closed on an
+        // unreadable clock, pull-back past a locked end) lives in evaluateBoundary.
+        const settled = Date.now() >= settleUntilRef.current;
+        const decision = evaluateBoundary({
+          time,
+          segmentEnd: activeSegment.end_time,
+          duration: d || undefined,
+          settled,
+          isPausedForQuiz: isPausedForQuizNow,
+          isSegmentResolved: isSegmentResolvedRef.current,
+        });
 
-        // Ignore boundary logic while the player settles after a switch/seek
-        if (Date.now() < settleUntilRef.current) return;
+        // Apply in order: pause -> seek back -> fire checkpoint.
+        if (decision.pause) playerRef.current.pauseVideo?.();
+        if (decision.seekTo !== null) playerRef.current.seekTo(decision.seekTo, true);
+        if (decision.fireBoundary) onBoundaryReachedRef.current();
 
-        // Fail closed: an unreadable clock while locked must not let playback run on.
-        if (!Number.isFinite(time)) {
-          if (!isSegmentResolved) playerRef.current.pauseVideo?.();
-          return;
-        }
-
-        // Check if playback reached or passed segment boundary
-        if (time >= effectiveEndTime && !isPausedForQuiz) {
-          playerRef.current.pauseVideo();
-          // Locked segment: a native-control seek may have jumped past the end,
-          // so pull the playhead back to the boundary.
-          if (!isSegmentResolved && time > effectiveEndTime + 0.5) {
-            playerRef.current.seekTo(effectiveEndTime, true);
-          }
-          onBoundaryReached();
-        }
-
-        // If in quiz mode and user tries to seek past boundary, clamp back
-        if (isPausedForQuiz && time > effectiveEndTime + 0.5) {
-          playerRef.current.seekTo(effectiveEndTime, true);
-          playerRef.current.pauseVideo();
-        }
         // Quiz is open: the video must stay paused.
-        if (isPausedForQuiz && playerRef.current.getPlayerState?.() === 1) {
+        if (
+          settled &&
+          Number.isFinite(time) &&
+          isPausedForQuizNow &&
+          playerRef.current.getPlayerState?.() === 1
+        ) {
           playerRef.current.pauseVideo();
         }
       } catch {
         // Fail closed while locked: if the player errors, stop playback rather
         // than letting it run past the checkpoint unobserved.
-        if (!isSegmentResolved) {
+        if (!isSegmentResolvedRef.current) {
           try {
             playerRef.current?.pauseVideo?.();
           } catch {
@@ -242,7 +240,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }, 250);
 
     return () => clearInterval(interval);
-  }, [activeSegment, isPausedForQuiz, isSegmentResolved, onBoundaryReached]);
+  }, [activeSegment]);
 
   const handleReplaySegment = () => {
     if (onRewatchSegment) {
@@ -415,12 +413,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       case 'ArrowRight':
       case 'ArrowUp':
         e.preventDefault();
-        seekTo(currentTime + 5);
+        seekTo(currentTimeRef.current + 5);
         break;
       case 'ArrowLeft':
       case 'ArrowDown':
         e.preventDefault();
-        seekTo(currentTime - 5);
+        seekTo(currentTimeRef.current - 5);
         break;
       case 'Home':
         e.preventDefault();
@@ -432,11 +430,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         break;
       case 'PageUp':
         e.preventDefault();
-        seekTo(currentTime + 30);
+        seekTo(currentTimeRef.current + 30);
         break;
       case 'PageDown':
         e.preventDefault();
-        seekTo(currentTime - 30);
+        seekTo(currentTimeRef.current - 30);
         break;
       default:
         break;
@@ -452,6 +450,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         100
     )
   );
+
+  const playedFraction = duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
 
   return (
     // `isolate` creates a stacking context so the quiz panel's z-50 stays inside the player and cannot paint above page overlays (e.g. Insights).
@@ -494,9 +494,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           >
             <div className="relative w-full h-1.5 group-hover:h-2.5 transition-all bg-white/20">
               {/* played fill */}
+              {/* scaleX keeps the 1s linear glide on the compositor between the
+                  once-per-second currentTime updates */}
               <div
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-ember-600 to-ember-400 pointer-events-none"
-                style={{ width: `${Math.min(100, (currentTime / duration) * 100)}%` }}
+                className="absolute inset-0 origin-left bg-gradient-to-r from-ember-600 to-ember-400 pointer-events-none transition-transform duration-1000 ease-linear"
+                style={{ transform: `scaleX(${playedFraction})` }}
               />
               {/* segment boundary notches */}
               {(segments ?? [])
@@ -509,10 +511,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   />
                 ))}
               {/* playhead */}
+              {/* full-width track translated by the played fraction (translateX % is
+                  relative to its own width = the rail width); the dot sits at its left edge */}
               <div
-                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-ember-300 shadow-[0_0_6px_rgba(255,81,0,0.8)] pointer-events-none"
-                style={{ left: `${Math.min(100, (currentTime / duration) * 100)}%` }}
-              />
+                className="absolute inset-0 pointer-events-none transition-transform duration-1000 ease-linear"
+                style={{ transform: `translateX(${playedFraction * 100}%)` }}
+              >
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-ember-300 shadow-[0_0_6px_rgba(255,81,0,0.8)]" />
+              </div>
               {/* per-segment hover tooltips */}
               {(segments ?? []).map((s) => (
                 <div
