@@ -4,6 +4,10 @@ An end-to-end interactive learning platform that transforms public YouTube educa
 
 ---
 
+## 🎬 Demo
+
+A 22-second launch video: [brag-output/brag.mp4](brag-output/brag.mp4). Poster: [brag-output/brag.jpg](brag-output/brag.jpg). Source scenes, audio and render scripts are in `brag-output/work/`.
+
 ## 🚀 Key Features
 
 1. **Public YouTube Ingestion**:

@@ -1,0 +1,198 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=1920">
+<style>
+@font-face{font-family:Fraunces;src:url(fonts/fraunces.woff2);font-weight:100 900}
+@font-face{font-family:Source;src:url(fonts/source.woff2);font-weight:200 900}
+@font-face{font-family:JB;src:url(fonts/jb.woff2);font-weight:400}
+:root{--surface:#1a1816;--raised:#232019;--sunken:#141210;--line:#34302a;--ink:#e8e3dc;--muted:#c9c1b5;--faint:#a39b8f;--accent:#e0663f;--success:#7fb08a;--warning:#d9a85a}
+*{box-sizing:border-box;margin:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--surface)}
+body{font-family:Source,sans-serif;color:var(--ink);position:relative;-webkit-font-smoothing:antialiased}
+.bg{position:absolute;inset:0;background:radial-gradient(1000px 640px at 50% 108%,rgba(224,102,63,.17),transparent 70%),radial-gradient(1300px 720px at 50% -12%,rgba(232,227,220,.05),transparent 70%)}
+.scene{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center}
+.disp{font-family:Fraunces,serif;font-weight:700;letter-spacing:-.02em;line-height:1.08;text-align:center}
+.accent{color:var(--accent)}
+svg{display:block}
+/* hook */
+#s1 .disp{font-size:128px}
+.w{display:inline-block;margin:0 .13em}
+#l2{margin-top:18px}
+/* reveal */
+#badge{display:inline-flex;align-items:center;gap:16px;padding:14px 30px;border-radius:999px;background:rgba(224,102,63,.1);border:2px solid rgba(224,102,63,.32);color:var(--accent);font-size:28px;font-weight:600;margin-bottom:44px}
+#s2 .disp{font-size:96px}
+#sub{font-size:44px;color:var(--muted);margin-top:44px;font-weight:400}
+/* paste */
+#col3{width:1400px;display:flex;flex-direction:column;gap:56px}
+#bar{height:124px;border-radius:30px;background:var(--raised);border:2px solid var(--line);display:flex;align-items:center;padding:0 20px 0 32px;gap:24px;box-shadow:0 4px 12px rgba(40,26,14,.12),0 16px 40px rgba(40,26,14,.18)}
+#barText{flex:1;font-size:42px;color:var(--ink);white-space:nowrap}
+#barText.ph{color:var(--faint)}
+.caret{display:inline-block;width:3px;height:1em;background:var(--accent);vertical-align:-.12em;margin-left:3px}
+.btn{height:88px;padding:0 46px;border-radius:22px;background:var(--accent);color:#1a1816;font-size:36px;font-weight:700;display:flex;align-items:center;gap:16px;white-space:nowrap}
+#chap{display:flex;flex-direction:column;gap:18px}
+#ct{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+#ct h2{font-family:Fraunces;font-weight:700;font-size:64px;letter-spacing:-.02em}
+.chip{padding:10px 26px;border-radius:999px;border:2px solid rgba(224,102,63,.4);background:rgba(224,102,63,.1);color:var(--accent);font-size:28px;font-weight:600}
+.row{height:128px;border-radius:22px;border:2px solid var(--line-soft,#2a2621);display:flex;align-items:center;gap:28px;padding:0 32px 0 24px;background:rgba(35,32,25,.5)}
+.row.on{background:rgba(224,102,63,.12);border-color:rgba(224,102,63,.55)}
+.thumb{width:180px;height:92px;border-radius:12px;background:linear-gradient(135deg,#46332a,#1d1815);display:flex;align-items:center;justify-content:center;color:rgba(232,227,220,.55)}
+.rt{font-size:40px;font-weight:600}
+.rm{font-family:JB,monospace;font-size:24px;color:var(--faint);margin-top:4px}
+.row.lk{opacity:.5}.row.lk .rt{color:var(--faint)}
+/* quiz */
+#col4{width:1360px}
+#qcard{background:var(--raised);border:2px solid var(--line);border-radius:30px;padding:46px 52px;box-shadow:0 4px 12px rgba(40,26,14,.12),0 16px 40px rgba(40,26,14,.18)}
+.lab{font-size:26px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+#qtext{font-size:52px;font-weight:600;line-height:1.2;margin-top:16px;letter-spacing:-.01em}
+.lab2{font-size:28px;color:var(--faint);margin-top:34px;font-weight:600}
+#ta{height:176px;border-radius:20px;background:var(--sunken);border:2px solid var(--line);margin-top:14px;padding:26px 30px;font-size:46px;line-height:1.25;color:var(--ink)}
+#vwrap{position:relative;height:190px;margin-top:34px}
+#btn2,#verdict{position:absolute;left:0;right:0;top:0}
+#btn2{height:104px;border-radius:24px;background:var(--accent);color:#1a1816;font-size:38px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:18px}
+#verdict{height:176px;border-radius:26px;background:rgba(217,168,90,.1);border:2px solid rgba(217,168,90,.5);padding:0 44px;display:flex;align-items:center;gap:36px}
+.vchip{padding:12px 26px;border-radius:999px;background:var(--warning);color:#1a1816;font-size:26px;font-weight:800;letter-spacing:.08em}
+#vtext{font-size:46px;font-weight:600;line-height:1.2}
+/* notes */
+#s5{flex-direction:row;gap:130px}
+#doc{width:600px;height:800px;border-radius:14px;background:#fbf8f2;color:#2a2622;padding:54px 56px;transform:rotate(-2deg);box-shadow:0 30px 80px rgba(0,0,0,.5),0 4px 12px rgba(0,0,0,.3);position:relative;overflow:hidden}
+#doc .k{font-size:21px;font-weight:700;letter-spacing:.12em;color:#b2502d}
+#doc h3{font-family:Fraunces;font-weight:700;font-size:52px;margin:10px 0 28px;letter-spacing:-.02em}
+.ln{height:13px;border-radius:7px;background:#ddd5c6;margin-bottom:17px;transform-origin:left center}
+.sh{font-family:Fraunces;font-weight:700;font-size:28px;margin:30px 0 16px}
+.call{margin-top:28px;border-left:7px solid #b2502d;background:#ece6db;padding:22px 26px;border-radius:0 12px 12px 0}
+.call .k{display:block;margin-bottom:14px}
+#rt5 .disp{font-size:104px;text-align:left}
+#dl{margin-top:56px;display:inline-flex;height:104px;padding:0 54px;border-radius:26px;font-size:42px;font-weight:700;align-items:center;gap:20px;background:var(--accent);color:#1a1816}
+/* outro */
+#s6 .disp{font-size:150px}
+#tag6{font-size:68px;margin-top:14px}
+#cta{margin-top:64px;height:112px;padding:0 64px;border-radius:30px;font-size:46px;gap:22px}
+</style></head><body>
+<div class="bg"></div>
+
+<div class="scene" id="s1"><div id="hk">
+  <div class="disp" id="l1"><span class="w">Watching</span><span class="w">feels</span><span class="w">like</span><span class="w">learning.</span></div>
+  <div class="disp accent" id="l2"><span class="w">Explaining</span><span class="w">proves</span><span class="w">it.</span></div>
+</div></div>
+
+<div class="scene" id="s2">
+  <div id="badge"><svg width="34" height="34" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#e0663f"/><g transform="translate(9.6 9.6) scale(1.2)" fill="none" stroke="#1a1816" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6c-2-1.5-5-2-8-1.5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5v-13c-3-.5-6 0-8 1.5z" stroke-width="3"/><path d="M12 6v13" stroke-width="3"/><path d="M14.6 9.4 L17.6 11.3 L14.6 13.2Z" fill="#1a1816" stroke-width="1.6"/></g></svg><span>Active recall, not passive watching</span></div>
+  <div class="disp" id="h1a">Remember any YouTube lecture,</div>
+  <div class="disp accent" id="h1b">without rewatching it</div>
+  <div id="sub">The video pauses. You explain the idea.</div>
+</div>
+
+<div class="scene" id="s3"><div id="col3">
+  <div id="bar">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="#e0663f"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+    <div id="barText"></div>
+    <div class="btn" id="btn"><span id="btnT">Start Tutor</span><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+  </div>
+  <div id="chap">
+    <div id="ct"><h2>What is a Force?</h2><div class="chip">0 / 3 Mastered</div></div>
+    <div class="row on" id="r0"><div class="thumb"><svg width="46" height="46" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div><div style="flex:1"><div class="rt accent">Introduction to Force</div><div class="rm">0:00 - 1:13</div></div><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#e0663f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4z"/></svg></div>
+    <div class="row lk" id="r1"><div class="thumb"><svg width="46" height="46" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div><div style="flex:1"><div class="rt">Force: Types &amp; Interactions</div><div class="rm">1:13 - 2:27</div></div><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a39b8f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+    <div class="row lk" id="r2"><div class="thumb"><svg width="46" height="46" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div><div style="flex:1"><div class="rt">Applications &amp; Key Properties</div><div class="rm">2:27 - 3:41</div></div><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#a39b8f" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+  </div>
+</div></div>
+
+<div class="scene" id="s4"><div id="col4">
+  <div id="qcard">
+    <div class="lab">Conceptual question</div>
+    <div id="qtext">How would you define force in your own words?</div>
+    <div class="lab2">Explain in your own words:</div>
+    <div id="ta"><span id="ans"></span><span class="caret" id="car"></span></div>
+  </div>
+  <div id="vwrap">
+    <div id="btn2"><svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg><span>Submit &amp; Validate</span></div>
+    <div id="verdict"><div class="vchip">MISCONCEPTION</div><div id="vtext">Force changes motion &mdash; it doesn&rsquo;t sustain it.</div></div>
+  </div>
+</div></div>
+
+<div class="scene" id="s5">
+  <div id="doc">
+    <div class="k" id="dk">STUDY NOTES</div>
+    <h3 id="dh">What is a Force?</h3>
+    <div class="ln" style="width:100%"></div><div class="ln" style="width:92%"></div><div class="ln" style="width:97%"></div>
+    <div class="sh" id="dsh">Introduction to Force</div>
+    <div class="ln" style="width:88%"></div><div class="ln" style="width:100%"></div><div class="ln" style="width:70%"></div>
+    <div class="call" id="dcall"><span class="k">YOUR ANSWER</span><div class="ln" style="width:100%;background:#cdbfa9"></div><div class="ln" style="width:76%;background:#cdbfa9;margin-bottom:0"></div></div>
+  </div>
+  <div id="rt5">
+    <div class="disp" id="n1">Your notes.</div>
+    <div class="disp accent" id="n2">Your own answers.</div>
+    <div class="btn" id="dl"><svg id="dli" width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 11l6 6 6-6M5 21h14"/></svg><span id="dlT">Download PDF</span></div>
+  </div>
+</div>
+
+<div class="scene" id="s6">
+  <div id="lg"><svg width="190" height="190" viewBox="0 0 48 48"><rect width="48" height="48" rx="12" fill="#e0663f"/><g transform="translate(9.6 9.6) scale(1.2)" fill="none" stroke="#1a1816" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6c-2-1.5-5-2-8-1.5v13c3-.5 6 0 8 1.5 2-1.5 5-2 8-1.5v-13c-3-.5-6 0-8 1.5z" stroke-width="3"/><path d="M12 6v13" stroke-width="3"/><path d="M14.6 9.4 L17.6 11.3 L14.6 13.2Z" fill="#1a1816" stroke-width="1.6"/></g></svg></div>
+  <div class="disp" id="nm" style="margin-top:36px">Studify AI</div>
+  <div class="disp accent" id="tag6">Explaining proves it.</div>
+  <div class="btn" id="cta"><span>Paste a lecture link</span><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const eo=x=>1-Math.pow(1-x,4);
+const lin=(t,s,d)=>clamp((t-s)/d);
+const p=(t,s,d)=>eo(lin(t,s,d));
+function pop(el,t,s,d=.5,y=30,sc=1){const k=p(t,s,d);el.style.opacity=k;el.style.transform=`translateY(${(1-k)*y}px) scale(${sc+(1-sc)*k})`}
+function scene(el,t,a,b){const on=t>=a&&t<b;el.style.display=on?'flex':'none';if(on)el.style.opacity=1-lin(t,b-.25,.25);return on}
+const mix=(a,b,k)=>a.map((v,i)=>Math.round(v+(b[i]-v)*k));
+const typed=(s,t,st,rate)=>s.slice(0,Math.floor(clamp((t-st)*rate,0,1e9)));
+const caretOn=t=>Math.floor(t*2)%2===0;
+function render(t){
+  // S1 hook 0-3.5
+  if(scene($('s1'),t,0,3.5)){
+    const dim=[77,70,62],ink=[232,227,220];
+    [...$('l1').children].forEach((w,i)=>{const k=p(t,.15+.2*i,.3);w.style.color=`rgb(${mix(dim,ink,k)})`});
+    [...$('l2').children].forEach((w,i)=>pop(w,t,1.5+.2*i,.45,26,.96));
+    $('hk').style.transform=`scale(${1+.04*lin(t,0,3.5)})`;
+  }
+  // S2 reveal 3.5-8
+  if(scene($('s2'),t,3.5,8)){
+    pop($('badge'),t,3.6,.5,20);pop($('h1a'),t,3.9,.6);pop($('h1b'),t,4.25,.6);pop($('sub'),t,4.9,.6,20);
+  }
+  // S3 paste 8-12
+  if(scene($('s3'),t,8,12)){
+    const url='youtu.be/forces101',s=typed(url,t,8.3,16);
+    const bt=$('barText');bt.className=s?'':'ph';
+    bt.innerHTML=s?`${s}<span class="caret" style="opacity:${t<9.5&&caretOn(t)?1:0}"></span>`:'Paste a public YouTube lecture link';
+    const press=Math.sin(Math.PI*lin(t,9.45,.2));$('btn').style.transform=`scale(${1-.07*press})`;
+    $('btnT').textContent=(t>=9.5&&t<10)?'Reading transcript…':'Start Tutor';
+    $('col3').style.transform=`translateY(${282*(1-p(t,9.9,.6))}px)`;
+    pop($('ct'),t,10,.45,26);pop($('r0'),t,10.2,.5,40);pop($('r1'),t,10.4,.5,40);
+    const r1=$('r1'),r2=$('r2');r1.style.opacity=.5*p(t,10.4,.5);r2.style.opacity=.5*p(t,10.6,.5);
+    r2.style.transform=`translateY(${(1-p(t,10.6,.5))*40}px)`;
+    $('r0').style.boxShadow=`0 0 ${30+20*Math.sin(t*6)}px rgba(224,102,63,.18)`;
+  }
+  // S4 pause + explain 12-17
+  if(scene($('s4'),t,12,17)){
+    pop($('qcard'),t,12,.55,36);
+    const s=typed('Force keeps things moving.',t,12.8,22);
+    $('ans').textContent=s;$('car').style.opacity=(t<14.25&&caretOn(t))?1:0;
+    const pr=Math.sin(Math.PI*lin(t,13.95,.2));$('btn2').style.transform=`scale(${1-.04*pr})`;
+    $('btn2').style.opacity=lin(t,12.4,.3)*(1-lin(t,14.2,.15));
+    pop($('verdict'),t,14.25,.45,24,.97);
+  }
+  // S5 notes 17-19.5
+  if(scene($('s5'),t,17,19.5)){
+    const k=p(t,17.1,.7);$('doc').style.opacity=k;$('doc').style.transform=`translateY(${(1-k)*90}px) rotate(-2deg)`;
+    [...$('doc').querySelectorAll('.ln')].forEach((l,i)=>{l.style.transform=`scaleX(${p(t,17.4+i*.08,.35)})`});
+    pop($('n1'),t,17.2,.5);pop($('n2'),t,17.4,.5);pop($('dl'),t,17.7,.5,20);
+    const d=t>=18.5;$('dlT').textContent=d?'Saved':'Download PDF';
+    $('dl').style.background=d?'#7fb08a':'#e0663f';
+    $('dli').innerHTML=d?'<path d="M20 6L9 17l-5-5"/>':'<path d="M12 4v12M6 11l6 6 6-6M5 21h14"/>';
+    const pr=Math.sin(Math.PI*lin(t,18.45,.2));$('dl').style.transform+=`scale(${1-.06*pr})`;
+    // keep entrance translate + press scale together
+    const kk=p(t,17.7,.5);$('dl').style.transform=`translateY(${(1-kk)*20}px) scale(${1-.06*pr})`;
+  }
+  // S6 outro 19.5-22
+  if(scene($('s6'),t,19.5,99)){
+    pop($('lg'),t,19.6,.55,0,.6);pop($('nm'),t,19.9,.55);pop($('tag6'),t,20.4,.55,24);pop($('cta'),t,20.9,.55,24);
+  }
+}
+window.render=render;
+document.fonts.ready.then(()=>{window.ready=true;render(0)});
+</script></body></html>
