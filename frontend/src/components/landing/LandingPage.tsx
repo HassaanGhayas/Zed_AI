@@ -2,9 +2,11 @@ import React, { useRef } from 'react';
 import { VideoInput, type VideoInputHandle } from '../VideoInput';
 import { CreatorStrip } from './CreatorStrip';
 import { FeatureShowcase } from './FeatureShowcase';
-import { MidCTABand } from './MidCTABand';
+import { TaglineReveal } from './TaglineReveal';
+import { HowItWorks } from './HowItWorks';
 import { OutcomeStats } from './OutcomeStats';
 import { PhilosophyQuotes } from './PhilosophyQuotes';
+import { LandingFaq } from './LandingFaq';
 import { FinalCTABand } from './FinalCTABand';
 import { LandingFooter } from './LandingFooter';
 import { PRESET_VIDEOS } from '../../lib/presetVideos';
@@ -19,13 +21,11 @@ interface LandingPageProps {
 }
 
 const CREATOR_ITEMS = PRESET_VIDEOS.map((p) => ({ label: p.title.replace(/^.*\(([^)]+)\)$/, '$1'), url: p.url }));
-const TOPIC_ITEMS = Array.from(new Set(PRESET_VIDEOS.map((p) => p.tag))).map((tag) => ({ label: tag }));
 
 /**
- * Marketing-style composition for the pre-session landing screen, modeled on
- * the section rhythm of a reference SaaS page (hero -> social proof ->
- * features -> CTA band -> stats -> testimonials -> social proof -> CTA ->
- * footer) but filled only with real Studify AI content.
+ * Classic hero plus sections, one action: paste a lecture link.
+ * Order: hero (+ proof) -> benefits -> tagline reveal -> how it works ->
+ * mechanics -> principles -> FAQ -> final CTA (same label as the hero) -> footer.
  */
 export const LandingPage: React.FC<LandingPageProps> = ({
   onProcess,
@@ -39,6 +39,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
   const scrollToHero = () => {
     document.getElementById('hero')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('youtube-url-input')?.focus({ preventScroll: true });
   };
 
   const handleSelectCreator = (url: string) => {
@@ -62,19 +63,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <CreatorStrip
         heading="Built for lectures like these"
         items={CREATOR_ITEMS}
-        footnote="Works with any public YouTube lecture — not just these."
+        footnote="Works with any public YouTube lecture, not just these."
         onSelect={handleSelectCreator}
       />
 
       <FeatureShowcase />
 
-      <MidCTABand onCtaClick={scrollToHero} />
+      <TaglineReveal />
+
+      <HowItWorks />
 
       <OutcomeStats />
 
       <PhilosophyQuotes />
 
-      <CreatorStrip heading="Popular topics" items={TOPIC_ITEMS} />
+      <LandingFaq />
 
       <FinalCTABand onCtaClick={scrollToHero} />
 

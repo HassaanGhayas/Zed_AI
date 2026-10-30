@@ -9,7 +9,7 @@ import { Card } from '../ui/Card';
  */
 const PRINCIPLES = [
   "Right answers aren't the goal. Being able to explain why is.",
-  "A wrong answer is information, not a dead end — it points at exactly what to re-teach.",
+  "A wrong answer is information, not a dead end. It points at exactly what to teach again.",
 ] as const;
 
 export const PhilosophyQuotes: React.FC = () => {

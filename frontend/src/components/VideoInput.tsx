@@ -1,5 +1,5 @@
 import React, { useState, useImperativeHandle, forwardRef } from 'react';
-import { ArrowRight, Loader2, BookOpen, Brain, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Logo } from './ui/Logo';
 import { SkeletonBlock, SkeletonLine } from './ui/Skeleton';
@@ -36,7 +36,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) {
-      setValidationError('Please paste a valid YouTube URL');
+      setValidationError('Paste a YouTube link to continue.');
       return;
     }
     setValidationError('');
@@ -74,20 +74,20 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
       </div>
 
       <h1
-        className="animate-in fade-in slide-in-from-bottom-2 font-display text-display font-bold tracking-tight text-ink mb-4 leading-tight"
+        className="animate-in fade-in slide-in-from-bottom-2 font-display text-display font-bold tracking-tight text-ink mb-4 leading-tight max-w-[680px] mx-auto text-balance"
         style={{ animationDuration: '500ms', animationDelay: '80ms' }}
       >
-        Any lecture on YouTube, <br className="hidden sm:inline" />
+        Remember any YouTube lecture, <br className="hidden sm:inline" />
         <span className="text-accent">
-          taught the Socratic way
+          without rewatching it
         </span>
       </h1>
 
       <p
-        className="animate-in fade-in slide-in-from-bottom-2 text-base sm:text-lg text-ink-muted max-w-2xl mx-auto mb-8 leading-relaxed"
+        className="animate-in fade-in slide-in-from-bottom-2 text-base sm:text-lg text-ink-muted max-w-[680px] mx-auto mb-8 leading-relaxed text-pretty"
         style={{ animationDuration: '500ms', animationDelay: '160ms' }}
       >
-        The video pauses at every key idea and won't let you skip ahead until you can explain it. Get it wrong, and it pinpoints exactly where your understanding broke — then asks again.
+        The video pauses at every key idea and asks you to explain it. Get it wrong and the tutor shows where your understanding broke, then asks again.
       </p>
 
       {/* Input Box */}
@@ -113,7 +113,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
             onChange={(e) => setUrl(e.target.value)}
             disabled={isLoading}
             aria-describedby={displayError ? 'youtube-url-error' : undefined}
-            placeholder="Paste any public YouTube video link..."
+            placeholder="Paste a public YouTube lecture link"
             className="flex-1 min-w-0 bg-transparent px-2 py-2.5 text-ink placeholder-ink-faint text-sm sm:text-base focus:outline-none disabled:opacity-50"
           />
           <Button
@@ -126,13 +126,17 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
               <span>Analyzing</span>
             ) : (
               <>
-                <span>Start Tutor</span>
+                <span>Quiz me on this lecture</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
           </Button>
         </div>
       </form>
+
+      <p className="text-xs text-ink-faint mb-6">
+        No account needed. Works on any public lecture with captions.
+      </p>
 
       {/* Loading Progress State */}
       {isLoading && (
@@ -176,7 +180,7 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
       {/* Preset Suggestions */}
       <div className="pt-4 border-t border-line-soft">
         <p className="text-xs font-semibold uppercase tracking-wider text-ink-faint mb-3">
-          Or try one of these educational classics:
+          Or try one of these lectures
         </p>
         <div className="flex flex-wrap justify-center gap-2">
           {PRESET_VIDEOS.map((preset, idx) => (
@@ -195,49 +199,6 @@ export const VideoInput = forwardRef<VideoInputHandle, VideoInputProps>(({
               </span>
             </button>
           ))}
-        </div>
-      </div>
-
-      {/* Feature Highlights Grid */}
-      <h2 className="sr-only">Key Learning Features</h2>
-      <div className="grid sm:grid-cols-3 gap-5 mt-14 text-left">
-        <div
-          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-lg bg-raised border border-line-soft hover:border-accent/30 hover:-translate-y-1 transition-[transform,border-color]"
-          style={{ animationDuration: '500ms', animationDelay: '320ms' }}
-        >
-          <div className="w-9 h-9 rounded-md bg-accent/10 text-accent flex items-center justify-center mb-3">
-            <BookOpen className="w-5 h-5" />
-          </div>
-          <h3 className="font-semibold text-ink text-sm mb-1">Topic-Based Segments</h3>
-          <p className="text-xs text-ink-faint leading-relaxed">
-            Long lectures are sliced into bite-sized chapters. The player automatically pauses at the boundary.
-          </p>
-        </div>
-
-        <div
-          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-lg bg-raised border border-line-soft hover:border-accent/30 hover:-translate-y-1 transition-[transform,border-color]"
-          style={{ animationDuration: '500ms', animationDelay: '390ms' }}
-        >
-          <div className="w-9 h-9 rounded-md bg-accent/10 text-accent flex items-center justify-center mb-3">
-            <Brain className="w-5 h-5" />
-          </div>
-          <h3 className="font-semibold text-ink text-sm mb-1">Misconception Diagnosis</h3>
-          <p className="text-xs text-ink-faint leading-relaxed">
-            Wrong answers aren't penalizing. AI explains what you missed, references the video, and re-asks the question.
-          </p>
-        </div>
-
-        <div
-          className="animate-in fade-in slide-in-from-bottom-4 p-5 rounded-lg bg-raised border border-line-soft hover:border-accent/30 hover:-translate-y-1 transition-[transform,border-color]"
-          style={{ animationDuration: '500ms', animationDelay: '460ms' }}
-        >
-          <div className="w-9 h-9 rounded-md bg-accent/10 text-accent flex items-center justify-center mb-3">
-            <CheckCircle className="w-5 h-5" />
-          </div>
-          <h3 className="font-semibold text-ink text-sm mb-1">Personalized PDF Notes</h3>
-          <p className="text-xs text-ink-faint leading-relaxed">
-            Download professional notes synthesized from the video merged with your own verified explanations.
-          </p>
         </div>
       </div>
     </div>

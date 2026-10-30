@@ -9,7 +9,7 @@ import { Card } from '../ui/Card';
 const STATS = [
   { value: '3–6', label: 'Chapters per lecture' },
   { value: '1–2', label: 'Recall questions per chapter' },
-  { value: '100%', label: 'Public YouTube videos supported' },
+  { value: 'PDF', label: 'Notes built from your own answers' },
 ] as const;
 
 export const OutcomeStats: React.FC = () => {

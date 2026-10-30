@@ -58,8 +58,8 @@ export const FeatureShowcase: React.FC = () => {
           </h3>
           <p className="text-ink-muted leading-relaxed">
             Every lecture is split into 3–6 topic chapters. The player pauses at each
-            boundary, and the next one stays locked until you've shown you understood
-            the current one — not just watched it.
+            boundary, and the next one stays locked until you have shown you understood
+            the current one, not just watched it.
           </p>
         </div>
       </div>
@@ -73,7 +73,7 @@ export const FeatureShowcase: React.FC = () => {
           <p className="text-ink-muted leading-relaxed">
             A wrong answer doesn't just get marked wrong. It gets evaluated against
             what the lecture actually said, pinpointed to where your understanding
-            broke, and re-asked — so the chapter unlocks because you earned it.
+            broke, and asked again, so the chapter unlocks because you earned it.
           </p>
         </div>
         <div className="animate-in fade-in slide-in-from-bottom-4" style={{ animationDuration: '500ms' }}>
@@ -88,7 +88,7 @@ export const FeatureShowcase: React.FC = () => {
                 Misconception
               </Badge>
               <Brain className="w-4 h-4 text-ink-faint" />
-              <span className="text-xs text-ink-faint">Re-asking with a hint...</span>
+              <span className="text-xs text-ink-faint">Asking again with a hint</span>
             </div>
           </Card>
         </div>
